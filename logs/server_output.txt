@@ -1,0 +1,10 @@
+﻿
+> smmplan@0.1.0 start
+> next start
+
+тЦ▓ Next.js 16.1.6
+- Local:         http://localhost:3000
+- Network:       http://198.18.0.1:3000
+
+тЬУ Starting...
+тЬУ Ready in 2.3s

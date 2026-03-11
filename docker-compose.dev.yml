@@ -1,0 +1,82 @@
+name: smmplan-dev
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps
+    container_name: smmplan-app-dev
+    ports:
+      - "127.0.0.1:3001:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    env_file: .env
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+      - DATABASE_URL=postgresql://smmuser:smmpassword@db:5432/smmplan?schema=public
+      - REDIS_URL=redis://redis:6379
+    command: npx next dev -H 0.0.0.0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  db:
+    image: public.ecr.aws/docker/library/postgres:15-alpine
+    container_name: smmplan-dev-db
+    environment:
+      - POSTGRES_USER=smmuser
+      - POSTGRES_PASSWORD=smmpassword
+      - POSTGRES_DB=smmplan
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U smmuser -d smmplan" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: public.ecr.aws/docker/library/redis:7-alpine
+    container_name: smmplan-dev-redis
+    ports:
+      - "127.0.0.1:6380:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps
+    container_name: smmplan-bot-dev
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://smmuser:smmpassword@db:5432/smmplan?schema=public
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=development
+      - SKIP_BOT=false
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run bot:dev
+
+volumes:
+  postgres_data_prod:
+    external: true
+    name: smmplan_postgres_data_prod

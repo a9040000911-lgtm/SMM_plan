@@ -1,0 +1,1111 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id                      String                   @id @default(uuid())
+  name                    String
+  slug                    String                   @unique
+  domain                  String                   @unique
+  botToken                String?                  @unique
+  botUsername             String?
+  config                  Json?
+  maintenanceMode         Boolean                  @default(false)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  brandColor              String                   @default("#3b82f6")
+  pricingRules            Json?
+  safetySettings          Json?
+  paymentSettings         Json?
+  loyaltySettings         Json?
+  isActive                Boolean                  @default(true)
+  isDripFeedDisabled      Boolean                  @default(false)
+  marketerSettings        Json?
+  markup                  Decimal?                 @db.Decimal(10, 2)
+  serviceManagementMode   ServiceManagementMode    @default(SMART_IMPORT)
+  autoMonitorings         AutoMonitoring[]
+  batchOrders             BatchOrder[]
+  bugReports              BugReport[]
+  expenses                BusinessExpense[]
+  internalServiceMappings InternalServiceMapping[]
+  ledgerEntries           LedgerEntry[]
+  legalDocuments          LegalDocument[]
+  loyaltyLogs             LoyaltyLog[]
+  managedChannels         ManagedChannel[]
+  npsSurveys              NPSSurvey[]
+  news                    News[]
+  orders                  Order[]
+  serviceOverrides        ProjectServiceOverride[]
+  promoCodes              PromoCode[]
+  providers               Provider[]
+  referralLeaderboards    ReferralLeaderboard[]
+  reviews                 Review[]
+  scheduledOrders         ScheduledOrder[]
+  serviceCategories       ServiceCategory[]
+  sessions                Session[]
+  tickets                 SupportTicket[]
+  transactions            Transaction[]
+  users                   User[]
+  staff                   User[]                   @relation("StaffProjects")
+
+  @@map("Project")
+}
+
+model AutoMonitoring {
+  id                String          @id @default(uuid())
+  projectId         String
+  userId            String
+  internalServiceId String
+  link              String
+  quantity          Int
+  postsLimit        Int
+  postsProcessed    Int             @default(0)
+  lastPostId        String?
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  delayMinutes      Int             @default(0)
+  dripInterval      Int?
+  dripRuns          Int?
+  isDripFeed        Boolean         @default(false)
+  internalService   InternalService @relation(fields: [internalServiceId], references: [id], onDelete: Cascade)
+  project           Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, isActive])
+  @@map("AutoMonitoring")
+}
+
+model ProjectServiceOverride {
+  id                 String           @id @default(uuid())
+  projectId          String
+  internalServiceId  String
+  categoryId         String?
+  customPrice        Decimal?         @db.Decimal(20, 2)
+  isActive           Boolean          @default(true)
+  customDescription  String?
+  customMaxQty       Int?
+  customMinQty       Int?
+  customName         String?
+  customRequirements String?
+  markup             Decimal?         @db.Decimal(10, 2)
+  serviceCategory    ServiceCategory? @relation(fields: [categoryId], references: [id])
+  internalService    InternalService  @relation(fields: [internalServiceId], references: [id], onDelete: Cascade)
+  project            Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, internalServiceId])
+  @@map("ProjectServiceOverride")
+}
+
+model LedgerEntry {
+  id            String          @id @default(uuid())
+  projectId     String?
+  userId        String
+  amount        Decimal         @db.Decimal(20, 2)
+  currency      Currency        @default(RUB)
+  balanceBefore Decimal         @db.Decimal(20, 2)
+  balanceAfter  Decimal         @db.Decimal(20, 2)
+  type          LedgerEntryType
+  referenceId   String?
+  description   String?
+  createdAt     DateTime        @default(now())
+  project       Project?        @relation(fields: [projectId], references: [id])
+  user          User            @relation(fields: [userId], references: [id])
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("LedgerEntry")
+}
+
+model User {
+  id                   String                @id @default(uuid())
+  tgId                 BigInt?               @unique
+  username             String?
+  balance              Decimal               @default(0.00) @db.Decimal(20, 2)
+  spent                Decimal               @default(0.00) @db.Decimal(20, 2)
+  role                 Role                  @default(USER)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  referralEarnings     Decimal               @default(0.00) @db.Decimal(20, 2)
+  referrerId           String?
+  hasUsedFreeTest      Boolean               @default(false)
+  allowedTabs          String[]              @default([])
+  banExpiresAt         DateTime?
+  currency             Currency              @default(RUB)
+  deletedAt            DateTime?
+  earlyBirdRank        Int?
+  email                String?               @unique
+  isEarlyBird          Boolean               @default(false)
+  isGlobalAdmin        Boolean               @default(false)
+  isPermanentlyBanned  Boolean               @default(false)
+  lastActionAt         DateTime?
+  lastNotificationAt   DateTime?
+  moderationNote       String?
+  password             String?
+  projectId            String?
+  reviewRewardUsed     Boolean               @default(false)
+  supportNotes         String?
+  twoFactorCode        String?
+  twoFactorExpires     DateTime?
+  warningCount         Int                   @default(0)
+  apiKey               String?               @unique
+  referralCode         String                @unique @default(uuid())
+  permissions          String[]              @default([])
+  referralPercent      Int                   @default(0)
+  resetPasswordCode    String?
+  resetPasswordExpires DateTime?
+  telegramContact      String?
+  twoFactorEnabled     Boolean               @default(false)
+  whatsapp             String?
+  achievements         Achievement[]
+  autoMonitorings      AutoMonitoring[]
+  batchOrders          BatchOrder[]
+  bugReports           BugReport[]
+  challenges           Challenge[]
+  ledgerEntries        LedgerEntry[]
+  loyaltyLogs          LoyaltyLog[]
+  managedChannels      ManagedChannel[]
+  npsSurveys           NPSSurvey[]
+  orders               Order[]
+  referralLeaderboards ReferralLeaderboard[]
+  reviews              Review[]
+  scheduledOrders      ScheduledOrder[]
+  tickets              SupportTicket[]       @relation("UserTickets")
+  verifiedTickets      SupportTicket[]       @relation("VerifiedTickets")
+  transactions         Transaction[]
+  project              Project?              @relation(fields: [projectId], references: [id])
+  referrer             User?                 @relation("UserReferrals", fields: [referrerId], references: [id])
+  referrals            User[]                @relation("UserReferrals")
+  userPromos           UserPromo[]
+  accessibleProjects   Project[]             @relation("StaffProjects")
+
+  @@unique([projectId, earlyBirdRank])
+  @@map("User")
+}
+
+model SupportTicket {
+  id             String           @id @default(uuid())
+  projectId      String?
+  userId         String
+  subject        String
+  status         TicketStatus     @default(OPEN)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  isVerified     Boolean          @default(false)
+  verifiedEmail  String?
+  verifiedUserId String?
+  orderId        Int?
+  messages       SupportMessage[]
+  order          Order?           @relation(fields: [orderId], references: [id])
+  project        Project?         @relation(fields: [projectId], references: [id])
+  user           User             @relation("UserTickets", fields: [userId], references: [id])
+  verifiedUser   User?            @relation("VerifiedTickets", fields: [verifiedUserId], references: [id])
+
+  @@index([verifiedUserId])
+  @@index([orderId])
+  @@index([verifiedEmail])
+  @@map("SupportTicket")
+}
+
+model SupportMessage {
+  id            String        @id @default(uuid())
+  ticketId      String
+  sender        MessageSender
+  text          String
+  createdAt     DateTime      @default(now())
+  imageUrl      String?
+  voiceUrl      String?
+  staffUsername String?
+  fileUrl       String?
+  videoUrl      String?
+  ticket        SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("SupportMessage")
+}
+
+model SupportTemplate {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("SupportTemplate")
+}
+
+model SupportMacro {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  text        String
+  actions     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("SupportMacro")
+}
+
+model BusinessExpense {
+  id          String          @id @default(uuid())
+  projectId   String?
+  category    ExpenseCategory
+  amount      Decimal         @db.Decimal(20, 2)
+  description String?
+  date        DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  project     Project?        @relation(fields: [projectId], references: [id])
+
+  @@index([projectId])
+  @@map("BusinessExpense")
+}
+
+model ServiceCategory {
+  id               String                   @id @default(uuid())
+  name             String
+  slug             String?
+  description      String?
+  icon             String?
+  platform         Platform
+  categoryType     Category                 @default(OTHER)
+  targetType       String                   @default("POST")
+  priority         Int                      @default(0)
+  projectId        String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  socialPlatformId String?
+  isActive         Boolean                  @default(true)
+  internalServices InternalService[]
+  projectOverrides ProjectServiceOverride[]
+  project          Project?                 @relation(fields: [projectId], references: [id])
+  socialPlatform   SocialPlatform?          @relation(fields: [socialPlatformId], references: [id])
+
+  @@unique([projectId, socialPlatformId, slug])
+  @@unique([projectId, platform, name])
+  @@index([projectId])
+}
+
+model SocialPlatform {
+  id                String            @id @default(uuid())
+  slug              String            @unique
+  name              String
+  nameRu            String?
+  keywords          String[]
+  icon              String?
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  internalServices  InternalService[]
+  providerServices  ProviderService[]
+  serviceCategories ServiceCategory[]
+
+  @@map("SocialPlatform")
+}
+
+model ManagedChannel {
+  id          String           @id @default(uuid())
+  projectId   String?
+  userId      String
+  chatId      BigInt           @unique
+  username    String?
+  title       String?
+  isActive    Boolean          @default(true)
+  permissions Json?            @default("{}")
+  serviceId   String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  project     Project?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  service     InternalService? @relation("ChannelService", fields: [serviceId], references: [id])
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders      Order[]
+
+  @@unique([projectId, chatId])
+  @@index([chatId])
+  @@index([userId])
+  @@map("ManagedChannel")
+}
+
+model Order {
+  userId              String
+  internalServiceId   String
+  externalId          String?           @unique
+  link                String
+  quantity            Int
+  totalPrice          Decimal           @db.Decimal(20, 2)
+  status              OrderStatus       @default(PENDING)
+  remains             Int               @default(0)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  inviteLink          String?
+  discountAmount      Decimal?          @db.Decimal(20, 2)
+  promoCodeId         String?
+  currentRun          Int               @default(0)
+  interval            Int               @default(0)
+  isDripFeed          Boolean           @default(false)
+  nextRunAt           DateTime?
+  runs                Int               @default(1)
+  providerRawResponse Json?
+  providerName        String?
+  comments            String?
+  costPrice           Decimal?          @db.Decimal(20, 4)
+  refundedAmount      Decimal           @default(0.00) @db.Decimal(20, 2)
+  batchOrderId        String?
+  projectId           String?
+  currentCount        Int?
+  initialCount        Int?
+  lastCheckedAt       DateTime?
+  warrantyDays        Int?
+  managedChannelId    String?
+  id                  Int               @id @default(autoincrement())
+  parentId            Int?
+  isManual            Boolean           @default(false)
+  metadata            Json?
+  churnPredictions    ChurnPrediction[]
+  churnSnapshots      ChurnSnapshot[]
+  npsSurveys          NPSSurvey[]
+  batchOrder          BatchOrder?       @relation(fields: [batchOrderId], references: [id])
+  internalService     InternalService   @relation(fields: [internalServiceId], references: [id])
+  managedChannel      ManagedChannel?   @relation(fields: [managedChannelId], references: [id])
+  parent              Order?            @relation("OrderHierarchy", fields: [parentId], references: [id])
+  subOrders           Order[]           @relation("OrderHierarchy")
+  project             Project?          @relation(fields: [projectId], references: [id])
+  promoCode           PromoCode?        @relation(fields: [promoCodeId], references: [id])
+  user                User              @relation(fields: [userId], references: [id])
+  reviews             Review[]
+  supportTickets      SupportTicket[]
+  transactions        Transaction[]
+
+  @@map("Order")
+}
+
+model BatchOrder {
+  id          String   @id @default(uuid())
+  projectId   String?
+  userId      String
+  totalAmount Decimal  @db.Decimal(20, 2)
+  orderCount  Int
+  status      String   @default("COMPLETED")
+  createdAt   DateTime @default(now())
+  project     Project? @relation(fields: [projectId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+  orders      Order[]
+
+  @@map("BatchOrder")
+}
+
+model PromoCode {
+  id              String      @id @default(uuid())
+  code            String
+  discountPercent Int
+  description     String?
+  isActive        Boolean     @default(true)
+  projectId       String?
+  orders          Order[]
+  project         Project?    @relation(fields: [projectId], references: [id])
+  userPromos      UserPromo[]
+
+  @@unique([projectId, code])
+  @@map("PromoCode")
+}
+
+model UserPromo {
+  id          String    @id @default(uuid())
+  userId      String
+  promoCodeId String
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, promoCodeId])
+  @@map("UserPromo")
+}
+
+model InternalService {
+  id                       String                   @id
+  platform                 Platform
+  category                 Category
+  name                     String
+  description              String
+  geo                      String
+  pricePer1000             Decimal                  @db.Decimal(20, 2)
+  minQty                   Int
+  maxQty                   Int
+  isActive                 Boolean                  @default(true)
+  rating                   Float                    @default(5.0)
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+  priceUnit                Int                      @default(1000)
+  unitName                 String                   @default("шт.")
+  avgCompletionTime        Int                      @default(0)
+  lastProviderPrice        Decimal?                 @db.Decimal(20, 4)
+  statusCount              Json?
+  successRate              Float                    @default(100.0)
+  isPrivate                Boolean                  @default(false)
+  targetType               String                   @default("POST")
+  avgDropRate              Float                    @default(0.0)
+  guaranteeDays            Int                      @default(30)
+  isCurated                Boolean                  @default(false)
+  metadata                 Json?
+  requirements             String?
+  slug                     String?                  @unique
+  isDripFeedDisabled       Boolean                  @default(false)
+  marketPrice              Decimal?                 @db.Decimal(20, 2)
+  markup                   Decimal?                 @db.Decimal(10, 2)
+  numericId                Int                      @unique @default(autoincrement())
+  providerCurrencyOriginal String?
+  providerPriceOriginal    Decimal?                 @db.Decimal(20, 6)
+  type                     ServiceType              @default(REGULAR)
+  categoryId               String?
+  socialPlatformId         String?
+  allowedTargetTypes       String[]                 @default([])
+  autoMonitorings          AutoMonitoring[]
+  serviceCategory          ServiceCategory?         @relation(fields: [categoryId], references: [id])
+  socialPlatform           SocialPlatform?          @relation(fields: [socialPlatformId], references: [id])
+  providerMappings         InternalServiceMapping[]
+  managedChannels          ManagedChannel[]         @relation("ChannelService")
+  orders                   Order[]
+  projectOverrides         ProjectServiceOverride[]
+  scheduledOrders          ScheduledOrder[]
+  changeLogs               ServiceChangeLog[]
+
+  @@map("InternalService")
+}
+
+model ServiceChangeLog {
+  id                String          @id @default(uuid())
+  internalServiceId String
+  type              String
+  oldValue          String?
+  newValue          String?
+  reason            String?
+  createdAt         DateTime        @default(now())
+  internalService   InternalService @relation(fields: [internalServiceId], references: [id], onDelete: Cascade)
+
+  @@map("ServiceChangeLog")
+}
+
+model InternalServiceMapping {
+  id                String          @id @default(uuid())
+  internalServiceId String
+  providerServiceId String
+  priority          Int             @default(1)
+  reliability       Float           @default(100.0)
+  speedRating       Float           @default(5.0)
+  isActive          Boolean         @default(true)
+  providerId        String
+  projectId         String?
+  internalService   InternalService @relation(fields: [internalServiceId], references: [id], onDelete: Cascade)
+  project           Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  provider          Provider        @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  providerService   ProviderService @relation(fields: [providerServiceId], references: [id])
+
+  @@unique([projectId, internalServiceId, providerId])
+  @@map("InternalServiceMapping")
+}
+
+model ProviderService {
+  id                  String                   @id @default(uuid())
+  externalId          String
+  name                String
+  rawPrice            Decimal                  @db.Decimal(20, 4)
+  rawData             Json
+  category            Category                 @default(OTHER)
+  isIgnored           Boolean                  @default(false)
+  platform            Platform                 @default(OTHER)
+  providerId          String
+  socialPlatformId    String?
+  description         String?
+  rawCurrencyOriginal Currency?
+  rawPriceOriginal    Decimal?                 @db.Decimal(20, 4)
+  dataHash            String                   @db.VarChar(32)
+  isActive            Boolean                  @default(true)
+  lastSeenAt          DateTime                 @default(now())
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  mappings            InternalServiceMapping[]
+  provider            Provider                 @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  socialPlatform      SocialPlatform?          @relation(fields: [socialPlatformId], references: [id])
+
+  @@unique([providerId, externalId])
+  @@index([providerId])
+  @@index([dataHash])
+  @@map("ProviderService")
+}
+
+model Provider {
+  id                 String                   @id @default(uuid())
+  name               String                   @unique
+  apiKey             String
+  apiUrl             String
+  isEnabled          Boolean                  @default(true)
+  balanceThreshold   Decimal                  @default(1000.00) @db.Decimal(20, 2)
+  metadata           Json?
+  isDripFeedDisabled Boolean                  @default(false)
+  pricesCurrency     Currency                 @default(USD)
+  projectId          String?
+  balanceCurrency    Currency                 @default(USD)
+  type               String                   @default("universal")
+  hasNativeDripFeed  Boolean                  @default(false)
+  syncLock           Boolean                  @default(false)
+  mappings           InternalServiceMapping[]
+  project            Project?                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  balanceLogs        ProviderBalanceLog[]
+  payments           ProviderPayment[]
+  services           ProviderService[]
+
+  @@unique([projectId, name])
+  @@map("Provider")
+}
+
+model Transaction {
+  id         String            @id @default(uuid())
+  userId     String
+  amount     Decimal           @db.Decimal(20, 2)
+  type       TransactionType
+  provider   String
+  externalId String?           @unique
+  status     TransactionStatus @default(PENDING)
+  createdAt  DateTime          @default(now())
+  metadata   Json?
+  currency   Currency          @default(RUB)
+  projectId  String?
+  updatedAt  DateTime          @updatedAt
+  orderId    Int?
+  order      Order?            @relation(fields: [orderId], references: [id])
+  project    Project?          @relation(fields: [projectId], references: [id])
+  user       User              @relation(fields: [userId], references: [id])
+
+  @@index([projectId])
+  @@map("Transaction")
+}
+
+model ProviderLog {
+  id        Int      @id @default(autoincrement())
+  serviceId Int
+  eventType String
+  oldValue  String?
+  newValue  String?
+  createdAt DateTime @default(now())
+
+  @@map("ProviderLog")
+}
+
+model ProviderBalanceLog {
+  id         String   @id @default(uuid())
+  balance    Decimal  @db.Decimal(20, 2)
+  createdAt  DateTime @default(now())
+  providerId String
+  currency   Currency @default(USD)
+  provider   Provider @relation(fields: [providerId], references: [id])
+
+  @@map("ProviderBalanceLog")
+}
+
+model Settings {
+  key       String
+  value     String
+  id        String  @id @default(uuid())
+  projectId String?
+
+  @@unique([projectId, key])
+  @@map("Settings")
+}
+
+model News {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  imageUrl  String?
+  isSent    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  @@map("News")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    BigInt
+  data      Json
+  updatedAt DateTime @updatedAt
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  @@unique([projectId, userId])
+  @@map("Session")
+}
+
+model AdminLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  action    String
+  targetId  String?
+  details   String
+  createdAt DateTime @default(now())
+
+  @@map("AdminLog")
+}
+
+model LoyaltyLog {
+  id        String   @id @default(uuid())
+  userId    String
+  projectId String?
+  trigger   String
+  reward    String
+  value     Decimal  @db.Decimal(20, 2)
+  createdAt DateTime @default(now())
+  project   Project? @relation(fields: [projectId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, trigger])
+  @@index([projectId, createdAt])
+}
+
+model CurrencyRate {
+  code      Currency @id
+  rate      Decimal  @db.Decimal(20, 6)
+  updatedAt DateTime @updatedAt
+
+  @@map("CurrencyRate")
+}
+
+model LegalDocument {
+  id        String   @id @default(uuid())
+  projectId String
+  slug      String
+  title     String
+  content   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, slug])
+  @@map("LegalDocument")
+}
+
+model BugReport {
+  id               String      @id @default(cuid())
+  userId           String?
+  projectId        String
+  title            String
+  description      String
+  severity         BugSeverity @default(MINOR)
+  status           BugStatus   @default(PENDING)
+  screenshotUrl    String?
+  stepsToReproduce String?
+  rewardAmount     Decimal     @default(0) @db.Decimal(10, 2)
+  rewardPaid       Boolean     @default(false)
+  adminNotes       String?
+  reviewedBy       String?
+  reviewedAt       DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  project          Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user             User?       @relation(fields: [userId], references: [id])
+
+  @@index([projectId])
+  @@index([status])
+}
+
+model Review {
+  id            String       @id @default(cuid())
+  userId        String?
+  projectId     String
+  rating        Int
+  text          String?
+  isAnonymous   Boolean      @default(false)
+  status        ReviewStatus @default(PENDING)
+  moderatedBy   String?
+  moderatedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  qualityScore  String?      @default("MEDIUM")
+  rewardAmount  Decimal?     @db.Decimal(10, 2)
+  rewardClaimed Boolean      @default(false)
+  userName      String?
+  userRole      String?
+  avatarUrl     String?
+  orderId       Int?
+  order         Order?       @relation(fields: [orderId], references: [id])
+  project       Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user          User?        @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([status])
+  @@index([rating])
+  @@index([qualityScore])
+}
+
+model Achievement {
+  id         String          @id @default(uuid())
+  userId     String
+  type       AchievementType
+  unlockedAt DateTime        @default(now())
+  claimed    Boolean         @default(false)
+  claimedAt  DateTime?
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@index([userId])
+  @@index([type])
+  @@map("Achievement")
+}
+
+model Challenge {
+  id          String        @id @default(uuid())
+  userId      String
+  type        ChallengeType
+  progress    Int           @default(0)
+  target      Int
+  expiresAt   DateTime?
+  completed   Boolean       @default(false)
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completed])
+  @@index([expiresAt])
+}
+
+model ChurnSnapshot {
+  id              String   @id @default(uuid())
+  snapshotDate    DateTime @default(now())
+  subscriberCount Int
+  daysElapsed     Int
+  dropoffRate     Decimal  @db.Decimal(5, 2)
+  orderId         Int
+  metadata        Json?
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, snapshotDate])
+  @@index([snapshotDate])
+  @@map("ChurnSnapshot")
+}
+
+model ChurnPrediction {
+  id                String   @id @default(uuid())
+  createdAt         DateTime @default(now())
+  predictedChurn    Decimal  @db.Decimal(5, 2)
+  confidenceScore   Decimal  @db.Decimal(3, 2)
+  recommendedAction String?
+  notificationSent  Boolean  @default(false)
+  orderId           Int
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@index([recommendedAction])
+  @@map("ChurnPrediction")
+}
+
+model NPSSurvey {
+  id        String   @id @default(uuid())
+  userId    String
+  projectId String?
+  score     Int
+  comment   String?
+  createdAt DateTime @default(now())
+  orderId   Int?
+  order     Order?   @relation(fields: [orderId], references: [id])
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([score])
+  @@index([createdAt])
+  @@map("NPSSurvey")
+}
+
+model ReferralLeaderboard {
+  id            String   @id @default(uuid())
+  userId        String
+  projectId     String?
+  month         DateTime
+  referralCount Int      @default(0)
+  revenue       Decimal  @default(0) @db.Decimal(10, 2)
+  rank          Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  project       Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
+  @@index([month, rank])
+  @@index([projectId, month])
+  @@map("ReferralLeaderboard")
+}
+
+model ScheduledOrder {
+  id             String          @id @default(cuid())
+  userId         String
+  serviceId      String
+  projectId      String?
+  link           String
+  quantity       Int
+  totalPrice     Decimal?        @db.Decimal(20, 2)
+  costPrice      Decimal?        @db.Decimal(20, 4)
+  scheduleTime   DateTime
+  repeatInterval Int?
+  status         String          @default("PENDING")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  project        Project?        @relation(fields: [projectId], references: [id])
+  service        InternalService @relation(fields: [serviceId], references: [id])
+  user           User            @relation(fields: [userId], references: [id])
+
+  @@map("ScheduledOrder")
+}
+
+model ProviderPayment {
+  id          String              @id @default(uuid())
+  providerId  String
+  amount      Decimal             @db.Decimal(20, 2)
+  type        ProviderPaymentType
+  description String?
+  createdBy   String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  provider    Provider            @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@map("ProviderPayment")
+}
+
+model GlobalSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("GlobalSetting")
+}
+
+enum LedgerEntryType {
+  DEPOSIT
+  WITHDRAWAL
+  REFUND
+  REFERRAL_BONUS
+  LOYALTY_BONUS
+  MANUAL_ADJUSTMENT
+}
+
+enum BusinessExpenseType {
+  ADVERTISING
+  SALARIES
+  INFRASTRUCTURE
+  SERVICES
+  OTHER
+}
+
+enum ExpenseCategory {
+  SALARY
+  MARKETING
+  SEO
+  ADS
+  TAX
+  SERVER
+  OFFICE
+  OTHER
+}
+
+enum Role {
+  USER
+  ADMIN
+  RESELLER
+  SUPPORT
+  SEO
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  PARTIAL
+  CANCELED
+  AWAITING_PAYMENT
+  IN_PROGRESS
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  COMPLETED
+  ERROR
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAW
+  REFUND
+  WITHDRAWAL
+  ORDER_PAYMENT
+  NEW_ORDER
+  ORDER_STATUS_CHANGE
+}
+
+enum TicketStatus {
+  OPEN
+  PENDING
+  CLOSED
+}
+
+enum MessageSender {
+  USER
+  STAFF
+  SYSTEM
+  INTERNAL
+}
+
+enum ServiceManagementMode {
+  MANUAL
+  SMART_IMPORT
+}
+
+enum Platform {
+  TELEGRAM
+  INSTAGRAM
+  VK
+  TIKTOK
+  YOUTUBE
+  FACEBOOK
+  TWITTER
+  OTHER
+  DISCORD
+  THREADS
+  REDDIT
+  TWITCH
+  KICK
+  RUTUBE
+  DZEN
+  MUSIC
+  OK
+  LIKEE
+  WHATSAPP
+  SPOTIFY
+  SOUNDCLOUD
+  LINKEDIN
+  PINTEREST
+  SNAPCHAT
+  TROVO
+  KWAI
+  MESSENGER_MAX
+  GOOGLE
+  APPLE
+  YANDEX
+  STEAM
+  RUMBLE
+  TUMBLR
+  VIMEO
+  SHAZAM
+  QUORA
+  MEDIUM
+  WEBSITE
+  PERISCOPE
+  CLOUDHUB
+  AUDIOMACK
+  DATPIFF
+  MAX
+}
+
+enum Currency {
+  RUB
+  USD
+  EUR
+  KZT
+  UAH
+  TRY
+  IDR
+  INR
+  THB
+  VND
+}
+
+enum Category {
+  SUBSCRIBERS
+  LIKES
+  VIEWS
+  REACTIONS
+  REPOSTS
+  COMMENTS
+  OTHER
+  BOOSTS
+  POLLS
+  STORIES
+  BOTS
+  REFERRALS
+  FRIENDS
+  PLAYS
+  RECOVER
+  PREMIUM
+  TRAFFIC
+  DISLIKES
+  GROUPS
+  STREAMS
+  WATCH_TIME
+  SAVES
+  STARS
+}
+
+enum BugSeverity {
+  MINOR
+  MAJOR
+  CRITICAL
+}
+
+enum BugStatus {
+  PENDING
+  REVIEWING
+  ACCEPTED
+  REJECTED
+  DUPLICATE
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AchievementType {
+  FIRST_BLOOD
+  HOT_STREAK
+  REFERRAL_KING
+  SPEED_DEMON
+  BULLSEYE
+  PIONEER_LEGEND
+  BIG_SPENDER
+  LOYAL_CUSTOMER
+  EARLY_ADOPTER
+  SOCIAL_BUTTERFLY
+}
+
+enum ChallengeType {
+  TRIPLE_THREAT
+  SOCIAL_SHARE
+  EARLY_BIRD
+  WEEKEND_WARRIOR
+  SPENDING_SPREE
+}
+
+enum ServiceType {
+  REGULAR
+  BUNDLE
+}
+
+enum ProviderPaymentType {
+  TOPUP
+  REFUND
+  ADJUSTMENT
+}

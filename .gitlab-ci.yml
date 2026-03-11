@@ -1,0 +1,16 @@
+stages:
+  - deploy
+
+deploy-production:
+  stage: deploy
+  tags:
+    - smmplan-shell
+  only:
+    - main
+  script:
+    - echo "Deploying to production server..."
+    - chmod +x scripts/migrate-server.sh
+    - ./scripts/migrate-server.sh
+  environment:
+    name: production
+    url: http://$SERVER_IP

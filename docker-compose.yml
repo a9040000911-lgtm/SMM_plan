@@ -1,0 +1,98 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps
+    container_name: smmplan-app
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://smmuser:smmpassword@db:5432/smmplan?schema=public
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=development
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: npx next dev -H 0.0.0.0
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 1G
+
+  db:
+    image: public.ecr.aws/docker/library/postgres:15-alpine
+    container_name: smmplan-db
+    environment:
+      - POSTGRES_USER=smmuser
+      - POSTGRES_PASSWORD=smmpassword
+      - POSTGRES_DB=smmplanRfr
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U smmuser -d smmplan" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M
+
+  redis:
+    image: public.ecr.aws/docker/library/redis:7-alpine
+    container_name: smmplan-redis
+    ports:
+      - "127.0.0.1:6380:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://smmuser:smmpassword@db:5432/smmplan?schema=public
+      - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SKIP_BOT=false
+      - NODE_ENV=development
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run bot:dev
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M
+
+volumes:
+  postgres_data:

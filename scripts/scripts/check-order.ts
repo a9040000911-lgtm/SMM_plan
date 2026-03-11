@@ -1,0 +1,1 @@
+import { prisma } from '../src/lib/prisma'; async function run() { const order = await prisma.order.findFirst({ where: { user: { email: 'infosokoloff@yandex.ru' } }, orderBy: { createdAt: 'desc' }, select: { id: true, status: true, providerRawResponse: true, createdAt: true } }); console.log(JSON.stringify(order, null, 2)); } run();

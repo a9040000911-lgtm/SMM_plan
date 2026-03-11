@@ -1,0 +1,1 @@
+import { prisma } from '../src/lib/prisma'; async function run() { console.time('DB Query'); await prisma.project.findMany(); console.timeEnd('DB Query'); } run();

@@ -1,0 +1,40 @@
+/**
+ * (c) 2024-2026 Smmplan. All rights reserved.
+ * Created by Artem (http://artmspektr.ru)
+ * Unauthorized copying of this file is strictly prohibited.
+ */
+
+import { Telegraf } from 'telegraf';
+import { ConfigService } from './config.service';
+
+const TOKEN = ConfigService.getSystemConfig().defaultBotToken;
+const shouldSkip = process.env.SKIP_BOT === 'true';
+
+// Создаем инстанс бота один раз (Singleton)
+const globalForBot = global as unknown as {
+    bot: Telegraf | null,
+    botRegistry: Map<string, Telegraf>
+};
+
+if (!globalForBot.botRegistry) {
+    globalForBot.botRegistry = new Map();
+}
+
+export const bot: Telegraf = (globalForBot.bot || (shouldSkip ? null : new Telegraf(TOKEN || 'dummy_token'))) as Telegraf;
+
+/**
+ * Реестр запущенных инстансов ботов для разных проектов
+ */
+export const BotRegistry = {
+    register(projectId: string, instance: Telegraf) {
+        globalForBot.botRegistry.set(projectId, instance);
+    },
+    get(projectId?: string | null): Telegraf {
+        if (!projectId) return bot;
+        return globalForBot.botRegistry.get(projectId) || bot;
+    }
+};
+
+if (process.env.NODE_ENV !== 'production' && !shouldSkip) globalForBot.bot = bot;
+
+export default bot;

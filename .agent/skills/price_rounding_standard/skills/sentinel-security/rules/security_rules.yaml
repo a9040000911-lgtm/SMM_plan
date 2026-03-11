@@ -1,0 +1,50 @@
+rules:
+  - id: prisma-sqli-raw-query
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $PRISMA.$queryRaw(`...${$VAR}...`)
+          - pattern: |
+              $PRISMA.$executeRaw(`...${$VAR}...`)
+          - pattern: |
+              $PRISMA.$queryRawUnsafe(...)
+          - pattern: |
+              $PRISMA.$executeRawUnsafe(...)
+    message: "Потенциальная SQL-инъекция! Избегайте интерполяции строк в сырых запросах Prisma. Используйте параметризованные запросы (шаблонные теги) или Prisma Client методы."
+    languages: [typescript, javascript]
+    severity: ERROR
+
+  - id: dangerous-next-js-redirect
+    patterns:
+      - pattern: redirect($URL)
+      - pattern-not: redirect("/" + ...)
+      - pattern-not: redirect(process.env.APP_URL + ...)
+    message: "Open Redirect vulnerability. Ensure the redirect URL is validated or restricted to internal paths."
+    languages: [typescript, javascript]
+    severity: WARNING
+
+  - id: hardcoded-secrets-generic
+    patterns:
+      - pattern-either:
+          - pattern: const $K = "..."
+          - pattern: let $K = "..."
+          - pattern: var $K = "..."
+      - metavariable-regex:
+          metavariable: $K
+          regex: (?i)(api_key|secret_key|app_secret|private_key|auth_token)
+    message: "Обнаружен потенциальный хардкод секрета в коде. Используйте переменные окружения (.env)."
+    languages: [typescript, javascript]
+    severity: ERROR
+
+  - id: missing-security-headers
+    patterns:
+      - pattern: |
+          NextResponse.next({
+            ...
+          })
+      - pattern-not-inside: |
+          response.headers.set('X-Frame-Options', ...)
+          ...
+    message: "Проверьте наличие заголовков безопасности (CSP, Frame-Options) в ответе."
+    languages: [typescript, javascript]
+    severity: INFO

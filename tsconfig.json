@@ -1,0 +1,90 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@/generated/client": [
+        "./node_modules/.prisma/client"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    ".next-corporate/types/**/*.ts",
+    ".next-corporate/dev/types/**/*.ts",
+    ".next-corp-slate/types/**/*.ts",
+    ".next-corp-slate/dev/types/**/*.ts",
+    ".next-corp-crimson/types/**/*.ts",
+    ".next-corp-crimson/dev/types/**/*.ts",
+    ".next-corp-emerald/types/**/*.ts",
+    ".next-corp-emerald/dev/types/**/*.ts",
+    ".next-corp-indigo/types/**/*.ts",
+    ".next-corp-indigo/dev/types/**/*.ts",
+    ".next-corp-violet/types/**/*.ts",
+    ".next-corp-violet/dev/types/**/*.ts",
+    ".next-cyber-gold/types/**/*.ts",
+    ".next-cyber-gold/dev/types/**/*.ts",
+    ".next-corp-amber/types/**/*.ts",
+    ".next-corp-amber/dev/types/**/*.ts",
+    ".next-cyber-zenith/types/**/*.ts",
+    ".next-cyber-zenith/dev/types/**/*.ts",
+    ".next-corp-rose/types/**/*.ts",
+    ".next-corp-rose/dev/types/**/*.ts",
+    ".next-cyber-redstone/types/**/*.ts",
+    ".next-cyber-redstone/dev/types/**/*.ts",
+    ".next-cyber-void/types/**/*.ts",
+    ".next-cyber-void/dev/types/**/*.ts",
+    ".next-corp-cyan/types/**/*.ts",
+    ".next-corp-cyan/dev/types/**/*.ts",
+    ".next-cyber-cobalt/types/**/*.ts",
+    ".next-cyber-cobalt/dev/types/**/*.ts",
+    ".next-cyber-mint/types/**/*.ts",
+    ".next-cyber-mint/dev/types/**/*.ts",
+    ".next-light-mono/types/**/*.ts",
+    ".next-light-mono/dev/types/**/*.ts",
+    ".next-light-sunset/types/**/*.ts",
+    ".next-light-sunset/dev/types/**/*.ts",
+    ".next-cyber-neon/types/**/*.ts",
+    ".next-cyber-neon/dev/types/**/*.ts",
+    ".next-cyber-plasma/types/**/*.ts",
+    ".next-cyber-plasma/dev/types/**/*.ts",
+    ".next-light-lavender/types/**/*.ts",
+    ".next-light-lavender/dev/types/**/*.ts",
+    ".next-light-soft/types/**/*.ts",
+    ".next-light-soft/dev/types/**/*.ts",
+    ".next-light-forest/types/**/*.ts",
+    ".next-light-forest/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "scripts",
+    "_trash"
+  ]
+}

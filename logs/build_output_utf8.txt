@@ -1,0 +1,61 @@
+﻿
+> smmplan@0.1.0 build
+> next build
+
+   тЦ▓ Next.js 15.1.0
+   - Environments: .env
+
+   Creating an optimized production build ...
+node.exe :  тЪа Compiled with warnings
+D:\npm-global\npm.ps1:24 знак:5
++     & "node$exe"  "$basedir/node_modules/npm/bin/npm-c
+li.js" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( тЪа Compi 
+   led with warnings:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./node_modules/bullmq/dist/esm/classes/child-processor.j
+s
+Critical dependency: the request of a dependency is an e
+xpression
+
+Import trace for requested module:
+./node_modules/bullmq/dist/esm/classes/child-processor.j
+s
+./node_modules/bullmq/dist/esm/classes/index.js
+./node_modules/bullmq/dist/esm/index.js
+./src/lib/queues.ts
+./src/services/orders/drip-feed.service.ts
+./src/services/orders/index.ts
+./src/app/api/tma/orders/mass/route.ts
+
+   Linting and checking validity of types ...
+Failed to compile.
+
+./scripts/check-failover-configs.ts:29:78
+Type error: Property 'providerName' does not exist on ty
+pe '{ id: string; internalServiceId: string; isActive: b
+oolean; providerId: string; providerServiceId: number; p
+riority: number; reliability: number; speedRating: numbe
+r; }'.
+
+[0m [90m 27 |[39m       console[33m.[39mlog([32m`Ё
+ЯУж ╨г╤Б╨╗╤Г╨│╨░: ${s.name} (ID: ${s.id})`[39m)[33m;[
+39m[0m
+[0m [90m 28 |[39m       s[33m.[39mproviderMappings
+[33m.[39mforEach((m[33m,[39m idx) [33m=>[39m {[0m
+[0m[31m[1m>[22m[39m[90m 29 |[39m         console
+[33m.[39mlog([32m`   ${idx + 1}. [╨Я╤А╨╕╨╛╤А╨╕╤В╨╡╤В $
+{m.priority}] ╨Я╤А╨╛╨▓╨░╨╣╨┤╨╡╤А: ${m.providerName} (Ser
+vice ID: ${m.providerServiceId})`[39m)[33m;[39m[0m
+[0m [90m    |[39m                                    
+                                          [31m[1m^[22
+m[39m[0m
+[0m [90m 30 |[39m       })[33m;[39m[0m
+[0m [90m 31 |[39m       console[33m.[39mlog([32m'-
+-----------------------------------------'[39m)[33m;[
+39m[0m
+[0m [90m 32 |[39m     })[33m;[39m[0m

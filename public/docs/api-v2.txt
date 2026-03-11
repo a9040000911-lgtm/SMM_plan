@@ -1,0 +1,66 @@
+SMMPLAN API V2 DOCUMENTATION (2026)
+=====================================
+
+ENDPOINT: https://smmplan.ru/api/v2
+METHOD: POST
+FORMAT: JSON
+
+1. GET SERVICES LIST
+------------------
+Action: services
+Parameters:
+  - key: Your API Key (Required)
+  - action: "services" (Required)
+
+Example Response:
+[
+  {
+    "service": 100,
+    "name": "Followers",
+    "type": "Default",
+    "category": "Instagram",
+    "rate": "55.20",
+    "min": "100",
+    "max": "10000"
+  },
+  ...
+]
+
+2. ADD ORDER
+------------
+Action: add
+Parameters:
+  - key: Your API Key (Required)
+  - action: "add" (Required)
+  - service: Service ID (Required)
+  - link: Link to page/post (Required)
+  - quantity: Amount (Required)
+  - runs: Times to run (Drip-feed only)
+  - interval: Minutes between runs (Drip-feed only)
+
+Example Response:
+{
+  "order": 12345
+}
+
+3. ORDER STATUS
+---------------
+Action: status
+Parameters:
+  - key: Your API Key (Required)
+  - action: "status" (Required)
+  - order: Order ID (Required)
+
+Example Response:
+{
+  "charge": "0.2785",
+  "start_count": "3570",
+  "status": "Partial",
+  "remains": "157",
+  "currency": "RUB"
+}
+
+SECURITY NOTE:
+Do not share your API Key. If compromised, revoke it immediately in your dashboard.
+
+(c) 2026 Smmplan.ru

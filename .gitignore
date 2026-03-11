@@ -1,0 +1,54 @@
+node_modules
+.next
+.DS_Store
+*.log
+dist
+build
+.env*
+!.env.example
+
+# Generated
+src/generated
+/coverage
+
+# Temporary files & Trash
+_trash/
+tmp/
+*.log
+*.mjs.map
+*.js.map
+*.tsbuildinfo
+
+# Docker images and archives
+*.tar
+*.tar.gz
+*.zip
+
+# Local Data & Logs in root
+vexboost.json
+vexboost_services.json
+analyze_vexboost.js
+replace.js
+test-error.js
+npro-*.json
+*.txt
+!README.md
+!README_TESTS.md
+!LICENSE.md
+!GPG_PUBLIC_KEY.txt
+!COLLABORATION_GUIDE.md
+!DEPLOYMENT_GUIDE_SERVER.md
+!DEPLOY_2.md
+!DEPLOY_RU.md
+!DEVELOPMENT_GUIDE_SERVER.md
+!DEVELOPMENT_GUIDE.md
+!LOCAL_DEVELOPMENT.md
+!MASTER_SETUP_PLAN.md
+
+# Security
+.env
+.env.corporate
+.env.local
+.env.production
+.env.development
+.env.test

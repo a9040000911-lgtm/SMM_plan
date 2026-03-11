@@ -1,0 +1,238 @@
+Используйте этот метод для получения информации о заказе
+
+Пример запроса
+
+https://vexboost.ru/api/v2?action=status&order=1&key=yourKey
+
+
+Пример ответа
+
+{
+  "charge": "0.27819",
+  "start_count": "3572",
+  "status": "Partial",
+  "remains": "157",
+  "currency": "USD"
+}
+
+Метод возвращает объект, содержащий следующие поля:
+
+chargeDoubleПотраченные на заказ деньги
+
+start_countIntegerКоличество на момент активации заказа
+
+status
+
+String
+
+Статус задания. Одно из
+
+In progress
+
+Completed
+
+Awaiting
+
+Canceled
+
+Fail
+
+Partial
+
+
+remainsIntegerОставшееся количество
+
+currencyStringВалюта заказа
+
+Используйте этот метод для получения информации о заказах
+
+Пример запроса
+
+https://vexboost.ru/api/v2?action=status&orders=1,2,3&key=yourKey
+
+
+Пример ответа
+
+{
+  "1": {
+    "charge": "0.27819",
+    "start_count": "3572",
+    "status": "Partial",
+    "remains": "157",
+    "currency": "USD"
+  },
+  "2": "Incorrect order ID",
+  "3": "Incorrect order ID"
+}
+
+Метод возвращает массив объектов, содержащих следующие поля:
+
+chargeDoubleПотраченные на заказ деньги
+
+start_countIntegerКоличество на момент активации заказа
+
+status
+
+String
+
+Статус задания. Одно из
+
+In progress
+
+Completed
+
+Awaiting
+
+Canceled
+
+Fail
+
+Partial
+
+
+remainsIntegerОставшееся количество
+
+currencyStringВалюта заказа
+
+Используйте этот метод для создания рефилла
+
+Пример запроса
+
+https://vexboost.ru/api/v2?action=refill&order=1&key=yourKey
+
+
+Пример ответа
+
+{
+  "refill": 1
+}
+
+Метод возвращает объект, содержащий следующие поля:
+
+refillInteger1
+
+Используйте этот метод для получения баланса аккаунта
+
+Пример запроса
+
+https://vexboost.ru/api/v2?action=balance&key=yourKey
+
+
+Пример ответа
+
+{
+  "balance": "99.80",
+  "currency": "USD"
+}
+
+Метод возвращает объект, содержащий следующие поля:
+
+balanceStringТекущий баланс
+
+currencyStringВалюта баланса
+
+Используйте этот метод для отмены заказа
+
+Пример запроса
+
+https://vexboost.ru/api/v2?action=cancel&order=1&key=yourKey
+
+
+Пример ответа
+
+{
+  "ok": "true"
+}
+
+Метод возвращает объект, содержащий следующие поля:
+
+okBooleanСтатус отмены заказа
+
+Используйте этот метод для создания заказа
+
+Пример запроса
+
+https://vexboost.ru/api/v2?action=add&service=1&link=instagram.com/instagram&quantity=100&key=yourKey
+
+
+Пример ответа
+
+{
+  "order": 1
+}
+
+Метод возвращает объект, содержащий следующие поля:
+
+orderIntegerИдентификатор созданного заказа
+
+Используйте этот метод для получения списка услуг
+
+Пример запроса
+
+https://vexboost.ru/api/v2?action=services&key=yourKey
+
+
+Пример ответа
+
+[
+  {
+    "service": 1,
+    "name": "Живые Подписчики Ру",
+    "type": "subscribe",
+    "category": "Instagram profiles. Adds views and small activity.",
+    "rate": "100.00",
+    "min": 10,
+    "max": 15000,
+    "refill": false,
+    "cancel": true
+  }
+]
+
+Метод возвращает массив объектов, содержащих следующие поля:
+
+serviceIntegerИдентификатор сервиса
+
+nameStringНазвание
+
+type
+
+String
+
+Тип задания, один из:
+
+like
+
+subscribe
+
+comment
+
+like_to_comment
+
+dislike
+
+dislike_to_comment
+
+repost
+
+friend
+
+vote
+
+retweet
+
+follow
+
+favorite
+
+
+categoryStringОписание
+
+rateDoubleЦена за тысячу выполнений в валюте аккаунта
+
+minIntegerМинимальное количество для заказа
+
+maxIntegerМаксимальное количество для заказа
+
+refillBooleanДоступен ли рефилл заказа
+
+cancelBooleanДоступна ли отмена заказа

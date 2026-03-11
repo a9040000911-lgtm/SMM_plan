@@ -1,0 +1,48 @@
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:16.8.1-ce.0
+    container_name: gitlab
+    restart: always
+    hostname: 'gitlab.local'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        # Оптимизация для 4GB RAM
+        external_url 'http://localhost:8080'
+        postgresql['shared_buffers'] = "128MB"
+        sidekiq['max_concurrency'] = 10
+        sidekiq['min_concurrency'] = 5
+        prometheus_monitoring['enable'] = false
+        grafana['enable'] = false
+        alertmanager['enable'] = false
+        gitlab_rails['env'] = {
+          "MALLOC_CONF" => "dirty_decay_ms:1000,muzzy_decay_ms:1000"
+        }
+        puma['worker_processes'] = 2
+        puma['min_threads'] = 1
+        puma['max_threads'] = 2
+    ports:
+      - '8080:8080'
+      - '2222:22'
+    volumes:
+      - './gitlab/config:/etc/gitlab'
+      - './gitlab/logs:/var/log/gitlab'
+      - './gitlab/data:/var/opt/gitlab'
+    shm_size: '256m'
+    networks:
+      - gitlab_net
+
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    container_name: gitlab-runner
+    restart: always
+    depends_on:
+      - gitlab
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      - './gitlab-runner/config:/etc/gitlab-runner'
+    networks:
+      - gitlab_net
+
+networks:
+  gitlab_net:
+    name: gitlab_net
