@@ -9,7 +9,7 @@ import { Queue } from 'bullmq';
 // Конфигурация соединения
 export const getRedisConfig = () => {
   const host = process.env.REDIS_HOST || '127.0.0.1';
-  const port = parseInt(process.env.REDIS_PORT || '6380');
+  const port = parseInt(process.env.REDIS_PORT || '6379');
 
   if (process.env.REDIS_URL) {
     try {
@@ -28,7 +28,14 @@ export const getRedisConfig = () => {
 
 
 const createQueue = (name: string, opts?: any) => {
-  if (process.env.NO_REDIS_CONNECTION === 'true') {
+  const isBuild =
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    process.env.CI === 'true' ||
+    process.env.NODE_ENV === 'test' ||
+    process.env.IS_BUILD === 'true' ||
+    process.env.NO_REDIS_CONNECTION === 'true';
+
+  if (isBuild) {
     // Return a dummy object that mimics Queue for build time
     return new Proxy({}, {
       get: (target, prop) => {
