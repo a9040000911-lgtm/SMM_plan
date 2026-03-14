@@ -120,7 +120,7 @@ export class ConfigService {
             isDev: process.env.NODE_ENV === 'development',
             appUrl: process.env.NEXT_PUBLIC_APP_URL || process.env.WEBAPP_URL || 'https://smmplan.ru',
             webhookPort: parseInt(process.env.WEBHOOK_PORT || '3000'),
-            redisUrl: process.env.REDIS_URL || 'redis://127.0.0.1:6380',
+            redisUrl: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
             defaultBotToken: process.env.TELEGRAM_BOT_TOKEN
         };
     }

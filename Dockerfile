@@ -44,6 +44,8 @@ RUN npm run prisma:patch
 # Build Next.js with resource limits
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PRIVATE_LOCAL_WEBPACK_WORKERS=1
+ENV IS_BUILD=true
+ENV NO_REDIS_CONNECTION=true
 RUN npm run build
 
 # Stage 3: Bot production runner (Optimized)

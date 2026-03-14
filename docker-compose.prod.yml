@@ -101,12 +101,12 @@ services:
           cpus: '0.50'
           memory: 256M
 
-  # === Redis (LRU 64MB) ===
+  # === Redis (LRU 128MB) ===
   redis:
     image: public.ecr.aws/docker/library/redis:7-alpine
     container_name: smmplan-redis
     # ports закрыты снаружи (безопасность)
-    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru --save ""
+    command: redis-server --maxmemory 128mb --maxmemory-policy noeviction --save ""
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
