@@ -4,21 +4,20 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { SupportAnalysisService } from '@/services/ai/support-analysis.service';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAdminSession } from '@/utils/admin-session';
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
-    const session = await getServerSession(authOptions);
+    const session = await getAdminSession();
     
     // Check for admin/staff access
-    if (!session || (session.user as any).role !== 'ADMIN' && (session.user as any).role !== 'STAFF') {
+    if (!session || (session.role !== 'ADMIN' && session.role !== 'STAFF')) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await context.params;
 
     try {
         const analysis = await SupportAnalysisService.analyzeTicket(id);
