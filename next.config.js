@@ -3,7 +3,6 @@ const securityHeaders = require('./src/configs/security-headers.config');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  distDir: '.next', // Force .next in production/docker to avoid path mismatch
   async headers() {
     return [
       {
