@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { TicketChat } from '@/components/admin/support/ticket-chat';
 import { formatAmount } from '@/utils/formatter';
 import { SupportPresence } from '@/components/admin/support/support-presence';
+import { SupportAIAnalysis } from '@/components/admin/support/support-ai-analysis';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,6 +104,8 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
               Профиль клиента
             </Link>
           </div>
+
+          <SupportAIAnalysis ticketId={ticket.id} />
 
           <div className="bg-slate-900 rounded-lg p-6 text-white shadow-xl space-y-4">
             <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">

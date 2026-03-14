@@ -5,16 +5,19 @@ dotenv.config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 async function listModels() {
-  try {
-    const result = await (genAI as any).listModels();
-    console.log('Available Models:');
-    console.log(JSON.stringify(result, null, 2));
-  } catch (e: any) {
-    console.log('Error listing models:', e.message);
-    if (e.message.includes('not a function')) {
-        console.log('The @google/generative-ai version may not support listModels directly on GenAI object. Checking docs...');
+    // Enable Proxy
+    try {
+        const { ProxyAgent, setGlobalDispatcher } = await import('undici');
+        setGlobalDispatcher(new ProxyAgent('http://127.0.0.1:7897'));
+    } catch (e) {}
+
+    try {
+        const result = await genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }).listModels(); // This is just a guess at the API
+        console.log('Available Models:');
+        console.log(JSON.stringify(result, null, 2));
+    } catch (e: any) {
+        console.log('Error listing models:', e.message);
     }
-  }
 }
 
 listModels();
