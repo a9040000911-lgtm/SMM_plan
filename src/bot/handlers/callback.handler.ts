@@ -91,10 +91,11 @@ export function registerCallbackHandlers(bot: any) {
             projectId: projectId
         });
 
-        let webAppUrl = ctx.project?.domain ? `https://${ctx.project.domain}` : (process.env.NEXT_PUBLIC_APP_URL || process.env.WEBAPP_URL || 'https://smmplan.ru');
+        let webAppUrl = ctx.project?.domain ? `http://${ctx.project.domain}` : (process.env.NEXT_PUBLIC_APP_URL || process.env.WEBAPP_URL || 'http://89.23.98.202');
         if (webAppUrl.endsWith('/')) webAppUrl = webAppUrl.slice(0, -1);
 
         const loginUrl = `${webAppUrl}/auth/magic?token=${token}`;
+        console.log(`[Bot] Generated MagicLink for user ${user.id}: ${loginUrl}`);
 
         await ctx.answerCbQuery('🔗 Ссылка для входа сгенерирована');
         await ctx.reply(`🌐 <b>ВХОД В WEB-ПАНЕЛЬ</b>\n────────────────────\nИспользуйте кнопку ниже для автоматического входа в личный кабинет через браузер.\n\n⚠️ <i>Ссылка действительна 5 минут.</i>`, {
@@ -190,4 +191,3 @@ export function registerCallbackHandlers(bot: any) {
         await ctx.editMessageText(ctx.callbackQuery.message.text + '\n\n❌ <b>ОТКЛОНЕНО:</b> Админ проигнорировал отток.', { parse_mode: 'HTML' }).catch(() => { });
     });
 }
-

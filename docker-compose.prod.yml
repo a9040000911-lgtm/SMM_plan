@@ -34,7 +34,7 @@ services:
     image: smmplan-app:latest
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.hybrid
       target: runner
       args:
         - NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL:-https://smmplan.ru}
@@ -124,7 +124,7 @@ services:
     image: smmplan-bot:latest
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.hybrid
       target: bot-runner
     container_name: smmplan-bot
     env_file: .env

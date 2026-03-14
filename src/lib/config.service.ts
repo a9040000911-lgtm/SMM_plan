@@ -3,7 +3,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { prisma } from './prisma';
+import { prisma } from '@/lib/prisma';
 import { CryptoService } from '@/services/core/crypto.service';
 
 export class ConfigService {
@@ -87,6 +87,28 @@ export class ConfigService {
             user: process.env.SMTP_USER,
             password: process.env.SMTP_PASSWORD,
             from: process.env.SMTP_USER // Default sender
+        };
+    }
+
+    /**
+     * Retrieves AI (Gemini) Configuration
+     */
+    static async getAiConfig() {
+        // Fetch from GlobalSetting table
+        const settings = await prisma.globalSetting.findMany({
+            where: {
+                key: { in: ['AI_SELECTED_MODEL', 'AI_MODEL_LIST', 'AI_PROXY'] }
+            }
+        });
+
+        const map: Record<string, string> = {};
+        settings.forEach(s => map[s.key] = s.value);
+
+        return {
+            model: map.AI_SELECTED_MODEL || 'gemini-3-flash-preview',
+            modelList: map.AI_MODEL_LIST || 'gemini-3-flash-preview, gemini-3.1-pro-preview',
+            proxy: map.AI_PROXY || process.env.AI_PROXY || null,
+            apiKey: process.env.GEMINI_API_KEY
         };
     }
 

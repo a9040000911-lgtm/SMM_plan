@@ -33,12 +33,17 @@ ENV NODE_OPTIONS="--max-old-space-size=6144"
 # Dummy envs to prevent next build crash (Static Generation)
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 ENV REDIS_URL="redis://localhost:6379"
+ENV IS_BUILD=true
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PRIVATE_LOCAL_WEBPACK_WORKERS=1
 
 # Generate Prisma Client (uses cached node_modules)
 RUN npx prisma generate
 RUN npm run prisma:patch
 
-# Build Next.js
+# Build Next.js with resource limits
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PRIVATE_LOCAL_WEBPACK_WORKERS=1
 RUN npm run build
 
 # Stage 3: Bot production runner (Optimized)

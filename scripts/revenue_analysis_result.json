@@ -1,0 +1,73 @@
+{
+  "totalRevenue": "663875.46",
+  "currency": "RUB (likely)",
+  "paidOrdersCount": 9526,
+  "averageOrderValue": "69.69",
+  "platformRevenue": [
+    {
+      "name": "Telegram",
+      "revenue": "274306.39",
+      "share": "41.32%"
+    },
+    {
+      "name": "Instagram",
+      "revenue": "205807.38",
+      "share": "31.00%"
+    },
+    {
+      "name": "Вконтакте",
+      "revenue": "79895.78",
+      "share": "12.03%"
+    },
+    {
+      "name": "Twitch",
+      "revenue": "26100.87",
+      "share": "3.93%"
+    },
+    {
+      "name": "YouTube",
+      "revenue": "24788.45",
+      "share": "3.73%"
+    },
+    {
+      "name": "TikTok",
+      "revenue": "18458.04",
+      "share": "2.78%"
+    },
+    {
+      "name": "Яндекс Дзен",
+      "revenue": "11204.19",
+      "share": "1.69%"
+    },
+    {
+      "name": "MAX",
+      "revenue": "10295.25",
+      "share": "1.55%"
+    },
+    {
+      "name": "Likee",
+      "revenue": "5021.13",
+      "share": "0.76%"
+    },
+    {
+      "name": "Twitter (x)",
+      "revenue": "3828.44",
+      "share": "0.58%"
+    },
+    {
+      "name": "Rutube",
+      "revenue": "3003.81",
+      "share": "0.45%"
+    },
+    {
+      "name": "Одноклассники",
+      "revenue": "787.67",
+      "share": "0.12%"
+    },
+    {
+      "name": "Facebook",
+      "revenue": "378.06",
+      "share": "0.06%"
+    }
+  ]
+}

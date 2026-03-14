@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { Shield, Save, AlertCircle, Info } from 'lucide-react';
+import { Shield, Save, AlertCircle, Info, Cpu, Globe } from 'lucide-react';
 import { updateGlobalSettingsAction } from './global-settings-actions';
 import { toast } from 'sonner';
 
@@ -113,6 +113,53 @@ export function GlobalSettingsForm({ initialSettings }: GlobalSettingsFormProps)
                                 value={settings.LIMIT_PUBLIC || '300'}
                                 onChange={(e) => handleChange('LIMIT_PUBLIC', e.target.value)}
                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    {/* AI Configuration */}
+                    <div className="space-y-6 pt-6 border-t border-slate-100">
+                        <div className="flex items-center gap-2">
+                            <Cpu size={18} className="text-slate-400" />
+                            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Интеграция ИИ (Gemini)</h3>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Активная модель ИИ</label>
+                                <select
+                                    value={settings.AI_SELECTED_MODEL || 'gemini-3-flash-preview'}
+                                    onChange={(e) => handleChange('AI_SELECTED_MODEL', e.target.value)}
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                >
+                                    {(settings.AI_MODEL_LIST || 'gemini-3-flash-preview, gemini-3.1-pro-preview, gemini-2.0-flash, gemini-1.5-flash').split(',').map(m => (
+                                        <option key={m.trim()} value={m.trim()}>{m.trim()}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Список доступных моделей (через запятую)</label>
+                                <input
+                                    type="text"
+                                    value={settings.AI_MODEL_LIST || 'gemini-3-flash-preview, gemini-3.1-pro-preview'}
+                                    onChange={(e) => handleChange('AI_MODEL_LIST', e.target.value)}
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                    placeholder="gemini-3-flash-preview, gemini-3.1-pro-preview"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <Globe size={12} /> Прокси для ИИ (Host:Port)
+                            </label>
+                            <input
+                                type="text"
+                                value={settings.AI_PROXY || ''}
+                                onChange={(e) => handleChange('AI_PROXY', e.target.value)}
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                placeholder="например: 205.142.241.25:443"
                             />
                         </div>
                     </div>

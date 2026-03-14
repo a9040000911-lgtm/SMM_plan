@@ -156,10 +156,13 @@ const botCommands = [
 const launchedBotTokens = new Set<string>();
 
 async function startBotInstance(project: any) {
-  if (!project.botToken || launchedBotTokens.has(project.botToken)) return;
+  if (!project.botToken) return;
 
   try {
     const decryptedToken = CryptoService.decrypt(project.botToken!);
+    if (launchedBotTokens.has(decryptedToken)) return;
+
+    launchedBotTokens.add(decryptedToken);
     const instance = new Telegraf(decryptedToken);
     instance.catch(errorHandler);
 
@@ -176,6 +179,7 @@ async function startBotInstance(project: any) {
     logger.info(`БОТ ЗАПУЩЕН: ${project.name} (@${project.slug})`);
   } catch (e: any) {
     logger.error(`ОШИБКА ЗАПУСКА БОТА [${project.name}]:`, { error: e.message, response: e.response });
+    launchedBotTokens.delete(project.botToken);
   }
 }
 

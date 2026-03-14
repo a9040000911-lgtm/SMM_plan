@@ -68,8 +68,7 @@ export async function handleMenuAction(actionId: string, ctx: any) {
         case 'WEBAPP': {
             const layout = ctx.project?.config?.menuLayout || staticMainMenu;
             const item = findMenuItem(layout, 'WEBAPP', ctx.message?.text);
-            let webAppUrl = item?.metadata?.url || (ctx.project?.domain ? `https://${ctx.project.domain}` : (process.env.NEXT_PUBLIC_APP_URL || process.env.WEBAPP_URL || 'https://smmplan.ru'));
-            if (webAppUrl.startsWith('http://') && !webAppUrl.includes('localhost') && !webAppUrl.includes('.local')) webAppUrl = webAppUrl.replace('http://', 'https://');
+            let webAppUrl = item?.metadata?.url || (ctx.project?.domain ? `http://${ctx.project.domain}` : (process.env.NEXT_PUBLIC_APP_URL || process.env.WEBAPP_URL || 'http://89.23.98.202'));
 
             return ctx.reply('🚀 Нажмите на кнопку ниже, чтобы открыть:', {
                 ...getProjectMenu(ctx.project),
@@ -133,8 +132,6 @@ export async function showOrders(ctx: any) {
 }
 
 export async function showStore(_ctx: any) { // Alias for Shop command mostly
-    // This was effectively handled by showCatalog or WebApp link in command.
-    // Keeping it simple here or handled in command itself.
 }
 
 export async function showCatalog(ctx: any) {

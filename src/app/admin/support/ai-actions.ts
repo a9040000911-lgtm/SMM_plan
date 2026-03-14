@@ -7,11 +7,13 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prisma } from '@/lib/prisma';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+import { ConfigService } from '@/lib/config.service';
 
 export async function getSupportAiSuggestionAction(ticketId: string) {
     try {
+        const config = await ConfigService.getAiConfig();
+        if (!config.apiKey) throw new Error('AI API Key not configured');
+
         // 1. Fetch ticket, context (messages), and user orders
         const ticketRaw = await prisma.supportTicket.findUnique({
             where: { id: ticketId },
@@ -33,6 +35,7 @@ export async function getSupportAiSuggestionAction(ticketId: string) {
                                 id: true,
                                 status: true,
                                 totalPrice: true,
+                                createdAt: true,
                                 link: true,
                                 internalService: { select: { name: true } }
                             }
@@ -40,54 +43,49 @@ export async function getSupportAiSuggestionAction(ticketId: string) {
                     }
                 }
             }
-        }) as any;
+        });
 
         if (!ticketRaw) throw new Error('Ticket not found');
 
-        // 2. Prepare context for AI
-        const messageHistory = [...ticketRaw.messages]
-            .reverse()
-            .map((m: any) => `${m.sender}: ${m.text}`)
-            .join('\n');
+        const genAI = new GoogleGenerativeAI(config.apiKey);
+        
+        // Proxy support
+        let requestOptions: any = {};
+        if (config.proxy) {
+            try {
+                const { ProxyAgent } = await import('undici');
+                const dispatcher = new ProxyAgent(config.proxy.startsWith('http') ? config.proxy : `http://${config.proxy}`);
+                requestOptions.fetchFn = (url: string, options: any) => fetch(url, { ...options, dispatcher } as any);
+            } catch (e) {
+                console.warn('[SupportAI] ProxyAgent not available, using default fetch');
+            }
+        }
 
-        const orderContext = ticketRaw.user.orders.map((o: any) =>
-            `- Order ID: ${o.id}, Service: ${o.internalService?.name}, Status: ${o.status}, Amount: ${o.totalPrice} RUB, Link: ${o.link}`
-        ).join('\n');
+        const model = genAI.getGenerativeModel({ model: config.model }, requestOptions);
 
         const prompt = `
-You are a professional support agent for "SMMPlan" (an SMM panel). 
-Answer in Russian language. Be polite, helpful, and concise.
+Ты — продвинутый ассистент техподдержки SMM-панели.
+Проанализируй проблему клиента и предложи наиболее вероятный и полезный ответ для администратора.
 
-CONTEXT:
-User: @${ticketRaw.user.username || 'user'}
-User Balance: ${ticketRaw.user.balance} RUB
-Joined: ${new Date(ticketRaw.user.createdAt).toLocaleDateString()}
+КЛИЕНТ: ${ticketRaw.user.username}
+БАЛАНС: ${ticketRaw.user.balance}₽
+ПОСЛЕДНИЕ ЗАКАЗЫ:
+${ticketRaw.user.orders.map(o => `- ID ${o.id}: ${o.internalService.name}, Статус: ${o.status}, Ссылка: ${o.link}`).join('\n')}
 
-USER'S RECENT ORDERS:
-${orderContext || 'No orders yet.'}
+ИСТОРИЯ ПЕРЕПИСКИ (последние 10 сообщений):
+${ticketRaw.messages.reverse().map(m => `[${m.sender}] ${m.text}`).join('\n')}
 
-TICKET SUBJECT: ${ticketRaw.subject}
-MESSAGE HISTORY (last 10):
-${messageHistory}
-
-TASK:
-Based on the message history and order context, suggest a professional reply. 
-If the user is asking about a "Pending" or "In Progress" order, explain that it might take some time based on the service description.
-If the error is obvious (Canceled/Refilled), offer a manual check or explain the status.
-Do not use placeholders like [Name]. Use the real context.
-
-Output ONLY the suggested text of the reply. No conversational filler like "Here is a suggestion:".
+ИНСТРУКЦИИ:
+1. Будь вежливым, профессиональным, но лаконичным.
+2. Если клиент спрашивает почему заказ отменен — объясни, что деньги вернулись на баланс автоматически.
+3. Если задержка — предложи набраться терпения или проверь формат ссылки.
+4. Отвечай В ТОЧНОСТИ тем текстом, который администратор должен отправить клиенту. Без вступлений типа "Вот ответ:".
 `;
 
-        // 3. Generate content
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash" });
         const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const suggestion = response.text().trim();
-
-        return { success: true, suggestion };
-    } catch (error: any) {
-        console.error('AI Generation Detailed Error:', error);
-        return { success: false, error: `AI Error: ${error.message || 'Unknown error'}` };
+        return { success: true, suggestion: result.response.text().trim() };
+    } catch (e: any) {
+        console.error('[SupportAI] Suggestion error:', e);
+        return { success: false, error: e.message };
     }
 }

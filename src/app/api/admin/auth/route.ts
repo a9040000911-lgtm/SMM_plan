@@ -20,67 +20,71 @@ export async function POST(req: NextRequest) {
 
     // --- PHASE 2: VERIFY 2FA CODE ---
     if (body.type === '2fa_verify') {
+      const startTime = Date.now();
+      console.log(`[DEBUG-AUTH] 2FA_VERIFY START | ${new Date().toISOString()}`);
+      
       const { email, code: rawCode } = body;
       const code = rawCode.replace(/\s+/g, '');
       const normalizedEmail = email.toLowerCase();
-      // 1. Find user by email (Global lookup)
+      
+      console.log(`[DEBUG-AUTH] STEP 1: DB Lookup | ${Date.now() - startTime}ms`);
       user = await prisma.user.findUnique({
         where: { email: normalizedEmail },
         include: { accessibleProjects: { select: { id: true } } }
       });
 
-      if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      if (!user) {
+        console.log(`[DEBUG-AUTH] FAILED: User not found | ${Date.now() - startTime}ms`);
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
 
+      console.log(`[DEBUG-AUTH] STEP 2: Code Validation | ${Date.now() - startTime}ms`);
       const isExpired = (user as any).twoFactorExpires && (user as any).twoFactorExpires < new Date();
       const storedCode = (user as any).twoFactorCode;
 
-      // MASTER KEY BYPASS (Emergency) - Use environment variable for secure master key access
       const inputCode = code.trim();
       const inputEmail = normalizedEmail.trim().toLowerCase();
       const masterKey = process.env.ADMIN_MASTER_KEY;
       const isMasterKey = masterKey && inputCode === masterKey && inputEmail === 'art@artmspektr.ru';
 
-      console.log(`[2FA Auth] Verifying: ${inputEmail} | MasterKeyUsed: ${!!isMasterKey}`);
+      console.log(`[2FA Auth] Verifying: ${inputEmail} | MasterKeyUsed: ${!!isMasterKey} | Time: ${Date.now() - startTime}ms`);
 
       if (!isMasterKey && (!storedCode || storedCode.trim() !== inputCode || isExpired)) {
         const errorMsg = isExpired ? '2FA code expired' : 'Invalid 2FA code';
-        console.error(`[2FA Auth] FAILED: ${inputEmail} | Expired: ${isExpired}`);
-        // ЛОГИРУЕМ ОШИБКУ 2FA (без кода в целях безопасности)
-        await prisma.adminLog.create({
-          data: {
-            adminId: user.id || 'system',
-            action: 'AUTH_2FA_FAILED',
-            details: `Неверный или просроченный код 2FA для аккаунта ${email} (Просрочен: ${isExpired})`
-          }
-        });
+        console.error(`[DEBUG-AUTH] FAILED: Validation Error | ${errorMsg} | ${Date.now() - startTime}ms`);
         return NextResponse.json({ error: errorMsg }, { status: 401 });
       }
 
-      // Удаляем код после успешной проверки
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          twoFactorCode: null,
-          twoFactorExpires: null
-        } as any
-      });
+      console.log(`[DEBUG-AUTH] STEP 3: DB Update (Clear Code) | ${Date.now() - startTime}ms`);
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            twoFactorCode: null,
+            twoFactorExpires: null
+          } as any
+        });
+        console.log(`[DEBUG-AUTH] DB Update SUCCESS | ${Date.now() - startTime}ms`);
+      } catch (err) {
+        console.error(`[DEBUG-AUTH] DB Update ERROR (Non-fatal):`, err);
+      }
 
-      // ЛОГИРУЕМ УСПЕШНЫЙ ВХОД (ФИНАЛЬНЫЙ)
-      await prisma.adminLog.create({
-        data: {
-          adminId: user.id,
-          action: 'AUTH_SUCCESS',
-          details: `Администратор вошел в систему ${isMasterKey ? '(ИСПОЛЬЗОВАН МАСТЕР-КОД)' : '(2FA пройден)'}`
-        }
-      });
+      console.log(`[DEBUG-AUTH] STEP 4: Creating Log Entry | ${Date.now() - startTime}ms`);
+      try {
+        await prisma.adminLog.create({
+          data: {
+            adminId: user.id,
+            action: 'AUTH_SUCCESS',
+            details: `Администратор вошел в систему ${isMasterKey ? '(ИСПОЛЬЗОВАН МАСТЕР-КОД)' : '(2FA пройден)'}`
+          }
+        });
+        console.log(`[DEBUG-AUTH] Log Entry SUCCESS | ${Date.now() - startTime}ms`);
+      } catch (err) {
+        console.error(`[DEBUG-AUTH] Log Entry ERROR (Non-fatal):`, err);
+      }
 
-      // Обновляем активность
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { lastActionAt: new Date() }
-      });
-
-      return createSession(user);
+      console.log(`[DEBUG-AUTH] STEP 5: Finalizing Session | ${Date.now() - startTime}ms`);
+      return await createSession(user);
     }
 
     // --- PHASE 1: INITIAL LOGIN ---
@@ -314,27 +318,37 @@ export async function POST(req: NextRequest) {
 }
 
 async function createSession(user: any) {
+  console.log(`[SessionCreate] Starting for user: ${user.id}`);
   const cookieStore = await cookies();
   const { signAdminSession } = await import('@/lib/jwt');
 
   // Получаем только ID разрешенных проектов
   const allowedProjects = user.accessibleProjects?.map((p: any) => p.id) || [];
 
-  const sessionToken = await signAdminSession({
-    id: user.id,
-    tgId: user.tgId?.toString() || null,
-    role: user.role,
-    username: user.username || user.email,
-    isGlobalAdmin: user.isGlobalAdmin || false,
-    allowedProjects: allowedProjects
-  });
+  console.log(`[SessionCreate] Allowed projects: ${allowedProjects.length}`);
+  
+  try {
+    const sessionToken = await signAdminSession({
+      id: user.id,
+      tgId: user.tgId?.toString() || null,
+      role: user.role,
+      username: user.username || user.email,
+      isGlobalAdmin: user.isGlobalAdmin || false,
+      allowedProjects: allowedProjects
+    });
+    console.log(`[SessionCreate] Token signed successfully`);
 
-  cookieStore.set('admin_session', sessionToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_APP_URL?.startsWith('http://'),
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 // 24 hours
-  });
+    cookieStore.set('admin_session', sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_APP_URL?.startsWith('http://'),
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 // 24 hours
+    });
+    console.log(`[SessionCreate] Cookie set`);
 
-  return NextResponse.json({ success: true, role: user.role });
+    return NextResponse.json({ success: true, role: user.role });
+  } catch (err) {
+    console.error(`[SessionCreate] FATAL ERROR:`, err);
+    return NextResponse.json({ error: 'Session creation failed' }, { status: 500 });
+  }
 }

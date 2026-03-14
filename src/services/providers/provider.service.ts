@@ -12,7 +12,7 @@ import { UniversalProvider } from './universal.provider';
 import { ProviderOrderResult, ProviderStatusResult } from '@/types/orders';
 import { CryptoService } from '@/services/core/crypto.service';
 import { createLogger } from '@/lib/logger';
-import { LinkAnalyzerService } from '@/services/core/link-analyzer.service';
+import { IntelligenceEngine } from '@/services/intelligence/intelligence.engine';
 
 const providerMap: { [key: string]: new (config: Provider) => IProvider } = {
   vexboost: VexboostProvider,
@@ -100,17 +100,13 @@ export class ProviderService {
       const instance = await this.getInstance(specificMapping.providerId);
       if (!instance || !providerInfo) throw new Error(`Provider ${specificMapping.providerId} unavailable`);
 
-      const adaptedLink = LinkAnalyzerService.formatForProvider(
-        initialLink,
-        internalService?.platform || null,
-        internalService?.category || null,
-        providerInfo
-      );
+      const intelResult = await IntelligenceEngine.analyzeLink(initialLink);
+      const adaptedLink = IntelligenceEngine.formatForProvider(intelResult, providerInfo.name);
 
-      // --- LINK VALIDATION ---
+      // --- LINK VALIDATION (Intelligence Engine already covers most, but keep custom logic if needed) ---
       if (internalService?.platform === 'TELEGRAM' && internalService?.category === 'REFERRALS') {
         if (!adaptedLink.includes('start=')) {
-          throw new Error(`[LinkAnalyzer] Ошибка: ссылка для "Рефералы в бот" должна содержать '?start='`);
+          throw new Error(`[Intelligence] Ошибка: ссылка для "Рефералы в бот" должна содержать '?start='`);
         }
       }
 
@@ -173,17 +169,13 @@ export class ProviderService {
           continue;
         }
 
-        const adaptedLink = LinkAnalyzerService.formatForProvider(
-          initialLink,
-          internalService?.platform || null,
-          internalService?.category || null,
-          providerInfo
-        );
+        const intelResult = await IntelligenceEngine.analyzeLink(initialLink);
+        const adaptedLink = IntelligenceEngine.formatForProvider(intelResult, providerInfo.name);
 
         // --- LINK VALIDATION ---
         if (internalService?.platform === 'TELEGRAM' && internalService?.category === 'REFERRALS') {
           if (!adaptedLink.includes('start=')) {
-            throw new Error(`[LinkAnalyzer] Ошибка: ссылка для "Рефералы в бот" должна содержать '?start='`);
+            throw new Error(`[Intelligence] Ошибка: ссылка для "Рефералы в бот" должна содержать '?start='`);
           }
         }
 

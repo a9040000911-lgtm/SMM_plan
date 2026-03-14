@@ -12,7 +12,7 @@ import { ProviderService as ProviderServiceClass } from './provider.service';
 import { SmartAnalyzerService } from './smart-analyzer.service';
 import { DescriptionSanitizer } from '@/utils/description-sanitizer';
 import { PricingService } from '@/services/finance/pricing.service';
-import { LinkAnalyzerService } from '@/services/core/link-analyzer.service';
+import { IntelligenceEngine } from '@/services/intelligence/intelligence.engine';
 
 /**
  * Сервис для синхронизации услуг провайдеров с нашей базой данных.
@@ -124,7 +124,7 @@ export class ServiceSyncService {
                 const cleanDesc = DescriptionSanitizer.sanitize(s.description || '');
 
                 const analysis = await SmartAnalyzerService.analyzeService(cleanName, cleanDesc, s.category || '');
-                const botRequirements = LinkAnalyzerService.extractBotRequirementsFromDescription(cleanDesc);
+                const botRequirements = IntelligenceEngine.extractBotRequirements(cleanDesc);
 
                 const convertedPrice = new Decimal(s.rate).mul(rate);
                 const hash = this.generateHash(this.buildHashInput({ ...s, name: cleanName }));

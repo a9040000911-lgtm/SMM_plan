@@ -11,8 +11,10 @@ import { limiter } from "@/utils/rate-limit";
 export async function authorizeUser(credentials: any) {
   // --- MAGIC TOKEN AUTH ---
   if (credentials?.magicToken) {
+    console.log("[Auth] Attempting MagicToken login...");
     const { verifyMagicToken } = await import("@/lib/magic-auth");
     const payload = await verifyMagicToken(credentials.magicToken);
+    console.log("[Auth] MagicToken payload:", payload);
 
     if (payload) {
       const user = await prisma.user.findFirst({

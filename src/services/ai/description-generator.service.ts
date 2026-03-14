@@ -5,19 +5,20 @@
  */
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { DescriptionSanitizer } from '@/utils/description-sanitizer';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+import { ConfigService } from '@/lib/config.service';
 
 export class DescriptionGeneratorService {
     /**
      * Enhances a service description using Gemini.
-     * Logic: Uses provider info, protects "important" parts, makes it attractive.
      */
     static async enhanceDescription(params: {
         name: string;
         currentDescription?: string;
         providerDescription?: string;
     }) {
+        const config = await ConfigService.getAiConfig();
+        if (!config.apiKey) return params.currentDescription || '';
+
         const name = DescriptionSanitizer.sanitize(params.name);
         const currentDescription = DescriptionSanitizer.sanitize(params.currentDescription || '');
         const providerDescription = DescriptionSanitizer.sanitize(params.providerDescription || '');
@@ -34,25 +35,36 @@ ${providerDescription || 'Нет данных'}
 ТЕКУЩЕЕ ОПИСАНИЕ В СИСТЕМЕ (может содержать важные технические инструкции):
 ${currentDescription || 'Нет данных'}
 
-ПРАВИЛА:
+ИНСТРУКЦИИ:
 1. ИСПОЛЬЗУЙ данные провайдера для точности (скорость, гарантия, качество).
-2. НЕ ВРИ. Если провайдер пишет "без гарантии", не пиши "стабильно навсегда".
-3. ЗАЩИТА ВАЖНОГО: Если в текущем описании есть ссылки на ботов (например, @sub_checker_ro_bot), технические предупреждения (обязательно открытый профиль) или специфические правила сервиса — ОСТАВЬ ИХ БЕЗ ИЗМЕНЕНИЙ в тексте.
-4. СТИЛЬ: Используй Markdown. Структурируй через список (например: 🚀 Старт, ✨ Качество, ⏳ Скорость). 
-5. Сделай текст "вкусным" для покупателя, подчеркни выгоды, но будь честным.
+2. НЕ ВРИ: если провайдер пишет "без гарантии", не пиши "есть гарантия".
+3. ЗАЩИТА: Если в текущем описании есть ссылки на ботов, предупреждения "обязательно открытый профиль" или специфические правила сервиса — ОСТАВЬ ИХ БЕЗ ИЗМЕНЕНИЙ в тексте.
+4. Используй Markdown для оформления (жирный текст, через список - например: Старт: ..., Качество: ..., Скорость: ...).
+5. Сделай текст привлекательным для покупателя, подчеркни выгоды, но будь честным.
 6. Отвечай ТОЛЬКО готовым текстом описания на русском языке.
-
-Текст описания:
 `;
 
         try {
-            const model = genAI.getGenerativeModel({ model: "gemini-3-flash" });
+            const genAI = new GoogleGenerativeAI(config.apiKey);
+            
+            // Proxy support
+            let requestOptions: any = {};
+            if (config.proxy) {
+                try {
+                    const { ProxyAgent } = await import('undici');
+                    const dispatcher = new ProxyAgent(config.proxy.startsWith('http') ? config.proxy : `http://${config.proxy}`);
+                    requestOptions.fetchFn = (url: string, options: any) => fetch(url, { ...options, dispatcher } as any);
+                } catch (e) {
+                    console.warn('[Gemini] ProxyAgent not available, using default fetch');
+                }
+            }
+
+            const model = genAI.getGenerativeModel({ model: config.model }, requestOptions);
             const result = await model.generateContent(prompt);
-            const response = await result.response;
-            return response.text().trim();
-        } catch (error) {
-            console.error('Gemini Enhance Description Error:', error);
-            throw error;
+            return result.response.text().trim();
+        } catch (e) {
+            console.error('[Gemini] Error enhancing description:', e);
+            return currentDescription;
         }
     }
 }

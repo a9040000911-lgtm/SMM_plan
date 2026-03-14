@@ -20,7 +20,12 @@ if (!globalForBot.botRegistry) {
     globalForBot.botRegistry = new Map();
 }
 
-export const bot: Telegraf = (globalForBot.bot || (shouldSkip ? null : new Telegraf(TOKEN || 'dummy_token'))) as Telegraf;
+/**
+ * Основной инстанс бота.
+ * В режиме SKIP_BOT он создается, но НЕ запускается (launch/startPolling).
+ * Это нужно для возможности использовать telegram.sendMessage из основного приложения.
+ */
+export const bot: Telegraf = (globalForBot.bot || new Telegraf(TOKEN || 'dummy_token')) as Telegraf;
 
 /**
  * Реестр запущенных инстансов ботов для разных проектов
@@ -35,6 +40,6 @@ export const BotRegistry = {
     }
 };
 
-if (process.env.NODE_ENV !== 'production' && !shouldSkip) globalForBot.bot = bot;
+if (process.env.NODE_ENV !== 'production') globalForBot.bot = bot;
 
 export default bot;

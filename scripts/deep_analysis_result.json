@@ -1,0 +1,261 @@
+{
+  "meta": {
+    "analyzedAt": "2026-03-13T06:27:09.804Z",
+    "totalOrders": 117585,
+    "uniqueEmails": 17709,
+    "chunksProcessed": 117
+  },
+  "platforms": [
+    {
+      "name": "Telegram",
+      "count": 81638,
+      "share": "69.43%",
+      "failureRate": "5.16%"
+    },
+    {
+      "name": "Instagram",
+      "count": 12586,
+      "share": "10.70%",
+      "failureRate": "6.05%"
+    },
+    {
+      "name": "Вконтакте",
+      "count": 10981,
+      "share": "9.34%",
+      "failureRate": "12.56%"
+    },
+    {
+      "name": "TikTok",
+      "count": 5625,
+      "share": "4.78%",
+      "failureRate": "6.61%"
+    },
+    {
+      "name": "Twitch",
+      "count": 3126,
+      "share": "2.66%",
+      "failureRate": "1.57%"
+    },
+    {
+      "name": "YouTube",
+      "count": 1471,
+      "share": "1.25%",
+      "failureRate": "6.59%"
+    },
+    {
+      "name": "MAX",
+      "count": 644,
+      "share": "0.55%",
+      "failureRate": "21.27%"
+    },
+    {
+      "name": "Яндекс Дзен",
+      "count": 449,
+      "share": "0.38%",
+      "failureRate": "8.91%"
+    },
+    {
+      "name": "Rutube",
+      "count": 353,
+      "share": "0.30%",
+      "failureRate": "11.90%"
+    },
+    {
+      "name": "Twitter (x)",
+      "count": 243,
+      "share": "0.21%",
+      "failureRate": "3.70%"
+    },
+    {
+      "name": "Likee",
+      "count": 191,
+      "share": "0.16%",
+      "failureRate": "20.94%"
+    },
+    {
+      "name": "Одноклассники",
+      "count": 164,
+      "share": "0.14%",
+      "failureRate": "31.10%"
+    },
+    {
+      "name": "Facebook",
+      "count": 114,
+      "share": "0.10%",
+      "failureRate": "28.95%"
+    }
+  ],
+  "statuses": {
+    "Завершен": 96820,
+    "Не оплачен": 12172,
+    "Выполняется": 1319,
+    "Отменен": 5675,
+    "В обработке": 35,
+    "Ожидание": 17,
+    "Исполнен частично": 1547
+  },
+  "topVIPs": [
+    [
+      "zvonaelena@bk.ru",
+      1405
+    ],
+    [
+      "mziablikova.marina@yandex.ru",
+      1135
+    ],
+    [
+      "juljamahmudova@mail.ru",
+      1068
+    ],
+    [
+      "liza.ananina.003@mail.ru",
+      842
+    ],
+    [
+      "email@chingiz.uz",
+      761
+    ],
+    [
+      "perceva1998@inbox.ru",
+      638
+    ],
+    [
+      "sonya.vi@list.ru",
+      619
+    ],
+    [
+      "julia.charysheva@gmail.com",
+      617
+    ],
+    [
+      "tslmxv@gmail.com",
+      596
+    ],
+    [
+      "zagaynovaanna@mail.ru",
+      588
+    ],
+    [
+      "alice.x2014@yandex.ru",
+      562
+    ],
+    [
+      "vyacheslavshumkov@gmail.com",
+      554
+    ],
+    [
+      "suleimenovarsen86@gmail.com",
+      506
+    ],
+    [
+      "wreuesther@gmail.com",
+      495
+    ],
+    [
+      "sofya.serebrennikova@list.ru",
+      488
+    ],
+    [
+      "anna_astroyshko@mail.ru",
+      488
+    ],
+    [
+      "istanbul_nsk@mail.ru",
+      458
+    ],
+    [
+      "lexa_48@mail.ru",
+      457
+    ],
+    [
+      "anaprudnini@gmail.com",
+      453
+    ],
+    [
+      "odinanvar@gmail.com",
+      409
+    ]
+  ],
+  "topChannels": [
+    [
+      "https://www.youtube.com/watch",
+      263
+    ],
+    [
+      "https://t.me/novacutan/3172",
+      186
+    ],
+    [
+      "https://t.me/prompt_k",
+      115
+    ],
+    [
+      "https://t.me/+zMz0Cac2cpwyOWUy",
+      73
+    ],
+    [
+      "https://t.me/aldarovkr",
+      70
+    ],
+    [
+      "https://t.me/NurievBet",
+      48
+    ],
+    [
+      "https://www.instagram.com/reel/DVF9JcijKbr",
+      48
+    ],
+    [
+      "https://t.me/+bkuJNNSNq9gzNTM6",
+      48
+    ],
+    [
+      "https://t.me/russianogr",
+      45
+    ],
+    [
+      "https://vk.ru/music",
+      43
+    ],
+    [
+      "https://www.twitch.tv/whoevver",
+      41
+    ],
+    [
+      "https://www.instagram.com/caramel_td_nika",
+      41
+    ],
+    [
+      "https://www.twitch.tv/karymchik",
+      40
+    ],
+    [
+      "https://vk.com/feon_krsk",
+      39
+    ],
+    [
+      "https://www.twitch.tv/globrin",
+      37
+    ],
+    [
+      "https://www.twitch.tv/snor_sadmanul",
+      37
+    ],
+    [
+      "https://www.instagram.com/reel/DVnMhnPjAff",
+      36
+    ],
+    [
+      "https://vkvideo.ru/playlist/451036171_7/video451036171_456239551",
+      35
+    ],
+    [
+      "https://t.me/oilsputnik_uu",
+      35
+    ],
+    [
+      "https://t.me/+9XpGahGFWyU4M2Ri",
+      34
+    ]
+  ]
+}
