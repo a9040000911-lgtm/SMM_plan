@@ -1,68 +1,68 @@
-# Team Collaboration & Safety Guide (Team of 3)
+# Руководство по командной разработке и безопасности (Команда из 3-х человек)
 
-This guide outlines a strict, safe workflow for collaborating on the Smmplan project to prevent code loss and production breaks.
+Это руководство описывает строгий и безопасный процесс совместной работы над проектом Smmplan для предотвращения потери кода и поломок на продакшене.
 
-## 🛡️ Core Rules of Safety
+## 🛡️ Основные правила безопасности
 
-1. **Local Build First**: NEVER push code that hasn't been built locally. Run `npm run build` to catch TypeScript and Next.js errors before they reach the server.
-2. **Main is Sacred**: The `main` branch must always reflect the working state of the live site. Direct pushes to `main` are discouraged.
-3. **Merge Request Protocol**: All changes must be reviewed by at least one other team member.
+1. **Сначала локальный билд**: НИКОГДА не пушьте код, который не был собран локально. Запускайте `npm run build`, чтобы поймать ошибки TypeScript и Next.js до того, как они попадут на сервер.
+2. **Main — это святое**: Ветка `main` всегда должна отражать рабочее состояние живого сайта. Прямые пуши в `main` крайне не рекомендуются.
+3. **Протокол Merge Request**: Все изменения должны быть проверены как минимум одним другим участником команды.
 
-## 🔄 The Smmplan Workflow
+## 🔄 Процесс разработки Smmplan
 
-### 1. Preparation
-Always start your work by getting the latest version:
+### 1. Подготовка
+Всегда начинайте работу с получения последней версии:
 ```bash
 git checkout main
 git pull origin main
 ```
 
-### 2. Feature Branching
-Create a branch for every task:
+### 2. Создание ветки задачи
+Создавайте отдельную ветку для каждой задачи:
 ```bash
-git checkout -b feature/your-feature-name
+git checkout -b feature/название-вашей-задачи
 ```
 
-### 3. Development & Testing
-Work on your code, then run verification:
-- `npm run dev` — check visual changes.
-- `npm run build` — **CRITICAL**: ensure the project compiles for production.
+### 3. Разработка и тестирование
+Пишите код, затем проводите проверку:
+- `npm run dev` — проверка визуальных изменений.
+- `npm run build` — **КРИТИЧЕСКИ ВАЖНО**: убедитесь, что проект компилируется для продакшена.
 
-## 🐳 Local Verification (Docker)
+## 🐳 Локальная проверка (Docker)
 
-Before you push your changes, you should test them locally in a container environment to ensure everything works as expected.
+Перед тем как пушить изменения, вы должны протестировать их локально в контейнерах, чтобы убедиться, что всё работает корректно.
 
-### 1. Launch Development Stack
-Use the dedicated development compose file:
+### 1. Запуск окружения разработки
+Используйте специальный файл конфигурации для разработки:
 ```bash
 docker-compose -f docker-compose.dev.yml up -d
 ```
-- **App**: Accessible at [http://localhost:3001](http://localhost:3001)
-- **Database**: Port `5433`
-- **Redis**: Port `6380`
+- **Приложение**: Доступно по адресу [http://localhost:3001](http://localhost:3001)
+- **База данных**: Порт `5433`
+- **Redis**: Порт `6380`
 
-### 2. Verify Logs
-If something isn't working, check the container logs:
+### 2. Проверка логов
+Если что-то не работает, проверьте логи контейнера:
 ```bash
 docker logs -f smmplan-app-dev
 ```
 
-### 3. Cleanup
-To stop the local environment:
+### 3. Остановка
+Чтобы остановить локальное окружение:
 ```bash
 docker-compose -f docker-compose.dev.yml down
 ```
 
-## 🚀 Deployment (CICD)
+## 🚀 Деплой (CI/CD)
 
-The GitLab Runner is now enabled. When you merge into `main`, the server will automatically:
-1. Pull the latest code.
-2. Build the Docker images.
-3. Restart the site.
+GitLab Runner включен. Когда вы вливаете код в `main`, сервер автоматически:
+1. Подтянет последний код.
+2. Соберет Docker-образы.
+3. Перезапустит сайт.
 
 > [!WARNING]
-> Because we use a **Hybrid Build** strategy (to save RAM), if the server build fails, it is usually because of a missing or incompatible local asset. Always ensure your `.next/standalone` folder is healthy and tracked if needed.
+> Поскольку мы используем стратегию **Hybrid Build** (для экономии RAM), если сборка на сервере падает, обычно это происходит из-за отсутствующих или несовместимых локальных артефактов. Всегда проверяйте актуальность папки `.next/standalone`.
 
-## 🆘 Troubleshooting
-- **Build hangs**: Check `.dockerignore`. It should ignore the heavy `node_modules`.
-- **Merge Conflicts**: If you get a conflict, `git merge main` into your feature branch, resolve it locally, and push again.
+## 🆘 Решение проблем
+- **Сборка зависла**: Проверьте `.dockerignore`. Он должен игнорировать тяжелую папку `node_modules`.
+- **Конфликты слияния**: Если возник конфликт, влейте `main` в свою ветку (`git merge main`), решите конфликты локально и пушьте снова.
