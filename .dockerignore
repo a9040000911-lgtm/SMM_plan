@@ -1,3 +1,22 @@
+# Smmplan Docker Optimize: Only send built assets
+node_modules
+.next
+.git
+.github
+.gitignore
+.dockerignore
+.agent
+.GEMINI
+.gemini-clipboard
+.swc
+
+# EXCEPTIONS: We need these for the Hybrid build
+!.next/standalone
+!.next/static
+!public
+!prisma
+
+# Trash and logs
 all_orders_data
 scraped_data
 data_export
@@ -15,19 +34,9 @@ test-results
 playwright-report
 logs
 docs
-.agent
-.GEMINI
-.gemini-clipboard
-.swc
 src/tests
 src/generated
 prisma/generated
 .env
 .env.*
 !.env.example
-#!node_modules
-#!.next
-.git
-.github
-.gitignore
-.dockerignore

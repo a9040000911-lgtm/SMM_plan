@@ -24,6 +24,13 @@ if [[ "$1" == "--skip-build" ]]; then
     if [ -f smmplan-app.tar ]; then docker load -i smmplan-app.tar; fi
     if [ -f smmplan-bot.tar ]; then docker load -i smmplan-bot.tar; fi
 else
+    # Check if local build exists before building hybrid image
+    if [ ! -d ".next/standalone" ]; then
+        echo "❌ ERROR: Local build not found in .next/standalone!"
+        echo "💡 Please run 'npm run build' on your local machine before deploying."
+        exit 1
+    fi
+
     echo "🛠 Building Docker images with NEXT_PUBLIC_URL=$PUBLIC_URL..."
     export BUILDKIT_PROGRESS=plain
     docker compose -f docker-compose.prod.yml build --build-arg NEXT_PUBLIC_URL="$PUBLIC_URL"
