@@ -6,7 +6,7 @@
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
 import { Platform, Category } from '@/generated/client';
-import { PricingService } from '@/services/finance';
+import { PricingService } from '@/services/finance/pricing.service';
 import { ServiceSyncService } from '@/services/providers/sync.service';
 
 export class ServiceEngine {

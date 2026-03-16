@@ -27,7 +27,14 @@ const customJestConfig = {
   testPathIgnorePatterns: [
     "/node_modules/",
     "/src/tests/e2e/",
-    "\\.spec\\.ts$"
+    "\\.spec\\.ts$",
+    "/\\.next/"
+  ],
+  modulePathIgnorePatterns: [
+    "<rootDir>/.next/",
+    "<rootDir>/dist/",
+    "<rootDir>/out/",
+    "<rootDir>/scripts/"
   ],
   transformIgnorePatterns: [
     "node_modules/(?!(bullmq|decimal\\.js|axios|jose|@auth/prisma-adapter|@noble/hashes|@paralleldrive/cuid2|undici)/)"
