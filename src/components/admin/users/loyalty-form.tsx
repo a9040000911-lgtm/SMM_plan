@@ -11,7 +11,6 @@ import {
     Zap,
     Plus,
     Trash2,
-    Save,
     Settings
 } from 'lucide-react';
 import { updateLoyaltySettingsAction } from '@/app/admin/loyalty/actions';

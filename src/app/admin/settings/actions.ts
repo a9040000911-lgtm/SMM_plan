@@ -7,7 +7,6 @@
 
 import { revalidatePath } from 'next/cache';
 import { getAdminSession } from '@/utils/admin-session';
-import { TwoFactorService } from '@/services/admin/two-factor.service';
 import { AdminDataService } from '@/services/admin/admin-data.service';
 import { AdminContext } from '@/services/types';
 

@@ -7,13 +7,7 @@ import {
     Monitor, 
     Smartphone, 
     Zap, 
-    Save,
-    ChevronRight,
-    Search,
-    Plus,
-    X,
-    Laptop,
-    Tablet
+    Save
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PAGES, ViewportSize } from '../types';

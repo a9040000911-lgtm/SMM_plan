@@ -8,7 +8,6 @@ import { prisma } from "@/lib/prisma";
 import { ServiceResult, CatalogServiceItem } from "../types";
 import { SerializedServiceV2 } from "@/types/catalog";
 import { translateCategory } from "@/utils/translations";
-import { Decimal } from "decimal.js";
 import { LinkService } from "../providers/link.service";
 import { analyzeLink } from "@/utils/link-analyzer";
 import { Platform } from "@/generated/client";
@@ -96,9 +95,17 @@ export class CatalogService {
             const services = await prisma.internalService.findMany({
                 where: {
                     isActive: true,
-                    projectOverrides: {
-                        some: { projectId, isActive: true }
-                    }
+                    OR: [
+                        { projectOverrides: { some: { projectId, isActive: true } } },
+                        { 
+                            isPrivate: false,
+                            providerMappings: { some: { projectId } }
+                        },
+                        {
+                            isPrivate: false,
+                            providerMappings: { some: { projectId: null } }
+                        }
+                    ]
                 },
                 include: {
                     serviceCategory: true,

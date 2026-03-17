@@ -34,6 +34,10 @@ const PARSERS: PlatformParser[] = [
 export function analyzeLink(link: string): AnalysisResult | null {
   let url = link.trim().toLowerCase();
 
+  if (!url.startsWith('http') && !url.includes('.')) {
+    return null; 
+  }
+
   if (!url.startsWith('http')) {
     url = 'https://' + url;
   }
@@ -68,12 +72,23 @@ export function analyzeLink(link: string): AnalysisResult | null {
     }
   }
 
+  // Final check - if it's t.me/ something it might have failed URL but is still Telegram
+  if (url.includes('t.me/')) {
+     const result = TelegramParser.parse(url);
+     if (result) return result;
+  }
+
   // Fallback for all other websites not natively parsed
-  return {
-    platform: 'OTHER' as Platform,
-    possibleCategories: ['TRAFFIC', 'OTHER', 'REVIEWS'] as Category[],
-    objectType: 'WEB_SITE' as any,
-  };
+  try {
+    new URL(url);
+    return {
+      platform: 'OTHER' as Platform,
+      possibleCategories: ['TRAFFIC', 'OTHER', 'REVIEWS'] as Category[],
+      objectType: 'WEB_SITE' as any,
+    };
+  } catch (e) {
+    return null;
+  }
 }
 
 export * from './types';

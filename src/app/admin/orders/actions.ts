@@ -93,7 +93,7 @@ export async function bulkUpdateStatusAction(orderIds: number[]) {
     }
 
     // Reuse syncOrder for simplify or add bulkSync to service
-    const results = await Promise.all(orderIds.map(id => AdminServices.orders.syncOrder(ctx, id)));
+    await Promise.all(orderIds.map(id => AdminServices.orders.syncOrder(ctx, id)));
     revalidatePath('/admin/orders');
     return { success: true, count: orderIds.length };
 }

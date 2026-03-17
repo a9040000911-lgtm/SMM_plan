@@ -35,13 +35,13 @@ export async function getSupportAiSuggestionAction(ticketId: string) {
 
         const genAI = new GoogleGenerativeAI(config.apiKey);
         
-        let requestOptions: any = {};
+        const requestOptions: any = {};
         if (config.proxy) {
             try {
                 const { ProxyAgent } = await import('undici');
                 const dispatcher = new ProxyAgent(config.proxy.startsWith('http') ? config.proxy : `http://${config.proxy}`);
                 requestOptions.fetchFn = (url: string, options: any) => fetch(url, { ...options, dispatcher } as any);
-            } catch (e) {
+            } catch (_e) {
                 console.warn('[SupportAI] ProxyAgent not available, using default fetch');
             }
         }

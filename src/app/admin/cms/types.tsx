@@ -5,8 +5,6 @@ import {
     Globe, 
     Layers, 
     FileText,
-    Monitor,
-    Smartphone,
     Laptop
 } from 'lucide-react';
 

@@ -26,6 +26,8 @@ jest.mock('@/lib/prisma', () => {
             update: jest.fn(),
             findUnique: jest.fn(),
         },
+                settings: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), update: jest.fn(), create: jest.fn() },
+        globalSetting: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
         $transaction: jest.fn((fn) => fn(mockPrisma)),
         serviceChangeLog: {
             create: jest.fn(),
@@ -91,10 +93,26 @@ describe('Service Dashboard Enhanced Tests', () => {
     });
 
     describe('updateService RBAC', () => {
-        test('SEO role is currently blocked by requireSupportOrAdmin', async () => {
+        test('SEO role can update service content', async () => {
             (getAdminSession as jest.Mock).mockResolvedValue({ role: 'SEO', id: 'seo-id' });
-            await expect(updateService('s-1', { name: 'SEO Optimized Name' }))
-                .rejects.toThrow(/is not authorized/);
+            (prisma.internalService.findUnique as jest.Mock).mockResolvedValue({ id: 's-1', pricePer1000: 10 });
+            (prisma.internalService.update as jest.Mock).mockResolvedValue({});
+
+            const res = await updateService('s-1', { name: 'SEO Optimized Name' });
+            expect(res.success).toBe(true);
+        });
+
+        test('SEO role cannot update price (silently filtered)', async () => {
+            (getAdminSession as jest.Mock).mockResolvedValue({ role: 'SEO', id: 'seo-id' });
+            (prisma.internalService.findUnique as jest.Mock).mockResolvedValue({ id: 's-1', pricePer1000: 10 });
+            (prisma.internalService.update as jest.Mock).mockResolvedValue({});
+
+            await updateService('s-1', { pricePer1000: 999 });
+            
+            // Should call update but WITHOUT pricePer1000 in data
+            expect(prisma.internalService.update).toHaveBeenCalledWith(expect.objectContaining({
+                data: expect.not.objectContaining({ pricePer1000: expect.anything() })
+            }));
         });
 
         test('SUPPORT role can update service content', async () => {

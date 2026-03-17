@@ -70,6 +70,8 @@ jest.mock('@/lib/prisma', () => ({
         order: {
             create: (...a: any[]) => mockOrderCreate(...a),
         },
+                settings: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), update: jest.fn(), create: jest.fn() },
+        globalSetting: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
         $transaction: jest.fn(async (fn: any) => fn({
             scheduledOrder: {
                 findUnique: mockScheduledOrderFindUnique,

@@ -4,7 +4,6 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { analyzeLink } from './analyzer';
-import { Platform, Category } from '@prisma/client';
 
 describe('analyzeLink', () => {
     test('should recognize public Telegram channel', () => {

@@ -6,7 +6,7 @@
  */
 
 import { revalidatePath } from 'next/cache';
-import { getAdminSession, getActiveProjectId } from '@/utils/admin-session';
+import { getActiveProjectId } from '@/utils/admin-session';
 import { sanitizeData } from '@/utils/service-sanitizer';
 import { AdminDataService } from '@/services/admin/admin-data.service';
 import { getAdminContext } from '@/utils/admin-context';
@@ -235,8 +235,7 @@ export async function linkProviderService(internalServiceId: string, providerId:
  * Получает список услуг для инспекции.
  */
 export async function getServicesForCurator() {
-  const ctx = await getAdminContext();
-  const result = await AdminDataService.getServicesForCurator(ctx);
+  const result = await AdminDataService.getServicesForCurator(await getAdminContext());
   if (!result.success) throw new Error(result.error.message);
   return result.data;
 }

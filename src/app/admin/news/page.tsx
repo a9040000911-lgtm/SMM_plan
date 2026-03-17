@@ -45,12 +45,10 @@ async function getNewsData(projectId: string) {
 }
 
 export default async function AdminNewsPage() {
-  const session = await getAdminSession();
   const projectId = await getActiveProjectId();
   const news = await getNewsData(projectId || 'all');
   
   const lang: Locale = 'ru'; 
-  const dict = dictionaries[lang];
 
   const projects = await prisma.project.findMany({
     select: { id: true, name: true, brandColor: true }

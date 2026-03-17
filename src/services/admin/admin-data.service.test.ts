@@ -35,6 +35,8 @@ jest.mock('@/lib/prisma', () => ({
         projectServiceOverride: mockProjectServiceOverride,
         adminLog: mockAdminLog,
         // Transaction mock that passes the prisma mock to the callback (handling both arrays and functions)
+                settings: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), update: jest.fn(), create: jest.fn() },
+        globalSetting: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
         $transaction: jest.fn(async (arg) => {
             if (typeof arg === 'function') {
                 return await arg({

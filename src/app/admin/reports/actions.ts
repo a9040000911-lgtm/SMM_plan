@@ -66,8 +66,6 @@ export async function exportProfitLossReport(startDate: string, endDate: string)
  */
 export async function exportTransactionsReport(startDate: string, endDate: string) {
   const ctx = await getCtx();
-  const start = new Date(startDate);
-  const end = new Date(endDate + 'T23:59:59.999Z');
 
   const result = await AdminDataService.getTransactionsForExport(ctx, { startDate, endDate });
   if (!result.success) throw new Error(result.error.message);

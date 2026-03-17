@@ -8,8 +8,7 @@ import {
     History, 
     X, 
     Plus, 
-    Trash2, 
-    MousePointer2
+    Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EditorToolbar } from './components/EditorToolbar';

@@ -13,23 +13,6 @@ jest.mock('@/lib/prisma', () => ({
       findUnique: jest.fn(),
     },
     internalServiceMapping: {
-      findFirst: jest.fn(),
-      findMany: jest.fn(),
-    },
-    internalService: {
-      findUnique: jest.fn(),
-    },
-    providerService: {
-      findUnique: jest.fn(),
-    }
-  },
-}));
-
-jest.mock('axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
-
-describe('Provider Service', () => {
-  beforeEach(() => {
     jest.clearAllMocks();
     mockedAxios.create.mockReturnValue(mockedAxios);
   });

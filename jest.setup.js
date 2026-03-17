@@ -87,15 +87,19 @@ const mockPrismaClient = {
         if (typeof cb === 'function') return await cb(mockPrismaClient);
         return Array.isArray(cb) ? Promise.all(cb) : cb;
     }),
-    user: { findUnique: jest.fn(), findMany: jest.fn(), count: jest.fn(), update: jest.fn(), create: jest.fn(), aggregate: jest.fn() },
-    internalService: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn(), create: jest.fn(), count: jest.fn() },
-    serviceCategory: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn(), create: jest.fn() },
+    user: { findUnique: jest.fn(), findMany: jest.fn(), count: jest.fn(), update: jest.fn(), create: jest.fn(), aggregate: jest.fn(), upsert: jest.fn() },
+    internalService: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn(), create: jest.fn(), count: jest.fn(), deleteMany: jest.fn() },
+    internalServiceMapping: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn(), create: jest.fn(), deleteMany: jest.fn() },
+    serviceCategory: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn(), create: jest.fn(), deleteMany: jest.fn() },
     projectServiceOverride: { upsert: jest.fn(), findUnique: jest.fn(), findMany: jest.fn() },
     adminLog: { create: jest.fn() },
     order: { findUnique: jest.fn(), findMany: jest.fn(), count: jest.fn(), aggregate: jest.fn() },
     transaction: { aggregate: jest.fn() },
     settings: { findFirst: jest.fn(), upsert: jest.fn(), findMany: jest.fn() },
-    project: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
+    project: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn(), upsert: jest.fn() },
+    news: { findMany: jest.fn(), deleteMany: jest.fn() },
+    socialPlatform: { findMany: jest.fn(), findUnique: jest.fn() },
+    providerService: { findUnique: jest.fn(), findMany: jest.fn() },
     businessExpense: { aggregate: jest.fn() },
     currencyRate: { findUnique: jest.fn() },
 };
@@ -127,7 +131,8 @@ jest.mock('@/utils/admin-session', () => ({
         allowedProjects: [],
         isGlobalAdmin: true
     }),
-    getActiveProjectId: jest.fn().mockResolvedValue(null)
+    getActiveProjectId: jest.fn().mockResolvedValue(null),
+    validateProjectAccess: jest.fn().mockResolvedValue(true)
 }));
 
 jest.mock('next-auth', () => ({

@@ -20,6 +20,8 @@ jest.mock('@/lib/prisma', () => ({
             findMany: jest.fn(),
             update: jest.fn(),
         },
+        settings: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), update: jest.fn(), create: jest.fn() },
+        globalSetting: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
     },
 }));
 

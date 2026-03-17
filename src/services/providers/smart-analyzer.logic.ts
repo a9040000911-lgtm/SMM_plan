@@ -236,7 +236,7 @@ export class SmartAnalyzerLogic {
             }
         }
 
-        const effectivePlatform = platformEnum; // Use enum for logic checks
+        const effectivePlatform: string = platformEnum; 
 
         // VK specific refinement
         if (effectivePlatform === 'VK') {
@@ -343,39 +343,43 @@ export class SmartAnalyzerLogic {
         // 3. Target Type
         let targetType = 'POST';
         const isPrivate = n.includes('private') || n.includes('priv ') || n.includes('закрыт') || n.includes('приват') || n.includes('канал c') || n.includes('для закрытых');
+        const isAuto = n.includes('auto') || n.includes('subscription') || n.includes('авто') || n.includes('последних постов') || n.includes('будущие');
 
         if (effectivePlatform === 'TELEGRAM') {
-            if ((category as string) === 'STARS') targetType = 'TG_STARS';
-            else if ((category as string) === 'BOTS' || (category as string) === 'REFERRALS') targetType = 'TG_BOT';
-            else if (category === 'STORIES') targetType = 'TG_STORY';
-            else if (category === 'BOOSTS') targetType = 'TG_BOOST';
-            else if (['VIEWS', 'REACTIONS', 'REPOSTS', 'COMMENTS'].includes(category)) targetType = 'TG_POST';
-            else if (['SUBSCRIBERS', 'GROUPS'].includes(category)) targetType = 'TG_CHANNEL';
-            else targetType = 'TG_CHANNEL';
+            if ((category as string) === 'STARS') targetType = 'CUSTOM';
+            else if ((category as string) === 'BOTS' || (category as string) === 'REFERRALS') targetType = 'CHANNEL';
+            else if (category === 'STORIES') targetType = 'STORY';
+            else if (category === 'BOOSTS') targetType = 'CHANNEL';
+            else if (isAuto) targetType = 'CHANNEL_POSTS';
+            else if (['VIEWS', 'REACTIONS', 'REPOSTS', 'COMMENTS'].includes(category)) targetType = 'POST';
+            else if (['SUBSCRIBERS', 'GROUPS'].includes(category)) targetType = 'CHANNEL';
+            else targetType = 'CHANNEL';
         } else if (effectivePlatform === 'INSTAGRAM') {
-            if (category === 'SUBSCRIBERS') targetType = 'PROFILE';
+            if (isAuto) targetType = 'CHANNEL_POSTS';
+            else if (category === 'SUBSCRIBERS') targetType = 'PROFILE';
             else if (category === 'STORIES') targetType = 'STORY';
             else if (n.includes('reel') || n.includes('video') || n.includes('видео') || n.includes(' igtv')) targetType = 'VIDEO';
             else targetType = 'POST';
         } else if (effectivePlatform === 'VK') {
-            if (n.includes('vk play') || n.includes('play') || n.includes('stream') || n.includes('стрим') || n.includes('зрител')) {
+            if (isAuto) targetType = 'CHANNEL_POSTS';
+            else if (n.includes('vk play') || n.includes('play') || n.includes('stream') || n.includes('стрим') || n.includes('зрител')) {
                 const isSubValue = n.includes('подпис') || n.includes('sub') || n.includes('follow') || category === 'SUBSCRIBERS';
-                targetType = isSubValue ? 'VK_PLAY_CHANNEL' : 'VK_PLAY_LIVE';
-            } else if (n.includes('poll') || n.includes('опрос') || n.includes('голос')) targetType = 'VK_POLL';
+                targetType = isSubValue ? 'CHANNEL' : 'VIDEO';
+            } else if (n.includes('poll') || n.includes('опрос') || n.includes('голос')) targetType = 'POLL';
             else if (['FRIENDS', 'SUBSCRIBERS'].includes(category) && (n.includes('профиль') || n.includes('друзья'))) targetType = 'PROFILE';
             else if (['GROUPS', 'SUBSCRIBERS'].includes(category)) targetType = 'CHANNEL';
-            else if (n.includes('video') || n.includes('clip') || n.includes('клип') || n.includes('видео') || category === 'VIEWS') {
+            else if (n.includes('video') || n.includes('clip') || n.includes('клип') || n.includes('видео') || (category as string) === 'VIEWS') {
                 targetType = (n.includes('clip') || n.includes('клип')) ? 'VK_CLIP' : 'VK_VIDEO';
-            } else if (category === 'STORIES') targetType = 'VK_STORY';
-            else if (n.includes('wall') || n.includes('стен') || n.includes('пост') || n.includes('запись')) targetType = 'VK_WALL';
+            } else if (category === 'STORIES') targetType = 'STORY';
+            else if (n.includes('wall') || n.includes('стен') || n.includes('пост') || n.includes('запись')) targetType = 'POST';
             else targetType = 'CHANNEL';
         } else {
             // Generic logic for other platforms
-            if (n.includes('auto') || n.includes('subscription') || n.includes('авто')) {
+            if (isAuto) {
                 targetType = 'CHANNEL_POSTS';
             } else if (['SUBSCRIBERS', 'GROUPS', 'FRIENDS'].includes(category)) {
-                targetType = (['INSTAGRAM', 'TIKTOK'].includes(effectivePlatform as string)) ? 'PROFILE' : 'CHANNEL';
-            } else if (n.includes('video') || n.includes('reel') || n.includes('shorts') || category === 'VIEWS') {
+                targetType = (['INSTAGRAM', 'TIKTOK'].includes(effectivePlatform)) ? 'PROFILE' : 'CHANNEL';
+            } else if (n.includes('video') || n.includes('reel') || n.includes('shorts') || (category as string) === 'VIEWS') {
                 targetType = 'VIDEO';
             } else {
                 targetType = 'POST';

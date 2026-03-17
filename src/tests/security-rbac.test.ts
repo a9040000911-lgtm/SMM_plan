@@ -35,6 +35,8 @@ jest.mock('@/lib/prisma', () => ({
         order: { aggregate: jest.fn().mockResolvedValue({ _sum: { totalPrice: null } }) },
         adminLog: { create: jest.fn() },
         ledgerEntry: { create: jest.fn() },
+                settings: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), update: jest.fn(), create: jest.fn() },
+        globalSetting: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
         $transaction: jest.fn(async (fn: any) => {
             if (typeof fn === 'function') {
                 return fn({

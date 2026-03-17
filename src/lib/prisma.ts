@@ -39,6 +39,8 @@ if (!(prisma as any).cmsString) {
     (prisma as any).cmsString = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null) };
     (prisma as any).cmsBlock = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null) };
     (prisma as any).cmsPage = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null) };
+    (prisma as any).settings = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null), findFirst: () => Promise.resolve(null), upsert: () => Promise.resolve({}), update: () => Promise.resolve({}), create: () => Promise.resolve({}) };
+    (prisma as any).globalSetting = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null), findFirst: () => Promise.resolve(null) };
   } else {
     console.error('FATAL: Prisma Client is missing CmsString model property even after re-initialization!');
   }

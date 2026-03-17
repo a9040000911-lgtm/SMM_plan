@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
 import { updateCmsStringsAction, updateCmsBlocksAction } from '../actions';
 import { toast } from 'sonner';
-import { CMS_GROUPS, PAGES, ViewportSize } from '../types';
+import { CMS_GROUPS, ViewportSize } from '../types';
 
 interface UseCmsEditorProps {
     projectId: string;

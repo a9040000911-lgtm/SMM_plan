@@ -32,7 +32,9 @@ jest.mock('@/lib/prisma', () => ({
         },
         adminLog: {
             create: jest.fn()
-        }
+        },
+        settings: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), update: jest.fn(), create: jest.fn() },
+        globalSetting: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
     }
 }));
 

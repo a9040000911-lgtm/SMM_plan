@@ -4,7 +4,6 @@
  */
 import { prisma } from '@/lib/prisma';
 import { Platform, Category, InternalService } from '@prisma/client';
-import { SmartAnalyzerLogic } from './smart-analyzer.logic';
 
 export interface MappingSuggestion {
     internalService: InternalService;

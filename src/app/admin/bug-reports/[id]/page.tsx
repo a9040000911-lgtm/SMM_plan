@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation';
 import { AdminHeader } from '@/components/admin/core/admin-header';
 import { BugStatusEditor } from './status-editor';
 import Link from 'next/link';
+import NextImage from 'next/image';
 import { ExternalLink, ArrowLeft, Bug } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -82,8 +83,13 @@ export default async function BugReportDetailPage({
                                 <div>
                                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Скриншот</h3>
                                     <a href={report.screenshotUrl} target="_blank" rel="noreferrer" className="inline-block rounded-xl overflow-hidden border border-slate-200 hover:border-primary/50 transition-colors relative group">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={report.screenshotUrl} alt="Screenshot" className="max-w-full rounded-xl max-h-[400px] object-contain" />
+                                        <NextImage 
+                                            src={report.screenshotUrl} 
+                                            alt="Screenshot" 
+                                            width={800}
+                                            height={600}
+                                            className="max-w-full rounded-xl max-h-[400px] object-contain" 
+                                        />
                                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-2 font-bold backdrop-blur-sm">
                                             <ExternalLink size={20} />
                                             Открыть оригинал

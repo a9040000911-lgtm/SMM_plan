@@ -48,7 +48,7 @@ ${currentDescription || 'Нет данных'}
             const genAI = new GoogleGenerativeAI(config.apiKey);
             
             // Proxy support
-            let requestOptions: any = {};
+            const requestOptions: any = {};
             if (config.proxy) {
                 try {
                     const { ProxyAgent } = await import('undici');

@@ -10,8 +10,7 @@ import {
   TrendingDown, 
   AlertTriangle, 
   ShieldCheck, 
-  Search,
-  ChevronRight
+  Search
 } from 'lucide-react';
 import { getAdminSession } from '@/utils/admin-session';
 import { AdminDataService } from '@/services/admin/admin-data.service';

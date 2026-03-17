@@ -9,7 +9,6 @@
  */
 import { getActiveProjectId, validateProjectAccess } from '@/utils/admin-session';
 import { cookies } from 'next/headers';
-import { prisma } from '@/lib/prisma';
 import { verifyAdminSession } from '@/lib/jwt';
 
 // Mock dependencies
@@ -22,7 +21,9 @@ jest.mock('@/lib/prisma', () => ({
         user: {
             findMany: jest.fn(),
             update: jest.fn(),
-        }
+        },
+        settings: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), update: jest.fn(), create: jest.fn() },
+        globalSetting: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
     }
 }));
 

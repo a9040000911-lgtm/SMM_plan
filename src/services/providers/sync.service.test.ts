@@ -45,6 +45,8 @@ jest.mock('@/lib/prisma', () => ({
         providerBalanceLog: {
             create: jest.fn(),
         },
+                settings: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), update: jest.fn(), create: jest.fn() },
+        globalSetting: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
         $transaction: jest.fn((promises) => Promise.all(promises)),
     },
 }));

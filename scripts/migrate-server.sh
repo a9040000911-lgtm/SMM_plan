@@ -57,9 +57,14 @@ until [ "$(docker inspect -f {{.State.Health.Status}} smmplan-db)" == "healthy" 
     sleep 2
 done
 
-# 5. Initialize Database Schema
-echo "🗄 pushing prisma schema..."
-docker compose -f docker-compose.prod.yml exec -u root app npx prisma db push --accept-data-loss --skip-generate
+# 5. Database Safety & Initialization
+echo "🛡️ Creating mandatory database backup..."
+sh ./scripts/local-backup.sh || { echo "❌ Backup failed! Aborting to protect data."; exit 1; }
+
+echo "🗄️ Synchronizing database schema (safe mode)..."
+# Мы используем db push без --accept-data-loss для первичного деплоя. 
+# Если схема не совпадает, команда выдаст ошибку вместо удаления данных.
+docker compose -f docker-compose.prod.yml exec -u root app npx prisma db push --skip-generate
 
 # 6. Run Post-Deployment Patches/Seeds
 # (Патч теперь делается на этапе сборки образа, здесь проверяем только БД)

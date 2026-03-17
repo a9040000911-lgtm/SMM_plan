@@ -30,7 +30,6 @@ jest.mock('@/services/admin/admin-data.service', () => ({
 
 import { GET } from '@/app/api/admin/stats/route';
 import { AdminDataService } from '@/services/admin/admin-data.service';
-import { NextRequest } from 'next/server';
 
 describe('World Standard Validation (Admin Stats)', () => {
     beforeEach(() => {

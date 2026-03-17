@@ -5,14 +5,9 @@ import {
     X, 
     MousePointer2, 
     Layout, 
-    Sparkles,
-    ChevronRight,
-    Search,
-    Plus,
-    Zap
+    Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CMS_GROUPS } from '../types';
 
 interface PropertyDrawerProps {
     selectedKey: string | null;

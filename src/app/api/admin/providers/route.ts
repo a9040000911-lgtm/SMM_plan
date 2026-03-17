@@ -6,7 +6,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ProviderService } from '@/services/providers';
 import { ServiceSyncService } from '@/services/providers/sync.service';
 import { BalanceMonitorService } from '@/services/providers/balance-monitor.service';
 import { getAdminSession } from '@/utils/admin-session';

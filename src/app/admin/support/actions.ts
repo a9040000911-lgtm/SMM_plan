@@ -90,8 +90,7 @@ export async function updateSupportNotesAction(userId: string, notes: string) {
 }
 
 export async function getStuckOrders() {
-  const ctx = await requireSupportOrAdmin();
-  const result = await AdminServices.orders.getOldPendingOrders(ctx);
+  const result = await AdminServices.orders.getOldPendingOrders(await requireSupportOrAdmin());
   if (!result.success) throw new Error(result.error.message);
   return result.data;
 }

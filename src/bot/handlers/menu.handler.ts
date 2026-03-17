@@ -68,7 +68,7 @@ export async function handleMenuAction(actionId: string, ctx: any) {
         case 'WEBAPP': {
             const layout = ctx.project?.config?.menuLayout || staticMainMenu;
             const item = findMenuItem(layout, 'WEBAPP', ctx.message?.text);
-            let webAppUrl = item?.metadata?.url || (ctx.project?.domain ? `http://${ctx.project.domain}` : (process.env.NEXT_PUBLIC_APP_URL || process.env.WEBAPP_URL || 'http://89.23.98.202'));
+            const webAppUrl = item?.metadata?.url || (ctx.project?.domain ? `http://${ctx.project.domain}` : (process.env.NEXT_PUBLIC_APP_URL || process.env.WEBAPP_URL || 'http://89.23.98.202'));
 
             return ctx.reply('🚀 Нажмите на кнопку ниже, чтобы открыть:', {
                 ...getProjectMenu(ctx.project),

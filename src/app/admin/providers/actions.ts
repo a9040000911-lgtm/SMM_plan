@@ -34,7 +34,6 @@ export async function getProvidersAction() {
 }
 
 export async function getActiveProjectContext() {
-  const ctx = await getCtx();
   const activeProjectId = await getActiveProjectId();
   return { activeProjectId };
 }

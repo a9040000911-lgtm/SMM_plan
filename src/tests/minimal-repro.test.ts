@@ -12,15 +12,14 @@ jest.mock('@/lib/prisma', () => ({
     prisma: {
         serviceCategory: {
             findMany: jest.fn(),
-        }
+        },
+        settings: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), update: jest.fn(), create: jest.fn() },
+        globalSetting: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
     }
 }));
 
 jest.mock('@/utils/admin-session', () => ({
     getAdminSession: jest.fn(),
-}));
-
-jest.mock('@/utils/project-resolver', () => ({
     getActiveProjectId: jest.fn(),
 }));
 
