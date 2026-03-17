@@ -1,0 +1,8 @@
+# Smmplan AI Coding Rules
+
+1. **Server First**: Always prefer React Server Components unless interactivity is strictly required. Mark Client Components with `"use client"`.
+2. **Type Safety**: Never use `any`. Use Prisma-generated types or custom Zod schemas.
+3. **Architecture Boundaries**: Do not import `lib/prisma.ts` in UI components. Use the service layer.
+4. **Tailwind 4**: Use modern Tailwind 4 syntax (e.g., `@theme` for variables in CSS).
+5. **Rate Limiting**: All new public API routes MUST implement `checkRateLimit`.
+6. **Error Handling**: Use the global error boundary. Log critical errors on the server, but keep client messages user-friendly.

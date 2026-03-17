@@ -5,8 +5,8 @@
  */
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
-import { ProviderService } from './provider.service';
 import { CurrencyService } from '../finance/currency.service';
+import { IProvider } from './base-provider';
 
 export type GuardianCheckResult = {
     isValid: boolean;
@@ -21,7 +21,7 @@ export class ServiceGuardian {
     /**
      * Проверяет, не изменились ли условия у провайдера для конкретной услуги.
      */
-    static async verifyService(internalServiceId: string, mapping: any): Promise<GuardianCheckResult> {
+    static async verifyService(internalServiceId: string, mapping: any, providerInstance: IProvider): Promise<GuardianCheckResult> {
         try {
             // 1. Получаем сохраненную услугу провайдера из нашей БД
             const storedService = await prisma.providerService.findUnique({
@@ -33,12 +33,7 @@ export class ServiceGuardian {
                 return { isValid: false, reason: 'Stored provider service not found in DB', criticalChange: false };
             }
 
-            // 2. Получаем актуальные данные от провайдера
-            const providerInstance = await ProviderService.getInstance(mapping.providerId);
-            if (!providerInstance) {
-                return { isValid: false, reason: 'Provider unavailable', criticalChange: false };
-            }
-
+            // 2. Используем переданный экземпляр
             const providerServices = await providerInstance.getServices();
             const remoteService = providerServices.find(s => String(s.service) === String(storedService.externalId));
 
@@ -155,6 +150,7 @@ export class ServiceGuardian {
      */
     static async disableService(internalServiceId: string, reason: string) {
         try {
+            const { bot } = await import('@/lib/bot');
             const service = await prisma.internalService.update({
                 where: { id: internalServiceId },
                 data: { isActive: false },
@@ -183,7 +179,6 @@ export class ServiceGuardian {
             });
 
             if (employees.length > 0) {
-                const { bot } = await import('@/lib/bot');
                 const msg = `🚨 <b>УСЛУГА ОТКЛЮЧЕНА (Service Guardian)</b>\n\n` +
                     `🛠 Услуга: <b>${service.name}</b>\n` +
                     `🆔 ID: <code>${internalServiceId}</code>\n` +

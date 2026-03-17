@@ -3,7 +3,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { MarkupRule } from '@/services/finance/pricing.service';
+import { MarkupRule } from '@/services/types';
 
 export interface MarketerSettings {
     isSmartFragmentationEnabled?: boolean;

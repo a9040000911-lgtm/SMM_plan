@@ -8,8 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ProviderService } from '@/services/providers';
 import { ServiceSyncService } from '@/services/providers/sync.service';
-
+import { BalanceMonitorService } from '@/services/providers/balance-monitor.service';
 import { getAdminSession } from '@/utils/admin-session';
+import { sanitizeData } from '@/utils/service-sanitizer';
 
 export async function GET() {
   try {
@@ -33,14 +34,14 @@ export async function GET() {
 
       return {
         ...p,
-        balanceThreshold: p.balanceThreshold.toString(),
-        currentBalance: lastBalance?.balance.toString() || '0',
+        balanceThreshold: p.balanceThreshold.toNumber(),
+        currentBalance: lastBalance?.balance.toNumber() || 0,
         lastSync: lastBalance?.createdAt.toISOString() || null,
         serviceCount: p._count.services
       };
     }));
 
-    return NextResponse.json(providersWithStats);
+    return NextResponse.json(sanitizeData(providersWithStats));
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     if (action === 'sync_all') {
       await ServiceSyncService.syncAllServices();
-      await ProviderService.checkAndLogAllBalances();
+      await BalanceMonitorService.checkAndLogAllBalances();
       return NextResponse.json({ success: true });
     }
 
@@ -66,7 +67,6 @@ export async function POST(req: NextRequest) {
       const provider = await prisma.provider.findUnique({ where: { id: providerId } });
       if (!provider) throw new Error('Provider not found');
 
-      // Здесь можно вызвать специфичную синхронизацию, но пока используем общую
       await ServiceSyncService.syncAllServices();
       return NextResponse.json({ success: true });
     }
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
           balanceCurrency: body.balanceCurrency || 'USD'
         }
       });
-      return NextResponse.json(provider);
+      return NextResponse.json(sanitizeData(provider));
     }
 
     if (action === 'update') {
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
           balanceCurrency: body.balanceCurrency
         }
       });
-      return NextResponse.json(provider);
+      return NextResponse.json(sanitizeData(provider));
     }
 
     if (action === 'delete') {

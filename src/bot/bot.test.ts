@@ -5,7 +5,7 @@
  */
 import { LinkService } from '@/services/providers';
 import { prisma } from '@/lib/prisma';
-import { Platform, Category } from '@/generated/client';
+import type { Platform, Category } from '@/generated/client';
 import { Decimal } from 'decimal.js';
 
 // Mock Prisma
@@ -39,11 +39,11 @@ describe('Bot Integration Logic', () => {
     // 2. Logic: Analyze Link
     const analysis = LinkService.analyze(userLink);
     expect(analysis).not.toBeNull();
-    expect(analysis?.platform).toBe(Platform.TELEGRAM);
+    expect(analysis?.platform).toBe('TELEGRAM' as Platform);
 
     // 3. Logic: Find Services based on analysis
     const mockServices = [
-      { id: 'svc1', name: 'Test Service', pricePer1000: new Decimal(100), category: Category.SUBSCRIBERS }
+      { id: 'svc1', name: 'Test Service', pricePer1000: new Decimal(100), category: 'SUBSCRIBERS' as Category }
     ];
     mockedPrisma.internalService.findMany.mockResolvedValue(mockServices);
 

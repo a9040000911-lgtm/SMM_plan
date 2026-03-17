@@ -5,13 +5,14 @@
  */
 
 import React from 'react';
-import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Bug, CheckCircle2, AlertTriangle, AlertOctagon, ExternalLink } from 'lucide-react';
 import { formatAmount } from '@/utils/formatter';
 import { Pagination } from '@/components/admin/core/pagination';
 import Link from 'next/link';
+import { getAdminSession } from '@/utils/admin-session';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,53 +24,26 @@ export default async function BugReportsPage({ searchParams }: PageProps) {
     const params = await searchParams || {};
     const page = parseInt(typeof params.page === 'string' ? params.page : '1') || 1;
     const limit = parseInt(typeof params.limit === 'string' ? params.limit : '20') || 20;
-    const skip = (page - 1) * limit;
 
-    // Session Check
-    const cookieStore = await cookies();
-    const sessionData = cookieStore.get('admin_session');
-    if (!sessionData) return notFound();
-
-    const { verifyAdminSession } = await import('@/lib/jwt');
-    const session = await verifyAdminSession(sessionData.value);
+    const session = await getAdminSession();
     if (!session) return notFound();
 
-    const isGlobalAdmin = session.isGlobalAdmin;
-    const allowedProjects = session.allowedProjects || [];
+    const ctx: AdminContext = {
+        userId: session.id,
+        role: session.role as any,
+        allowedProjects: session.allowedProjects,
+        isGlobalAdmin: session.isGlobalAdmin
+    };
 
-    const where: any = {};
-    if (!isGlobalAdmin) {
-        where.projectId = { in: allowedProjects };
+    const result = await AdminDataService.getBugReportsPaged(ctx, page, limit);
+    if (!result.success) {
+        return <div className="p-8 text-red-500">Ошибка: {result.error.message}</div>;
     }
 
-    const [reports, totalReports, statusCounts] = await Promise.all([
-        prisma.bugReport.findMany({
-            where,
-            include: {
-                user: true,
-                project: true,
-            },
-            take: limit,
-            skip,
-            orderBy: { createdAt: 'desc' }
-        }),
-        prisma.bugReport.count({ where }),
-        prisma.bugReport.groupBy({
-            by: ['status'],
-            where,
-            _count: { _all: true }
-        })
-    ]);
-
-    const stats = {
-        pending: statusCounts.find(s => s.status === 'PENDING')?._count._all || 0,
-        reviewing: statusCounts.find(s => s.status === 'REVIEWING')?._count._all || 0,
-        accepted: statusCounts.find(s => s.status === 'ACCEPTED')?._count._all || 0
-    };
+    const { reports, total, stats } = result.data;
 
     return (
         <div className="space-y-6">
-            {/* Header Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-amber-50 text-amber-600 rounded-xl"><AlertTriangle size={24} /></div>
@@ -94,7 +68,6 @@ export default async function BugReportsPage({ searchParams }: PageProps) {
                 </div>
             </div>
 
-            {/* Reports List */}
             <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
@@ -183,7 +156,7 @@ export default async function BugReportsPage({ searchParams }: PageProps) {
                                         <td className="px-6 py-4 text-right">
                                             {report.status === 'ACCEPTED' ? (
                                                 <span className="text-sm font-black text-emerald-600">
-                                                    {formatAmount(report.rewardAmount.toString())}₽
+                                                    {formatAmount(report.rewardAmount)}₽
                                                 </span>
                                             ) : (
                                                 <span className="text-slate-300 text-xs font-bold">-</span>
@@ -197,7 +170,7 @@ export default async function BugReportsPage({ searchParams }: PageProps) {
                 </div>
             </div>
 
-            <Pagination totalPages={Math.ceil(totalReports / limit)} />
+            <Pagination totalPages={Math.ceil(total / limit)} />
         </div>
     );
 }

@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import React from 'react';
-import { Newspaper, Trophy, Scale, Megaphone, Star } from 'lucide-react';
+import { Newspaper, Trophy, Scale, Megaphone, Star, Layout } from 'lucide-react';
 import { AdminTabs } from '@/components/admin/core/admin-tabs';
 import { cookies } from 'next/headers';
 import { dictionaries, Locale } from '@/i18n/dictionaries';
@@ -13,6 +13,7 @@ import NewsPage from '../news/page';
 import LoyaltyPage from '../loyalty/page';
 import LegalPage from '../legal/page';
 import ReviewsPage from '../reviews/page';
+import AdminCmsPage from '../cms/page';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,7 @@ export default async function ContentRootPage(props: { searchParams: Promise<any
     const t = dictionaries[lang].admin.content;
 
     const tabs = [
+        { label: 'Сайт', icon: <Layout size={16} />, id: 'site' },
         { label: t.tabs.news, icon: <Newspaper size={16} />, id: 'news' },
         { label: t.tabs.loyalty, icon: <Trophy size={16} />, id: 'loyalty' },
         { label: t.tabs.legal, icon: <Scale size={16} />, id: 'legal' },
@@ -43,6 +45,10 @@ export default async function ContentRootPage(props: { searchParams: Promise<any
             </div>
 
             <AdminTabs tabs={tabs}>
+                <div>
+                    <AdminCmsPage />
+                </div>
+
                 <div>
                     <NewsPage />
                 </div>

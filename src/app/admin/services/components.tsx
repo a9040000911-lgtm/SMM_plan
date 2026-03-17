@@ -79,7 +79,10 @@ export function ServiceTable({ services, providers, allProviderServices, categor
     });
 
     const handleToggleStatus = async (id: string, current: boolean) => {
-        await toggleServiceStatus(id, !current);
+        const res = await toggleServiceStatus(id, !current);
+        if (!res.success) {
+            alert(res.error || 'Ошибка при переключении статуса');
+        }
         router.refresh();
     };
 
@@ -90,7 +93,7 @@ export function ServiceTable({ services, providers, allProviderServices, categor
         if (res.success) {
             router.refresh();
         } else {
-            alert(res.error);
+            alert(res.error || 'Ошибка при удалении');
         }
     };
 

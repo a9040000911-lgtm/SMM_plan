@@ -5,63 +5,29 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
-
-async function verifyAdmin() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get('admin_session');
-  if (!session) throw new Error('Unauthorized');
-}
+import { getAdminSession } from '@/utils/admin-session';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
 
 export async function getDashboardChartsData() {
-  await verifyAdmin();
+  const session = await getAdminSession();
+  if (!session) throw new Error('Unauthorized');
 
-  // 1. Данные по выручке за последние 14 дней
-  const fourteenDaysAgo = new Date();
-  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+  const ctx: AdminContext = {
+    userId: session.id,
+    role: session.role as any,
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
+  };
 
-  const transactions = await prisma.transaction.findMany({
-    where: {
-      type: 'DEPOSIT',
-      status: 'COMPLETED',
-      createdAt: { gte: fourteenDaysAgo }
-    },
-    select: { amount: true, createdAt: true },
-    orderBy: { createdAt: 'asc' }
-  });
+  const result = await AdminDataService.getDashboardChartsData(ctx);
+  if (!result.success) throw new Error(result.error.message);
 
-  // Агрегируем по дням
-  const dailyRevenue: Record<string, number> = {};
-  transactions.forEach(tx => {
-    const day = tx.createdAt.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
-    dailyRevenue[day] = (dailyRevenue[day] || 0) + tx.amount.toNumber();
-  });
+  return result.data;
+}
 
-  const revenueChart = Object.entries(dailyRevenue).map(([date, value]) => ({ date, value }));
-
-  // 2. Данные по популярности категорий (Pie Chart)
-  const categoryStats = await prisma.order.groupBy({
-    by: ['internalServiceId'],
-    _count: { id: true },
-    where: { status: 'COMPLETED' }
-  });
-
-  // Получаем маппинг сервисов к категориям
-  const activeServices = await prisma.internalService.findMany({
-    where: { id: { in: categoryStats.map(s => s.internalServiceId) } },
-    select: { id: true, category: true }
-  });
-
-  const categoryMap: Record<string, number> = {};
-  categoryStats.forEach(stat => {
-    const service = activeServices.find(s => s.id === stat.internalServiceId);
-    if (service) {
-      categoryMap[service.category] = (categoryMap[service.category] || 0) + stat._count.id;
-    }
-  });
-
-  const categoryChart = Object.entries(categoryMap).map(([name, value]) => ({ name: name, value }));
-
-  return { revenueChart, categoryChart };
+export async function getChurnStatsAction() {
+    // This was already refactored in Churn implementation
+    const { getChurnStatsAction: originalAction } = await import('./churn/actions');
+    return originalAction();
 }

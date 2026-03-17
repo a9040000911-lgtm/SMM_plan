@@ -27,9 +27,9 @@ CMD ["node", "server.js"]
 FROM base AS bot-runner
 ENV NODE_ENV=production
 
-# Install dependencies for the bot inside the container to avoid binary mismatch
+# Install dependencies for the bot. We need tsx to run it as per project convention.
 COPY package*.json ./
-RUN npm install --omit=dev
+RUN npm install --omit=dev && npm install tsx -g
 
 COPY src ./src
 COPY prisma ./prisma

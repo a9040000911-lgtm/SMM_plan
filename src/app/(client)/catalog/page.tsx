@@ -3,14 +3,11 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { prisma } from '@/lib/prisma';
 import { auth } from "@/auth";
-
-import { Zap } from 'lucide-react';
-import { CompactCatalog } from '@/components/stitch/catalog/CompactCatalog';
 import { getClientProjectId } from '@/utils/project-resolver';
-import { SerializedServiceV2 } from '@/types/catalog';
-import { translateCategory } from "@/utils/translations";
+import { CompactCatalog } from '@/components/stitch/catalog/CompactCatalog';
+import { CatalogService } from '@/services/core/catalog.service';
+import { Zap } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -31,33 +28,9 @@ export default async function CatalogPage() {
 
     if (!projectId) return null;
 
-    // Fetch services mapped to this project via ProjectServiceOverride
-    const servicesWithOverrides = await prisma.internalService.findMany({
-        where: {
-            isActive: true,
-            projectOverrides: {
-                some: {
-                    projectId: projectId,
-                    isActive: true
-                }
-            }
-        },
-        include: {
-            serviceCategory: true,
-            projectOverrides: {
-                where: {
-                    projectId: projectId,
-                    isActive: true
-                },
-                include: {
-                    serviceCategory: true
-                }
-            }
-        },
-        orderBy: [{ platform: 'asc' }, { category: 'asc' }, { pricePer1000: 'asc' }]
-    });
+    const result = await CatalogService.getGroupedCatalog(projectId);
 
-    if (servicesWithOverrides.length === 0) {
+    if (!result.success || Object.keys(result.data).length === 0) {
         return (
             <div className="w-full flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
                 <div className="w-24 h-24 rounded-[2rem] bg-slate-50 flex items-center justify-center mb-8 border border-slate-100 relative overflow-hidden group">
@@ -70,72 +43,6 @@ export default async function CatalogPage() {
             </div>
         );
     }
-
-    // Двухуровневая группировка: Платформа -> Категория (Имя) -> Услуги
-    const grouped: Record<string, Record<string, SerializedServiceV2[]>> = {};
-
-    const toNum = (val: any): number => {
-        if (val == null) return 0;
-        if (typeof val === 'number') return val;
-        if (typeof val === 'string') return Number(val);
-        if (typeof val.toNumber === 'function') return val.toNumber();
-        return Number(val) || 0;
-    };
-
-    servicesWithOverrides.forEach((s: any) => {
-        if (!grouped[s.platform]) grouped[s.platform] = {};
-
-        const override = s.projectOverrides[0];
-        const categoryOverride = override?.serviceCategory;
-
-        // Prioritize: Project-specific category name -> Global category name -> Default translation
-        const categoryDisplayName = categoryOverride?.name || s.serviceCategory?.name || translateCategory(s.category);
-
-        if (!grouped[s.platform][categoryDisplayName]) grouped[s.platform][categoryDisplayName] = [];
-
-        // Apply project-specific pricing
-        let finalPricePer1000 = toNum(s.pricePer1000);
-        let markupValue = toNum(s.markup);
-
-        if (override) {
-            if (override.customPrice) {
-                finalPricePer1000 = toNum(override.customPrice);
-            } else if (override.markup) {
-                const cost = toNum(s.lastProviderPrice) || finalPricePer1000 / 2; // Fallback
-                markupValue = toNum(override.markup);
-                finalPricePer1000 = cost * (1 + markupValue / 100);
-            }
-        }
-
-        const nameLower = s.name.toLowerCase();
-
-        const serialized: SerializedServiceV2 = {
-            id: s.id,
-            numericId: s.numericId,
-            name: s.name,
-            description: s.description || "",
-            platform: s.platform,
-            category: categoryDisplayName, // Store the translated/custom name here for the UI
-            pricePer1000: finalPricePer1000,
-            lastProviderPrice: toNum(s.lastProviderPrice),
-            createdAt: s.createdAt.toISOString(),
-            updatedAt: s.updatedAt.toISOString(),
-            providerPriceOriginal: toNum(s.providerPriceOriginal),
-            markup: markupValue,
-            marketPrice: toNum(s.marketPrice),
-            isHot: nameLower.includes("premium") || nameLower.includes("fast") || nameLower.includes("быстрые") || nameLower.includes("живые"),
-            isCheap: finalPricePer1000 < 50,
-            isBest: nameLower.includes("garant") || nameLower.includes("гарант"),
-            quality: nameLower.includes("hq") ? "HIGH" : "STD",
-            minQty: s.minQty,
-            maxQty: s.maxQty,
-            isActive: s.isActive,
-            isCurated: s.isCurated || false,
-            targetType: s.targetType
-        };
-
-        grouped[s.platform][categoryDisplayName].push(serialized);
-    });
 
     return (
         <div className="w-full pb-32 pt-12">
@@ -164,7 +71,7 @@ export default async function CatalogPage() {
                 </div>
 
                 <CompactCatalog
-                    groupedServices={grouped}
+                    groupedServices={result.data}
                     isLoggedIn={isLoggedIn}
                 />
             </div>

@@ -5,11 +5,9 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
 import { auth } from "@/auth";
-
-import crypto from 'crypto';
 import { revalidatePath } from 'next/cache';
+import { UserService } from '@/services/users/user.service';
 
 /**
  * Generates a new API Key for the authenticated user
@@ -20,16 +18,14 @@ export async function generateApiKey() {
         const userId = (session?.user as any)?.id;
         if (!userId) throw new Error('Не авторизован');
 
-        // Generate a high-entropy key: prefix_32chars
-        const newKey = `smm_${crypto.randomBytes(24).toString('hex')}`;
-
-        await prisma.user.update({
-            where: { id: userId },
-            data: { apiKey: newKey }
-        });
-
-        revalidatePath('/dashboard/api');
-        return { success: true, key: newKey };
+        const result = await UserService.generateApiKey(userId);
+        
+        if (result.success) {
+            revalidatePath('/dashboard/api');
+            return { success: true, key: result.data };
+        } else {
+            return { success: false, error: result.error.message };
+        }
     } catch (error: any) {
         return { success: false, error: error.message };
     }
@@ -44,13 +40,14 @@ export async function revokeApiKey() {
         const userId = (session?.user as any)?.id;
         if (!userId) throw new Error('Не авторизован');
 
-        await prisma.user.update({
-            where: { id: userId },
-            data: { apiKey: null }
-        });
+        const result = await UserService.revokeApiKey(userId);
 
-        revalidatePath('/dashboard/api');
-        return { success: true };
+        if (result.success) {
+            revalidatePath('/dashboard/api');
+            return { success: true };
+        } else {
+            return { success: false, error: result.error.message };
+        }
     } catch (error: any) {
         return { success: false, error: error.message };
     }
@@ -65,16 +62,17 @@ export async function getApiKeyInfo() {
         const userId = (session?.user as any)?.id;
         if (!userId) throw new Error('Не авторизован');
 
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { apiKey: true }
-        });
+        const result = await UserService.getApiKeyInfo(userId);
 
-        return {
-            success: true,
-            hasApiKey: !!user?.apiKey,
-            apiKey: user?.apiKey || null
-        };
+        if (result.success) {
+            return {
+                success: true,
+                hasApiKey: result.data.hasApiKey,
+                apiKey: result.data.apiKey
+            };
+        } else {
+            return { success: false, error: result.error.message };
+        }
     } catch (error: any) {
         return { success: false, error: error.message };
     }

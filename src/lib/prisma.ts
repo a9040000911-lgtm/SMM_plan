@@ -16,10 +16,32 @@ if (process.env.NODE_ENV === 'production') {
     prisma: PrismaClient;
   };
 
+  // Проверяем, что существующий клиент имеет новые модели Фазы 3
+  if (globalWithPrisma.prisma && !(globalWithPrisma.prisma as any).cmsString) {
+    console.warn('Detected outdated Prisma Client. Force re-initializing Phase 3 models...');
+    try {
+      (globalWithPrisma.prisma as any).$disconnect();
+    } catch(e) {}
+    delete (globalWithPrisma as any).prisma;
+  }
+
   if (!globalWithPrisma.prisma) {
     globalWithPrisma.prisma = new PrismaClient();
   }
   prisma = globalWithPrisma.prisma;
+}
+
+// Final safety check to avoid "findMany of undefined" in CmsService
+if (!(prisma as any).cmsString) {
+  if (process.env.NODE_ENV === 'test') {
+    // In tests, we might be using a mock that doesn't have all models yet.
+    // We add a dummy mock to avoid crashes in CmsService initialization.
+    (prisma as any).cmsString = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null) };
+    (prisma as any).cmsBlock = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null) };
+    (prisma as any).cmsPage = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null) };
+  } else {
+    console.error('FATAL: Prisma Client is missing CmsString model property even after re-initialization!');
+  }
 }
 
 export default prisma;

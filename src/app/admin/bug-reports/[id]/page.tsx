@@ -4,15 +4,16 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import React from 'react';
-import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
-import { cookies } from 'next/headers';
 import { AdminHeader } from '@/components/admin/core/admin-header';
 import { BugStatusEditor } from './status-editor';
 import Link from 'next/link';
 import { ExternalLink, ArrowLeft, Bug } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { getAdminSession } from '@/utils/admin-session';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,41 +23,33 @@ export default async function BugReportDetailPage({
     params: Promise<{ id: string }>;
 }) {
     const { id } = await params;
-    const cookieStore = await cookies();
-    const sessionData = cookieStore.get('admin_session');
-    if (!sessionData) return notFound();
-
-    const { verifyAdminSession } = await import('@/lib/jwt');
-    const session = await verifyAdminSession(sessionData.value);
+    const session = await getAdminSession();
     if (!session) return notFound();
 
-    const report = await prisma.bugReport.findUnique({
-        where: { id },
-        include: {
-            user: true,
-            project: true
-        }
-    });
+    const ctx: AdminContext = {
+        userId: session.id,
+        role: session.role as any,
+        allowedProjects: session.allowedProjects,
+        isGlobalAdmin: session.isGlobalAdmin
+    };
 
-    if (!report) return notFound();
+    const result = await AdminDataService.getBugReportDetail(ctx, id);
+    if (!result.success) return notFound();
 
-    // Check project access
-    if (!session.isGlobalAdmin && !session.allowedProjects.includes(report.projectId)) {
-        return notFound();
-    }
+    const report = result.data;
 
     return (
         <div className="flex flex-col space-y-6 bg-[#f8fafc] p-8 h-full min-h-screen">
             <div className="flex items-center gap-4">
                 <Link
-                    href="/admin/support?tab=bugs"
+                    href="/admin/bug-reports"
                     className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors"
                 >
                     <ArrowLeft size={20} />
                 </Link>
                 <AdminHeader
                     title={`Bug Report #${report.id.split('-')[0]}`}
-                    subtitle={`От ${format(report.createdAt, 'dd MMMM yyyy HH:mm', { locale: ru })}`}
+                    subtitle={`От ${format(new Date(report.createdAt), 'dd MMMM yyyy HH:mm', { locale: ru })}`}
                 />
             </div>
 
@@ -103,7 +96,6 @@ export default async function BugReportDetailPage({
                 </div>
 
                 <div className="space-y-6">
-                    {/* Status & Reward Editor */}
                     <BugStatusEditor
                         reportId={report.id}
                         initialStatus={report.status}
@@ -112,7 +104,6 @@ export default async function BugReportDetailPage({
                         isPaid={report.rewardPaid}
                     />
 
-                    {/* Metadata */}
                     <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
                         <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">Информация</h3>
 

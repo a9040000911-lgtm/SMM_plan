@@ -12,6 +12,7 @@ import {
   ProviderServicesResponseSchema,
   ProviderOrderResponseSchema
 } from '@/lib/schemas';
+import { validateSafeUrl } from '@/utils/url-validator';
 
 export class UniversalProvider implements IProvider {
   private config: Provider;
@@ -23,6 +24,8 @@ export class UniversalProvider implements IProvider {
   }
 
   private async makeRequest(action: string, params: any = {}) {
+    validateSafeUrl(this.config.apiUrl, `UniversalProvider(${this.config.name})`);
+    
     const method = (this.metadata.method || 'POST').toLowerCase();
     const requestType = this.metadata.requestType || 'form';
 
@@ -71,8 +74,6 @@ export class UniversalProvider implements IProvider {
           method: fetchMethod,
           body: fetchBody,
           headers,
-          // Node.js fetch doesn't have a direct timeout option like axios, but we can use AbortController if needed.
-          // For now, let's keep it simple as smmpanelus.com worked with fetch without explicit timeout.
         });
 
         if (!response.ok) {
@@ -130,10 +131,7 @@ export class UniversalProvider implements IProvider {
 
   async getServices(): Promise<ProviderServiceData[]> {
     const data = await this.makeRequest('services');
-
-    // Поддержка вложенности в поле 'value' (как у VexBoost)
     const rawServices = Array.isArray(data) ? data : (data.value && Array.isArray(data.value)) ? data.value : [];
-
     const validated = ProviderServicesResponseSchema.parse(rawServices);
 
     return validated.map(s => ({
@@ -207,7 +205,6 @@ export class UniversalProvider implements IProvider {
       return results;
     } catch (e: any) {
       console.error(`[UniversalProvider:${this.config.name}] Bulk status error:`, e.message);
-      // Return individual errors if bulk fails
       return {};
     }
   }

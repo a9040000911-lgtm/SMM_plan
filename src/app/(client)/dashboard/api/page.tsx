@@ -6,29 +6,28 @@
 import { auth } from "@/auth";
 
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { getClientProjectId } from "@/utils/project-resolver";
 import { ApiUI } from "@/components/stitch/dashboard/ApiUI";
+import { UserService } from "@/services/users/user.service";
+import { getClientProjectId } from "@/utils/project-resolver";
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: "API Терминал — Разработчикам | Smmplan" };
 
-async function getApiData() {
+export default async function ApiDashboardPage() {
     const session = await auth();
     if (!session?.user?.email) redirect("/login");
+    
     const projectId = await getClientProjectId();
-    const user = await prisma.user.findFirst({
-        where: { email: session.user.email, projectId },
-        select: { apiKey: true }
-    });
-    if (!user) redirect("/login");
-    return user.apiKey;
-}
+    const userResult = await UserService.getUserByEmail(session.user.email, projectId);
+    if (!userResult) redirect("/login");
 
-export default async function ApiDashboardPage() {
-    const apiKey = await getApiData();
+    const result = await UserService.getApiKeyInfo(userResult.id);
+
+    if (!result.success) {
+        return <div>Ошибка при загрузке API данных</div>;
+    }
 
     return (
-        <ApiUI initialApiKey={apiKey} />
+        <ApiUI initialApiKey={result.data.apiKey} />
     );
 }

@@ -5,23 +5,9 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
-import { CryptoService } from '@/services/core';
+import { AdminDataService } from '@/services/admin/admin-data.service';
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
-import { verifyAdminSession } from '@/lib/jwt';
-
-async function checkAdmin(projectId: string) {
-    const cookieStore = await cookies();
-    const sessionData = cookieStore.get('admin_session');
-    const session = sessionData ? await verifyAdminSession(sessionData.value) : null;
-
-    if (!session) throw new Error('Unauthorized');
-    if (!session.isGlobalAdmin && !session.allowedProjects?.includes(projectId)) {
-        throw new Error('Access denied');
-    }
-    return session;
-}
+import { getAdminContext } from '@/utils/admin-context';
 
 /**
  * Проверка токена через API Telegram
@@ -48,64 +34,52 @@ export async function checkBotTokenAction(token: string) {
  * Обновление токена и базовой айдентики бота
  */
 export async function updateBotIdentityAction(projectId: string, token: string) {
-    await checkAdmin(projectId);
+    try {
+        const ctx = await getAdminContext();
+        const check = await checkBotTokenAction(token);
+        if (!check.ok) throw new Error(`Invalid token: ${check.error}`);
 
-    const check = await checkBotTokenAction(token);
-    if (!check.ok) throw new Error(`Invalid token: ${check.error}`);
+        const res = await AdminDataService.updateProjectBotSettings(ctx, projectId, {
+            token,
+            username: check.username
+        });
+        if (!res.success) throw new Error(res.error?.message);
 
-    await prisma.project.update({
-        where: { id: projectId },
-        data: {
-            botToken: CryptoService.encrypt(token),
-            botUsername: check.username
-        } as any
-    });
-
-    revalidatePath(`/admin/projects/${projectId}`);
-    return { ok: true, username: check.username };
+        revalidatePath(`/admin/projects/${projectId}`);
+        return { ok: true, username: check.username };
+    } catch (e: any) {
+        return { ok: false, error: e.message };
+    }
 }
 
 /**
  * Сохранение конфигурации (меню, приветствие, модули)
  */
 export async function saveBotFullConfigAction(projectId: string, config: any) {
-    await checkAdmin(projectId);
+    try {
+        const ctx = await getAdminContext();
+        const res = await AdminDataService.updateProjectBotSettings(ctx, projectId, { config });
+        if (!res.success) throw new Error(res.error?.message);
 
-    const project = await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { config: true }
-    });
-
-    const currentConfig = (project?.config as any) || {};
-
-    await prisma.project.update({
-        where: { id: projectId },
-        data: {
-            config: {
-                ...currentConfig,
-                ...config
-            }
-        } as any
-    });
-
-    revalidatePath(`/admin/projects/${projectId}`);
-    return { ok: true };
+        revalidatePath(`/admin/projects/${projectId}`);
+        return { ok: true };
+    } catch (e: any) {
+        return { ok: false, error: e.message };
+    }
 }
 
 /**
  * Отключение/Удаление токена
  */
 export async function removeBotTokenAction(projectId: string) {
-    await checkAdmin(projectId);
+    try {
+        const ctx = await getAdminContext();
+        const res = await AdminDataService.removeProjectBotToken(ctx, projectId);
+        if (!res.success) throw new Error(res.error?.message);
 
-    await prisma.project.update({
-        where: { id: projectId },
-        data: {
-            botToken: null,
-            botUsername: ''
-        } as any
-    });
-
-    revalidatePath(`/admin/projects/${projectId}`);
-    return { ok: true };
+        revalidatePath(`/admin/projects/${projectId}`);
+        return { ok: true };
+    } catch (e: any) {
+        return { ok: false, error: e.message };
+    }
 }

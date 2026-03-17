@@ -13,7 +13,11 @@ const nextConfig = {
   },
   output: 'standalone',
   images: {
-    unoptimized: true,
+    unoptimized: false,
+    remotePatterns: [
+      { protocol: 'https', hostname: 'plus.unsplash.com' },
+      { protocol: 'https', hostname: 'images.unsplash.com' }
+    ]
   },
   env: {
     PRISMA_CLIENT_ENGINE_TYPE: 'library',
@@ -22,6 +26,9 @@ const nextConfig = {
   experimental: {
     webpackMemoryOptimizations: true,
     webpackBuildWorker: true,
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
   },
   productionBrowserSourceMaps: false,
   webpack: (config, { dev, isServer }) => {

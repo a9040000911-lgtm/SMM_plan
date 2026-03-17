@@ -5,52 +5,34 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { getAdminSession } from '@/utils/admin-session';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
 import { ReviewStatus } from '@/generated/client';
 
-async function getAdminAccess() {
-    const cookieStore = await cookies();
-    const session = cookieStore.get('admin_session');
-    if (!session) return { isAuthorized: false, isGlobal: false, projectIds: [] };
-
-    const { verifyAdminSession } = await import('@/lib/jwt');
-    const data = await verifyAdminSession(session.value);
-    if (!data) return { isAuthorized: false, isGlobal: false, projectIds: [] };
+async function getCtx(): Promise<AdminContext> {
+    const session = await getAdminSession();
+    if (!session) throw new Error('Unauthorized');
     return {
-        isAuthorized: true,
-        isGlobal: data.isGlobalAdmin,
-        projectIds: data.allowedProjects || []
+        userId: session.id,
+        role: session.role as any,
+        allowedProjects: session.allowedProjects,
+        isGlobalAdmin: session.isGlobalAdmin
     };
 }
 
 export async function updateReviewStatus(reviewId: string, status: ReviewStatus) {
-    const access = await getAdminAccess();
-    if (!access.isAuthorized) return { success: false, error: 'Unauthorized' };
-
-    const review = await prisma.review.findUnique({ where: { id: reviewId } });
-    if (!review) return { success: false, error: 'Review not found' };
-
-    if (!access.isGlobal && !access.projectIds.includes(review.projectId)) {
-        return { success: false, error: 'Access denied to this project' };
-    }
-
-    try {
-        await prisma.review.update({
-            where: { id: reviewId },
-            data: {
-                status,
-                moderatedAt: new Date(),
-            }
-        });
+    const ctx = await getCtx();
+    const result = await AdminDataService.updateReviewStatus(ctx, reviewId, status);
+    
+    if (result.success) {
         revalidatePath('/admin/reviews');
         revalidatePath('/admin/content');
         revalidatePath('/');
         return { success: true };
-    } catch (e) {
-        console.error('Failed to update review:', e);
-        return { success: false, error: 'Database error' };
+    } else {
+        return { success: false, error: result.error.message };
     }
 }
 
@@ -66,56 +48,29 @@ export async function upsertAdminReview(
         isAnonymous: boolean;
     }
 ) {
-    const access = await getAdminAccess();
-    if (!access.isAuthorized) return { success: false, error: 'Unauthorized' };
-
-    if (!access.isGlobal && !access.projectIds.includes(data.projectId)) {
-        return { success: false, error: 'Access denied to this project' };
-    }
-
-    try {
-        const reviewData = {
-            ...data,
-            // Since schema requires userId, we use the admin's ID or find a fallback
-            userId: (await prisma.user.findFirst({ where: { role: 'ADMIN' } }))?.id || '',
-            moderatedAt: new Date(),
-        };
-
-        if (id) {
-            await prisma.review.update({ where: { id }, data: reviewData });
-        } else {
-            await prisma.review.create({ data: reviewData });
-        }
-
+    const ctx = await getCtx();
+    const result = await AdminDataService.upsertAdminReview(ctx, id, data);
+    
+    if (result.success) {
         revalidatePath('/admin/reviews');
         revalidatePath('/admin/content');
         revalidatePath('/');
         return { success: true };
-    } catch (e) {
-        console.error('Failed to upsert review:', e);
-        return { success: false, error: 'Database error' };
+    } else {
+        return { success: false, error: result.error.message };
     }
 }
 
 export async function deleteReview(reviewId: string) {
-    const access = await getAdminAccess();
-    if (!access.isAuthorized) return { success: false, error: 'Unauthorized' };
-
-    const review = await prisma.review.findUnique({ where: { id: reviewId } });
-    if (!review) return { success: false, error: 'Review not found' };
-
-    if (!access.isGlobal && !access.projectIds.includes(review.projectId)) {
-        return { success: false, error: 'Access denied to this project' };
-    }
-
-    try {
-        await prisma.review.delete({ where: { id: reviewId } });
+    const ctx = await getCtx();
+    const result = await AdminDataService.deleteReview(ctx, reviewId);
+    
+    if (result.success) {
         revalidatePath('/admin/reviews');
         revalidatePath('/admin/content');
         revalidatePath('/');
         return { success: true };
-    } catch (e) {
-        console.error('Failed to delete review:', e);
-        return { success: false, error: 'Database error' };
+    } else {
+        return { success: false, error: result.error.message };
     }
 }

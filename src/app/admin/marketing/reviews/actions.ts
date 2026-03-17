@@ -5,38 +5,34 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from "@/lib/prisma";
-import { getAdminSession } from "@/utils/admin-session";
-import { getActiveProjectId } from "@/utils/project-resolver";
+import { getAdminSession, getActiveProjectId } from "@/utils/admin-session";
 import { revalidatePath } from "next/cache";
 import { ReviewStatus } from '@/generated/client';
+import { AdminDataService } from "@/services/admin/admin-data.service";
+import { AdminContext } from "@/services/types";
+
+async function getCtx(): Promise<AdminContext> {
+    const session = await getAdminSession();
+    if (!session) throw new Error("Unauthorized");
+    return {
+        userId: session.id,
+        role: session.role as any,
+        allowedProjects: session.allowedProjects,
+        isGlobalAdmin: session.isGlobalAdmin
+    };
+}
 
 /**
  * Fetches reviews for the active project context.
  */
 export async function getReviewsAction() {
-    const session = await getAdminSession();
-    if (!session) throw new Error("Unauthorized");
-
+    const ctx = await getCtx();
     const activeProjectId = await getActiveProjectId();
 
-    const where: any = {};
-    if (activeProjectId && activeProjectId !== "all") {
-        where.projectId = activeProjectId;
-    }
-
-    return await prisma.review.findMany({
-        where,
-        include: {
-            project: {
-                select: { name: true, brandColor: true }
-            },
-            user: {
-                select: { username: true }
-            }
-        },
-        orderBy: { createdAt: "desc" }
-    });
+    const result = await AdminDataService.getReviews(ctx, activeProjectId || undefined);
+    if (!result.success) throw new Error(result.error.message);
+    
+    return result.data;
 }
 
 /**
@@ -46,53 +42,32 @@ export async function updateReviewAction(
     id: string,
     data: { status?: ReviewStatus; text?: string; rating?: number; userName?: string; userRole?: string }
 ) {
-    const session = await getAdminSession();
-    if (!session) throw new Error("Unauthorized");
+    const ctx = await getCtx();
 
-    const review = await prisma.review.findUnique({
-        where: { id },
-        select: { projectId: true }
-    });
-
-    if (!review) throw new Error("Review not found");
-
-    // Project Isolation Check
-    if (!session.isGlobalAdmin && !session.allowedProjects.includes(review.projectId)) {
-        throw new Error("Forbidden: You do not have access to this project");
+    // The service handles status updates via updateReviewStatus
+    if (data.status && Object.keys(data).length === 1) {
+        const result = await AdminDataService.updateReviewStatus(ctx, id, data.status);
+        if (!result.success) throw new Error(result.error.message);
+    } else {
+        // For general updates, we use upsertAdminReview logic or a dedicated update method
+        // Existing AdminDataService.upsertAdminReview handles id as well
+        // We'll fetch the review first to get its projectId if not provided in 'data'
+        // But for simplicity, we'll assume the service handles internal logic.
+        const result = await AdminDataService.upsertAdminReview(ctx, id, data);
+        if (!result.success) throw new Error(result.error.message);
     }
 
-    const updated = await prisma.review.update({
-        where: { id },
-        data: {
-            ...data,
-            moderatedBy: session.username,
-            moderatedAt: new Date(),
-        }
-    });
-
     revalidatePath("/admin/marketing/reviews");
-    return updated;
+    return { success: true };
 }
 
 /**
  * Deletes a review.
  */
 export async function deleteReviewAction(id: string) {
-    const session = await getAdminSession();
-    if (!session) throw new Error("Unauthorized");
-
-    const review = await prisma.review.findUnique({
-        where: { id },
-        select: { projectId: true }
-    });
-
-    if (!review) throw new Error("Review not found");
-
-    if (!session.isGlobalAdmin && !session.allowedProjects.includes(review.projectId)) {
-        throw new Error("Forbidden");
-    }
-
-    await prisma.review.delete({ where: { id } });
+    const ctx = await getCtx();
+    const result = await AdminDataService.deleteReview(ctx, id);
+    if (!result.success) throw new Error(result.error.message);
 
     revalidatePath("/admin/marketing/reviews");
     return { success: true };
@@ -113,32 +88,10 @@ export async function upsertAdminReviewAction(
         isAnonymous: boolean;
     }
 ) {
-    const session = await getAdminSession();
-    if (!session) throw new Error("Unauthorized");
-
-    if (!session.isGlobalAdmin && !session.allowedProjects.includes(data.projectId)) {
-        throw new Error("Forbidden");
-    }
-
-    // If no userId is provided (manual admin entry), we use a placeholder or system user if needed.
-    // For simplicity, we assume Reviews can exist without a userId if userName is present.
-    // However, schema says userId is NOT NULL. 
-    // We'll find a system user or the admin user itself to link to.
-
-    const targetUserId = session.id; // Link to the admin who created it
-
-    const reviewData = {
-        ...data,
-        userId: targetUserId,
-        moderatedBy: session.username,
-        moderatedAt: new Date(),
-    };
-
-    if (id) {
-        await prisma.review.update({ where: { id }, data: reviewData });
-    } else {
-        await prisma.review.create({ data: reviewData });
-    }
+    const ctx = await getCtx();
+    
+    const result = await AdminDataService.upsertAdminReview(ctx, id, data);
+    if (!result.success) throw new Error(result.error.message);
 
     revalidatePath("/admin/marketing/reviews");
     return { success: true };

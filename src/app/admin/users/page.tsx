@@ -5,8 +5,6 @@
  */
 
 import React from 'react';
-import { prisma } from '@/lib/prisma';
-import { Prisma } from '@/generated/client';
 import {
   Plus,
   Pencil,
@@ -19,9 +17,9 @@ import { Pagination } from '@/components/admin/core/pagination';
 import { getAdminSession } from '@/utils/admin-session';
 import { AdminHeader } from '@/components/admin/core/admin-header';
 import { CopyButton } from '@/components/admin/core/copy-button';
-import { LoyaltyService } from '@/services/users/loyalty.service';
-import { ReferralLeaderboardService } from '@/services/users/referral-leaderboard.service';
 import { DeleteUserButton } from '@/components/admin/users/delete-user-button';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,78 +30,27 @@ interface PageProps {
 export default async function UsersPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const session = await getAdminSession();
+  if (!session) return null;
+
+  const ctx: AdminContext = {
+    userId: session.id,
+    role: session.role as any,
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
+  };
 
   const role = typeof params.role === 'string' ? params.role : undefined;
   const search = typeof params.search === 'string' ? params.search : undefined;
+  const limit = parseInt(typeof params.limit === 'string' ? params.limit : '50') || 50;
+  const page = parseInt(typeof params.page === 'string' ? params.page : '1') || 1;
 
-  const PAGE_SIZE = parseInt(typeof params.limit === 'string' ? params.limit : '50') || 50;
-  const currentPage = parseInt(typeof params.page === 'string' ? params.page : '1') || 1;
-  const skip = (currentPage - 1) * PAGE_SIZE;
+  const result = await AdminDataService.getUsersPaged(ctx, { role, search, page, limit });
 
-  const allowedProjects: string[] = session?.allowedProjects || [];
-  const isGlobalAdmin = session?.isGlobalAdmin || false;
-
-  const where: Prisma.UserWhereInput = {};
-
-  if (!isGlobalAdmin) {
-    where.OR = [
-      { projectId: { in: allowedProjects } },
-      { accessibleProjects: { some: { id: { in: allowedProjects } } } }
-    ];
-  }
-  if (role && role !== 'ALL') {
-    where.role = role as any;
-  }
-  if (search) {
-    const isNumeric = /^\d+$/.test(search);
-    where.OR = [
-      { username: { contains: search, mode: 'insensitive' } },
-      { email: { contains: search, mode: 'insensitive' } },
-      { id: { contains: search, mode: 'insensitive' } },
-      isNumeric ? { tgId: BigInt(search) } : undefined
-    ].filter(Boolean) as Prisma.UserWhereInput[];
+  if (!result.success) {
+    return <div className="p-8 text-red-500">Ошибка: {result.error.message}</div>;
   }
 
-  const [users, totalMatchingUsers, totalUsersCount] = await Promise.all([
-    prisma.user.findMany({
-      where,
-      take: PAGE_SIZE,
-      skip: skip,
-      orderBy: { createdAt: 'desc' },
-      include: { _count: { select: { orders: true } } }
-    }),
-    prisma.user.count({ where }),
-    prisma.user.count()
-  ]);
-
-  // Enrich users with loyalty and referral info
-  const enrichedUsers = await Promise.all(users.map(async (user) => {
-    const spent = Number(user.spent);
-    const loyalty = await LoyaltyService.getLoyaltyInfo(user.id, spent, user.projectId);
-    const partnerLevel = ReferralLeaderboardService.calculateTier(spent);
-    const partnerPercent = await LoyaltyService.getReferralPercent(user.id, user.projectId || 'DEFAULT');
-
-    return {
-      id: user.id,
-      index: 0, // Will be set below
-      username: user.username,
-      email: user.email,
-      tgId: user.tgId?.toString() || null,
-      balance: user.balance.toString(),
-      spent: user.spent.toString(),
-      referralEarnings: user.referralEarnings.toString(),
-      role: user.role as 'USER' | 'ADMIN' | 'SUPPORT' | 'SEO',
-      createdAt: user.createdAt,
-      discount: loyalty.totalDiscount,
-      partnerLevel,
-      partnerPercent,
-      isBanned: user.isPermanentlyBanned || (user.banExpiresAt && user.banExpiresAt > new Date()),
-      isGlobalAdmin: user.isGlobalAdmin,
-    };
-  }));
-
-  // Add indexing
-  enrichedUsers.forEach((u, i) => u.index = skip + i + 1);
+  const { users, totalMatching, totalGlobal } = result.data;
 
   return (
     <div className="p-8 space-y-8 bg-[#f8fafc] min-h-screen">
@@ -121,10 +68,9 @@ export default async function UsersPage({ searchParams }: PageProps) {
         }
       />
 
-      {/* Metric Cards */}
       <div className="flex gap-6">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col items-center justify-center gap-2 w-56">
-          <div className="text-3xl font-black text-slate-800 font-mono italic tracking-tighter">{totalUsersCount}</div>
+          <div className="text-3xl font-black text-slate-800 font-mono italic tracking-tighter">{totalGlobal}</div>
           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Всего пользователей</div>
         </div>
       </div>
@@ -157,7 +103,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 text-[11px]">
-              {enrichedUsers.map((user) => (
+              {users.map((user) => (
                 <tr key={user.id} className="hover:bg-slate-50/30 transition-colors group">
                   <td className="px-3 py-4 font-medium text-slate-400">
                     <div className="flex items-center gap-1">
@@ -193,8 +139,8 @@ export default async function UsersPage({ searchParams }: PageProps) {
                   </td>
                   <td className="px-3 py-4">
                     <div className="text-[9px] font-medium text-slate-400 leading-tight">
-                      {user.createdAt.toISOString().split('T')[0]}<br />
-                      {user.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                      {new Date(user.createdAt).toISOString().split('T')[0]}<br />
+                      {new Date(user.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
                     </div>
                   </td>
                   <td className="px-3 py-4 text-right">
@@ -211,7 +157,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
           </table>
         </div>
         <div className="p-6 border-t border-slate-100 flex justify-end">
-          <Pagination totalPages={Math.ceil(totalMatchingUsers / PAGE_SIZE)} />
+          <Pagination totalPages={Math.ceil(totalMatching / limit)} />
         </div>
       </div>
     </div>

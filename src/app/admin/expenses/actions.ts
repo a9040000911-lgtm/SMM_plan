@@ -5,73 +5,74 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { Decimal } from 'decimal.js';
-import { cookies } from 'next/headers';
-
-async function verifyAdmin() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get('admin_session');
-  if (!session) throw new Error('Unauthorized');
-  const { verifyAdminSession } = await import('@/lib/jwt');
-  const data = await verifyAdminSession(session.value);
-  if (!data || data.role !== 'ADMIN') throw new Error('Admin only');
-}
+import { getAdminSession } from '@/utils/admin-session';
+import { AdminServices } from '@/services/admin/registry';
+import { AdminContext } from '@/services/types';
 
 export async function createExpenseAction(formData: FormData) {
-  await verifyAdmin();
+  const session = await getAdminSession();
+  if (!session) throw new Error('Unauthorized');
 
-  const category = formData.get('category') as any;
-  const amount = new Decimal(formData.get('amount') as string);
+  const ctx: AdminContext = {
+    userId: session.id,
+    role: session.role as any,
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
+  };
+
+  const category = formData.get('category') as string;
+  const amount = parseFloat(formData.get('amount') as string);
   const description = formData.get('description') as string;
   const dateStr = formData.get('date') as string;
-
-  // Determine Project ID
-  const cookieStore = await cookies();
-  const sessionData = cookieStore.get('admin_session');
-  const { verifyAdminSession } = await import('@/lib/jwt');
-  const session = sessionData ? await verifyAdminSession(sessionData.value) : null;
-
   let projectId = formData.get('projectId') as string | null;
 
-  if (!projectId && session && !session.isGlobalAdmin && session.allowedProjects.length > 0) {
-    projectId = session.allowedProjects[0];
-  }
-
-  // If projectId is an empty string, set it to null (Global Expense)
   if (projectId === '') projectId = null;
 
-  await prisma.businessExpense.create({
-    data: {
-      category,
-      amount,
-      description,
-      date: dateStr ? new Date(dateStr) : new Date(),
-      projectId: projectId // Key addition
-    }
+  const result = await AdminServices.finance.createExpense(ctx, {
+    category,
+    amount,
+    description,
+    date: dateStr, // Service handles parsing via Zod
+    projectId
   });
+
+  if (!result.success) throw new Error(result.error.message);
 
   revalidatePath('/admin/expenses');
   revalidatePath('/admin/reports');
 }
 
 export async function deleteExpenseAction(id: string) {
-  await verifyAdmin();
-  await prisma.businessExpense.delete({ where: { id } });
+  const session = await getAdminSession();
+  if (!session) throw new Error('Unauthorized');
+
+  const ctx: AdminContext = {
+    userId: session.id,
+    role: session.role as any,
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
+  };
+
+  const result = await AdminServices.finance.deleteExpense(ctx, id);
+  if (!result.success) throw new Error(result.error.message);
+
   revalidatePath('/admin/expenses');
 }
 
 export async function getExpensesTotal(startDate: string, endDate: string) {
-  const expenses = await prisma.businessExpense.aggregate({
-    where: {
-      date: {
-        gte: new Date(startDate),
-        lte: new Date(endDate + 'T23:59:59.999Z'),
-      }
-    },
-    _sum: { amount: true }
-  });
+  const session = await getAdminSession();
+  if (!session) throw new Error('Unauthorized');
 
-  return expenses._sum.amount?.toNumber() || 0;
+  const ctx: AdminContext = {
+    userId: session.id,
+    role: session.role as any,
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
+  };
+
+  const result = await AdminServices.finance.getExpensesTotal(ctx, startDate, endDate);
+  if (!result.success) throw new Error(result.error.message);
+
+  return result.data;
 }

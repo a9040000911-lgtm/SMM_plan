@@ -27,6 +27,7 @@ import { toast } from "sonner";
 
 interface Service {
     id: string;
+    numericId: number;
     name: string;
     description: string;
     pricePer1000: number;
@@ -344,6 +345,22 @@ export const InstantOrder = () => {
         return Number((base * (isDripFeed ? runs : 1)).toFixed(2));
     }, [selectedService, quantity, isDripFeed, runs]);
 
+    const isEmailValid = useMemo(() => {
+        if (session) return true;
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }, [email, session]);
+
+    const isLinkValid = useMemo(() => {
+        return link.trim().length > 5 && (link.startsWith('http') || link.startsWith('https') || link.includes('.'));
+    }, [link]);
+
+    const isQuantityValid = useMemo(() => {
+        if (!selectedService) return false;
+        return quantity >= (selectedService.minQty || 1) && quantity <= (selectedService.maxQty || 1000000);
+    }, [quantity, selectedService]);
+
+    const canSubmit = isLinkValid && isQuantityValid && isEmailValid && consent && !isSubmitting;
+
     return (
         <div className={cn("w-full max-w-4xl mx-auto flex flex-col transition-all duration-500", platform ? "min-h-[560px]" : "min-h-0")}>
             {/* 1. Ultra-Wide Search Block */}
@@ -556,7 +573,7 @@ export const InstantOrder = () => {
                                                         </div>
                                                         <div className="flex w-full">
                                                             <div className={cn("px-2 py-0.5 rounded border text-[8px] font-bold tracking-widest font-mono shrink-0", service.isHot ? "border-white/30 text-white/60" : "border-white/10 text-white/30")}>
-                                                                #SMM-{service.id}
+                                                                #SMM-{service.numericId}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -705,7 +722,7 @@ export const InstantOrder = () => {
                                                 {selectedService.name}
                                             </span>
                                             <span className="px-2 py-0.5 bg-blue-50 rounded text-[8px] font-bold uppercase tracking-widest text-blue-600 shrink-0">
-                                                ID: {selectedService.id}
+                                                ID: {selectedService.numericId}
                                             </span>
                                         </div>
                                     </div>
@@ -753,7 +770,10 @@ export const InstantOrder = () => {
                                                 value={link}
                                                 onChange={(e) => setLink(e.target.value)}
                                                 placeholder="https://"
-                                                className="w-full h-10 pl-10 pr-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                                className={cn(
+                                                    "w-full h-10 pl-10 pr-3 bg-slate-50 border-2 rounded-xl text-sm font-bold text-slate-900 outline-none transition-all",
+                                                    link && !isLinkValid ? "border-rose-500 bg-rose-50/30" : "border-slate-100 focus:border-blue-500 focus:bg-white"
+                                                )}
                                             />
                                         </div>
                                         <div className="flex items-center gap-1.5 ml-1 text-slate-400">
@@ -792,7 +812,10 @@ export const InstantOrder = () => {
                                                     value={email}
                                                     onChange={(e) => setEmail(e.target.value)}
                                                     placeholder="example@mail.com"
-                                                    className="w-full h-10 pl-10 pr-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm font-black text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                                    className={cn(
+                                                        "w-full h-10 pl-10 pr-3 bg-slate-50 border-2 rounded-xl text-sm font-black text-slate-900 outline-none transition-all",
+                                                        email && !isEmailValid ? "border-rose-500 bg-rose-50/30" : "border-slate-100 focus:border-blue-500 focus:bg-white"
+                                                    )}
                                                 />
                                             </div>
                                         </div>
@@ -955,15 +978,20 @@ export const InstantOrder = () => {
 
                                 <button
                                     onClick={handleOrder}
-                                    disabled={isSubmitting || quantity < Number(selectedService.minQty || 10) || !consent}
-                                    className="w-full h-12 shrink-0 mt-2 bg-slate-900 text-white rounded-xl flex items-center justify-center gap-2 hover:bg-black transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:scale-100 group overflow-hidden relative"
+                                    disabled={!canSubmit}
+                                    className={cn(
+                                        "w-full h-12 shrink-0 mt-2 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 group overflow-hidden relative",
+                                        canSubmit 
+                                            ? "bg-slate-900 text-white hover:bg-black" 
+                                            : "bg-slate-100 text-slate-400 cursor-not-allowed opacity-70"
+                                    )}
                                 >
-                                    <div className="absolute inset-0 bg-blue-600 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                                    {canSubmit && <div className="absolute inset-0 bg-blue-600 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />}
                                     <div className="relative z-10 flex items-center gap-2">
                                         <span className="text-sm font-black uppercase tracking-widest">
                                             {isSubmitting ? "Обработка..." : "Подтвердить заказ"}
                                         </span>
-                                        {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} className="fill-white" />}
+                                        {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} className={cn(canSubmit ? "fill-white" : "fill-slate-300")} />}
                                     </div>
                                 </button>
                             </motion.div>

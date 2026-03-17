@@ -5,15 +5,15 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
 import { BotRegistry } from '@/lib/bot';
 import { revalidatePath } from 'next/cache';
 import { TicketService } from '@/services/support';
-
 import { getAdminSession } from '@/utils/admin-session';
+import { AdminServices } from '@/services/admin/registry';
+import { AdminContext } from '@/services/types';
 
 // Helper internal function
-async function requireSupportOrAdmin() {
+async function requireSupportOrAdmin(): Promise<AdminContext> {
   const session = await getAdminSession();
   if (!session) {
     throw new Error('Unauthorized: Session not found');
@@ -21,13 +21,17 @@ async function requireSupportOrAdmin() {
   if (!['ADMIN', 'SUPPORT'].includes(session.role)) {
     throw new Error(`Forbidden: Role ${session.role} is not authorized for support actions`);
   }
-  return session;
+  return {
+    userId: session.id,
+    role: session.role as any,
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
+  };
 }
 
 export async function replyToTicketAction(ticketId: string, text: string) {
-  const adminData = await requireSupportOrAdmin();
-
-  const res = await TicketService.sendStaffReply(ticketId, text, adminData.id || '', adminData.username);
+  const ctx = await requireSupportOrAdmin();
+  const res = await TicketService.sendStaffReply(ticketId, text, ctx.userId || '', 'Staff');
 
   revalidatePath(`/admin/support/${ticketId}`);
   revalidatePath('/admin/support');
@@ -35,23 +39,9 @@ export async function replyToTicketAction(ticketId: string, text: string) {
 }
 
 export async function closeTicketAction(ticketId: string) {
-  const adminData = await requireSupportOrAdmin();
-
-  await prisma.supportTicket.update({
-    where: { id: ticketId },
-    data: { status: 'CLOSED' }
-  });
-
-  if (adminData?.id) {
-    await prisma.adminLog.create({
-      data: {
-        adminId: adminData.id,
-        action: 'TICKET_CLOSE',
-        targetId: ticketId,
-        details: 'Closed support ticket'
-      }
-    });
-  }
+  const ctx = await requireSupportOrAdmin();
+  const result = await AdminServices.support.closeTicket(ctx, ticketId);
+  if (!result.success) throw new Error(result.error.message);
 
   revalidatePath(`/admin/support/${ticketId}`);
   revalidatePath('/admin/support');
@@ -59,18 +49,12 @@ export async function closeTicketAction(ticketId: string) {
 }
 
 export async function createTicketByAdminAction(userId: string, subject: string, initialMessage: string = '') {
-  const adminData = await requireSupportOrAdmin();
-
-  // Создаем тикет (используем getOrCreateTicket чтобы не дублировать если уже есть открытый с такой темой, 
-  // хотя для "Нового тикета" логичнее принудительно создавать, но следуем общей логике)
-  // В данном случае, если админ явно создает тикет, мы можем использовать createTicket или getOrCreateTicket.
-  // Используем getOrCreateTicket для консистентности.
+  const ctx = await requireSupportOrAdmin();
   const ticket = await TicketService.getOrCreateTicket(userId, subject);
 
   if (initialMessage) {
-    await TicketService.sendStaffReply(ticket.id, initialMessage, adminData.id || '', adminData.username);
+    await TicketService.sendStaffReply(ticket.id, initialMessage, ctx.userId || '', 'Staff');
   } else {
-    // Если сообщения нет, просто ревалидируем
     revalidatePath('/admin/support');
   }
 
@@ -78,18 +62,18 @@ export async function createTicketByAdminAction(userId: string, subject: string,
 }
 
 /**
- * Старая логика (для совместимости)
+ * Отправляет сообщение пользователю через бота.
  */
 export async function sendMessageToUserAction(userId: string, message: string) {
-  await requireSupportOrAdmin();
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { tgId: true, projectId: true }
-  });
-  if (!user || !user.tgId) throw new Error('User Telegram ID not found');
+  const ctx = await requireSupportOrAdmin();
+  const result = await AdminServices.support.getSupportUserTgInfo(ctx, userId);
+  if (!result.success) throw new Error(result.error.message);
+  
+  const { tgId, projectId } = result.data;
+  if (!tgId) throw new Error('User Telegram ID not found');
 
-  await BotRegistry.get(user.projectId).telegram.sendMessage(
-    Number(user.tgId),
+  await BotRegistry.get(projectId).telegram.sendMessage(
+    Number(tgId),
     `🆘 <b>Сообщение от поддержки:</b>\n\n${message}`,
     { parse_mode: 'HTML' }
   );
@@ -97,27 +81,24 @@ export async function sendMessageToUserAction(userId: string, message: string) {
 }
 
 export async function updateSupportNotesAction(userId: string, notes: string) {
-  await requireSupportOrAdmin();
-  await prisma.user.update({ where: { id: userId }, data: { supportNotes: notes } });
+  const ctx = await requireSupportOrAdmin();
+  const result = await AdminServices.support.updateSupportNotes(ctx, { userId, notes });
+  if (!result.success) throw new Error(result.error.message);
+
   revalidatePath(`/admin/users/${userId}`);
   return { success: true };
 }
 
 export async function getStuckOrders() {
-  await requireSupportOrAdmin();
-  const oneHourAgo = new Date(Date.now() - 3600000);
-  return await prisma.order.findMany({
-    where: { status: { in: ['PENDING', 'PROCESSING'] }, createdAt: { lte: oneHourAgo } },
-    include: { user: true, internalService: true },
-    orderBy: { createdAt: 'asc' },
-    take: 10
-  });
+  const ctx = await requireSupportOrAdmin();
+  const result = await AdminServices.orders.getOldPendingOrders(ctx);
+  if (!result.success) throw new Error(result.error.message);
+  return result.data;
 }
 
 export async function addInternalNoteAction(ticketId: string, text: string) {
-  const adminData = await requireSupportOrAdmin();
-
-  await TicketService.sendInternalNote(ticketId, text, adminData.username);
+  const ctx = await requireSupportOrAdmin();
+  await TicketService.sendInternalNote(ticketId, text, 'Staff');
 
   revalidatePath(`/admin/support/${ticketId}`);
   revalidatePath('/admin/support');

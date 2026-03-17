@@ -72,9 +72,9 @@ export const metadata: Metadata = {
     creator: "@smmplan",
   },
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon-16x16.png",
-    apple: "/apple-touch-icon.png",
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
   },
   manifest: '/site.webmanifest',
 };
@@ -91,7 +91,7 @@ export default function RootLayout({
       <head>
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
         />
       </head>
       <body className="font-jakarta antialiased selection:bg-blue-500/10 selection:text-blue-600" suppressHydrationWarning={true}>

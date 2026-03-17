@@ -3,75 +3,38 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
+
 import React from 'react';
-import { prisma } from '@/lib/prisma';
 import {
   FileText
 } from 'lucide-react';
 import Link from 'next/link';
 import { StaffAccessEditor } from '@/components/admin/core/staff-access-editor';
 import { CreateEmployeeModal } from '@/components/admin/employees/create-employee-modal';
-import { cookies } from 'next/headers';
 import { StaffDeleteButton } from '@/components/admin/employees/staff-delete-button';
+import { getAdminSession } from '@/utils/admin-session';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
 
 export const dynamic = 'force-dynamic';
 
 export default async function EmployeesPage() {
-  const cookieStore = await cookies();
-  const sessionData = cookieStore.get('admin_session');
-  const { verifyAdminSession } = await import('@/lib/jwt');
-  const session = sessionData ? await verifyAdminSession(sessionData.value) : null;
-
+  const session = await getAdminSession();
   if (!session) return null;
 
-  // 1. Fetch Staff with their project access
-  // Фильтруем если не глобальный админ
-  const staffWhere: any = {
-    role: { in: ['ADMIN', 'SUPPORT', 'SEO'] },
-    deletedAt: null
+  const ctx: AdminContext = {
+    userId: session.id,
+    role: session.role as any,
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
   };
 
-  // Если админ проекта - показываем только тех, кто имеет доступ к его проектам
-  if (!session.isGlobalAdmin) {
-    staffWhere.accessibleProjects = {
-      some: {
-        id: { in: session.allowedProjects }
-      }
-    };
+  const result = await AdminDataService.getStaffData(ctx);
+  if (!result.success) {
+    return <div className="p-8 text-red-500">Ошибка: {result.error.message}</div>;
   }
 
-  const [staff, allProjects] = await Promise.all([
-    prisma.user.findMany({
-      where: staffWhere,
-      include: {
-        accessibleProjects: { select: { id: true } }
-      },
-      orderBy: { role: 'asc' }
-    }),
-    session.isGlobalAdmin
-      ? prisma.project.findMany({ select: { id: true, name: true } })
-      : prisma.project.findMany({
-        where: { id: { in: session.allowedProjects } },
-        select: { id: true, name: true }
-      })
-  ]);
-
-  // 2. Fetch Stats ...
-  const adminLogCounts = await prisma.adminLog.groupBy({
-    by: ['adminId'],
-    _count: { id: true },
-    _max: { createdAt: true }
-  });
-
-  // Map stats to staff
-  const staffWithStats = staff.map(user => {
-    const stats = adminLogCounts.find(log => log.adminId === user.id);
-    return {
-      ...user,
-      actionsCount: stats?._count.id || 0,
-      lastActionAt: stats?._max.createdAt || null
-    };
-  });
+  const { staff, allProjects } = result.data;
 
   const roleNames: Record<string, string> = {
     'ADMIN': 'Администратор',
@@ -105,8 +68,8 @@ export default async function EmployeesPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-            {staffWithStats.map((user, index) => {
-              const isLast = index === staffWithStats.length - 1;
+            {staff.map((user, index) => {
+              const isLast = index === staff.length - 1;
               return (
                 <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className={`px-6 py-4 ${isLast ? 'rounded-bl-[2rem]' : ''}`}>
@@ -137,7 +100,7 @@ export default async function EmployeesPage() {
                       <StaffAccessEditor
                         userId={user.id}
                         isGlobal={user.isGlobalAdmin}
-                        accessibleProjectIds={user.accessibleProjects.map(p => p.id)}
+                        accessibleProjectIds={(user.accessibleProjects || []).map((p: any) => p.id)}
                         allProjects={allProjects}
                         allowedTabs={user.allowedTabs}
                         permissions={user.permissions || []}
@@ -161,7 +124,6 @@ export default async function EmployeesPage() {
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    {/* Simple status based on recency (e.g. 24h) */}
                     {user.lastActionAt && (Date.now() - new Date(user.lastActionAt).getTime() < 24 * 3600000) ? (
                       <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 uppercase">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>

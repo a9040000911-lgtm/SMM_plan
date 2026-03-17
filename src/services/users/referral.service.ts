@@ -5,10 +5,12 @@
  */
 import { formatAmount } from '@/utils/formatter';
 import { Decimal } from 'decimal.js';
-import { LedgerService } from '@/services/finance';
-import { SettingsService } from '@/services/core';
+import { LedgerService } from '@/services/finance/ledger.service';
+import { SettingsService } from '@/services/core/settings.service';
 import { AchievementService } from '@/services/gamification/achievement.service';
 import { ReferralLeaderboardService } from './referral-leaderboard.service';
+import { ServiceResult } from '../types';
+import { prisma } from '@/lib/prisma';
 
 export class ReferralService {
     /**
@@ -56,8 +58,7 @@ export class ReferralService {
         );
 
         try {
-            // eslint-disable-next-line unused-imports/no-unused-vars
-            const { BotRegistry, bot } = await import('@/lib/bot');
+            const { BotRegistry } = await import('@/lib/bot');
             const { NotificationTemplates } = await import('@/bot/utils/notification-templates');
             const botInstance = BotRegistry.get(user.projectId);
             const tierBadge = tier === 3 ? '🏆' : tier === 2 ? '⭐' : '💫';
@@ -81,6 +82,72 @@ export class ReferralService {
             await AchievementService.checkAllAchievements(user.referrerId);
         } catch (achErr) {
             console.error('[Achievement] Failed to check achievements for referrer:', achErr);
+        }
+    }
+
+    /**
+     * Fetches all data needed for the referral dashboard.
+     */
+    static async getReferralDashboardData(userId: string, projectId: string): Promise<ServiceResult<any>> {
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { id: true, email: true, username: true, referralEarnings: true }
+            });
+
+            if (!user) throw new Error('Пользователь не найден');
+
+            // 1. Fetch leaderboard
+            const leaderboard = await prisma.user.findMany({
+                where: { projectId },
+                take: 10,
+                orderBy: { referralEarnings: 'desc' },
+                select: {
+                    id: true,
+                    email: true,
+                    username: true,
+                    referralEarnings: true,
+                    _count: {
+                        select: { referrals: true }
+                    }
+                }
+            });
+
+            const transformedLeaderboard = leaderboard.map((u, i) => ({
+                rank: i + 1,
+                userId: u.id,
+                username: u.username || (u.email ? u.email.split('@')[0] : 'Partner'),
+                referralCount: u._count.referrals,
+                revenue: u.referralEarnings.toString(),
+            }));
+
+            // 2. User personal stats
+            const referralsCount = await prisma.user.count({
+                where: { referrerId: user.id }
+            });
+
+            const referralCode = user.id.split('-')[0];
+
+            return {
+                success: true,
+                data: {
+                    leaderboard: transformedLeaderboard,
+                    userStats: {
+                        totalReferrals: referralsCount,
+                        totalEarnings: user.referralEarnings.toString(),
+                        currentMonthCount: 0,
+                        currentMonthRevenue: "0",
+                        currentRank: null,
+                        tierBreakdown: { tier1: referralsCount, tier2: 0, tier3: 0 },
+                        referralCode
+                    }
+                }
+            };
+        } catch (error: any) {
+            return {
+                success: false,
+                error: { code: 'REFERRAL_DATA_FETCH_FAILED', message: error.message }
+            };
         }
     }
 }

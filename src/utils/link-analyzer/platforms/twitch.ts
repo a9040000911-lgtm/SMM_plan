@@ -3,19 +3,19 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { Platform, Category } from '@/generated/client';
+import type { Platform, Category } from '@/generated/client';
 import { AnalysisResult, PlatformParser } from '../types';
 
 export const TwitchParser: PlatformParser = {
-    name: Platform.TWITCH,
+    name: 'TWITCH' as Platform,
     domains: ['twitch.tv'],
     parse(url: string): AnalysisResult | null {
-        if (url.includes('/videos/')) return { platform: Platform.TWITCH, possibleCategories: [Category.VIEWS], objectType: 'TW_VIDEO' };
-        if (url.includes('/clip/')) return { platform: Platform.TWITCH, possibleCategories: [Category.VIEWS], objectType: 'TW_CLIP' };
+        if (url.includes('/videos/')) return { platform: 'TWITCH' as Platform, possibleCategories: ['VIEWS' as Category], objectType: 'TW_VIDEO' };
+        if (url.includes('/clip/')) return { platform: 'TWITCH' as Platform, possibleCategories: ['VIEWS' as Category], objectType: 'TW_CLIP' };
 
         return {
-            platform: Platform.TWITCH,
-            possibleCategories: [Category.SUBSCRIBERS, Category.VIEWS],
+            platform: 'TWITCH' as Platform,
+            possibleCategories: ['SUBSCRIBERS' as Category, 'VIEWS' as Category],
             objectType: 'TW_CHANNEL',
         };
     }

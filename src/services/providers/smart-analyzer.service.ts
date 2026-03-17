@@ -71,8 +71,8 @@ export class SmartAnalyzerService {
                     projectId,
                     platform: platform as any,
                     categoryType: categoryType,
-                    name: CATEGORY_DISPLAY_NAMES[categoryType] || categoryType,
-                    icon: CATEGORY_ICONS[categoryType] || 'layers',
+                    name: (CATEGORY_DISPLAY_NAMES && CATEGORY_DISPLAY_NAMES[categoryType]) || categoryType || 'Other',
+                    icon: (CATEGORY_ICONS && CATEGORY_ICONS[categoryType]) || 'layers',
                     targetType: targetType || 'ALL',
                     priority: 0
                 }
@@ -189,10 +189,74 @@ export class SmartAnalyzerService {
 
         // If projectId is provided, also ensure the service is activated in that project
         if (projectId && projectId !== 'all') {
-            const { activateServiceInProject } = await import('@/app/admin/services/actions');
-            await activateServiceInProject(svc.id, projectId);
+            await this.activateInProject(svc.id, projectId);
         }
 
         return svc;
+    }
+
+    /**
+     * Активирует услугу из мастер-каталога в конкретном проекте.
+     * Автоматически создает категорию, если её нет в проекте.
+     */
+    static async activateInProject(serviceId: string, projectId: string) {
+        try {
+            return await prisma.$transaction(async (tx) => {
+                // 1. Получаем данные об услуге, чтобы знать платформу и тип
+                const service = await tx.internalService.findUnique({
+                    where: { id: serviceId },
+                    select: { platform: true, category: true, targetType: true }
+                });
+
+                if (!service) throw new Error('Service not found');
+
+                // 2. Ищем существующую категорию в проекте по типу
+                let category = await tx.serviceCategory.findFirst({
+                    where: {
+                        projectId,
+                        platform: service.platform,
+                        categoryType: service.category
+                    }
+                });
+
+                // 3. Если категории нет - создаем её
+                if (!category) {
+                    const name = (CATEGORY_DISPLAY_NAMES && CATEGORY_DISPLAY_NAMES[service.category as any]) || service.category;
+                    const icon = (CATEGORY_ICONS && CATEGORY_ICONS[service.category as any]) || 'layers';
+
+                    category = await tx.serviceCategory.create({
+                        data: {
+                            projectId,
+                            platform: service.platform,
+                            categoryType: service.category,
+                            name: name,
+                            icon: icon,
+                            targetType: service.targetType,
+                            priority: 0
+                        }
+                    });
+                }
+
+                // 4. Создаем/обновляем оверрайд (активация)
+                return tx.projectServiceOverride.upsert({
+                    where: {
+                        projectId_internalServiceId: {
+                            projectId,
+                            internalServiceId: serviceId
+                        }
+                    },
+                    update: { isActive: true },
+                    create: {
+                        projectId,
+                        internalServiceId: serviceId,
+                        isActive: true,
+                        categoryId: category.id
+                    }
+                });
+            });
+        } catch (error: any) {
+            console.error('Failed to activate service in project:', error);
+            throw error;
+        }
     }
 }

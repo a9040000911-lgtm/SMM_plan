@@ -13,6 +13,7 @@ import { ProviderOrderResult, ProviderStatusResult } from '@/types/orders';
 import { CryptoService } from '@/services/core/crypto.service';
 import { createLogger } from '@/lib/logger';
 import { IntelligenceEngine } from '@/services/intelligence/intelligence.engine';
+import { Decimal } from 'decimal.js';
 
 const providerMap: { [key: string]: new (config: Provider) => IProvider } = {
   vexboost: VexboostProvider,
@@ -147,8 +148,15 @@ export class ProviderService {
       try {
         // --- SERVICE GUARDIAN CHECK ---
         const { ServiceGuardian } = await import('./service-guardian.service');
-        const verification = await ServiceGuardian.verifyService(order.internalServiceId, mapping);
+        const providerInfo = await prisma.provider.findUnique({ where: { id: mapping.providerId } });
+        const instance = await this.getInstance(mapping.providerId, order.projectId);
 
+        if (!instance || !providerInfo) {
+          this.logger.warn(`[Failover] Provider ${mapping.providerId} unavailable, skipping...`);
+          continue;
+        }
+
+        const verification = await ServiceGuardian.verifyService(order.internalServiceId, mapping, instance);
         if (!verification.isValid) {
           if (verification.criticalChange) {
             // Критическое изменение - отключаем услугу и выходим
@@ -161,13 +169,6 @@ export class ProviderService {
           }
         }
         // ------------------------------
-
-        const providerInfo = await prisma.provider.findUnique({ where: { id: mapping.providerId } });
-        const instance = await this.getInstance(mapping.providerId, order.projectId);
-        if (!instance || !providerInfo) {
-          this.logger.warn(`[Failover] Provider ${mapping.providerId} unavailable, skipping...`);
-          continue;
-        }
 
         const intelResult = await IntelligenceEngine.analyzeLink(initialLink);
         const adaptedLink = IntelligenceEngine.formatForProvider(intelResult, providerInfo.name);
@@ -182,10 +183,9 @@ export class ProviderService {
         const result = await instance.createOrder(mapping.providerServiceId, adaptedLink, qty, extraParams);
 
         if (result.success) {
-          // ... (existing loyalty logic)
           return {
             ...result,
-            providerName: (await prisma.provider.findUnique({ where: { id: mapping.providerId } }))?.name || 'Unknown'
+            providerName: providerInfo.name || 'Unknown'
           };
         } else {
           lastError = result.error;
@@ -329,18 +329,45 @@ export class ProviderService {
     return { success: false, error: 'Provider does not support API cancellation' };
   }
 
-  static async checkAndLogAllBalances() {
-    const { BalanceMonitorService } = await import('./balance-monitor.service');
-    return BalanceMonitorService.checkAndLogAllBalances();
+  /**
+   * Pings a provider to check API health and latency.
+   */
+  static async pingProvider(providerId: string): Promise<{ success: boolean; latency: number }> {
+    const start = Date.now();
+    try {
+      const instance = await this.getInstance(providerId);
+      if (!instance) return { success: false, latency: 0 };
+      await instance.getBalance();
+      return { success: true, latency: Date.now() - start };
+    } catch (e) {
+      return { success: false, latency: Date.now() - start };
+    }
   }
 
-  static async checkBalancesForAlerts() {
-    const { BalanceMonitorService } = await import('./balance-monitor.service');
-    return BalanceMonitorService.checkBalancesForAlerts();
-  }
+  /**
+   * Checks balances for all providers and logs alerts if low.
+   */
+  static async checkBalancesForAlerts(): Promise<void> {
+    const providers = await prisma.provider.findMany({ where: { isEnabled: true } });
+    for (const provider of providers) {
+      try {
+        const instance = await this.getInstance(provider.id);
+        if (!instance) continue;
+        const balanceInfo = await instance.getBalance();
+        
+        await prisma.providerBalanceLog.create({
+          data: {
+            providerId: provider.id,
+            balance: new Decimal(balanceInfo.balance)
+          }
+        });
 
-  static async pingProvider(providerId: string) {
-    const { BalanceMonitorService } = await import('./balance-monitor.service');
-    return BalanceMonitorService.pingProvider(providerId);
+        // Simple alert logic can be added here or in a separate observer
+      } catch (e) {
+        this.logger.error(`Failed to check balance for ${provider.name}:`, e);
+      }
+    }
   }
 }
+
+

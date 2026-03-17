@@ -9,7 +9,7 @@
 import { getServiceCategoriesAction, updateService } from '@/app/admin/services/actions';
 import { bulkMoveServicesToCategoryAction } from '@/app/admin/services/bulk-actions';
 import { prisma } from '@/lib/prisma';
-import { getActiveProjectId } from '@/utils/project-resolver';
+import { getActiveProjectId } from '@/utils/admin-session';
 import { getAdminSession } from '@/utils/admin-session';
 
 // Mock dependencies
@@ -36,9 +36,6 @@ jest.mock('@/lib/prisma', () => {
 
 jest.mock('@/utils/admin-session', () => ({
     getAdminSession: jest.fn(),
-}));
-
-jest.mock('@/utils/project-resolver', () => ({
     getActiveProjectId: jest.fn(),
 }));
 

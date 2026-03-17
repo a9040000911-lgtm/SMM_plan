@@ -5,7 +5,6 @@
  */
 
 import React from 'react';
-import { prisma } from '@/lib/prisma';
 import { getServiceCategoriesAction } from './actions';
 import { UnifiedServiceManager } from '@/components/admin/services/unified-manager';
 import { SerializedService, AdminProvider, SerializedOverride } from '@/types/admin';
@@ -16,10 +15,11 @@ import {
   MaintenanceWidget
 } from '@/components/admin/services/command-center/widgets';
 import { StuckOrdersWidget } from '@/components/admin/services/command-center/stuck-orders-widget';
-import { getActiveProjectId } from '@/utils/project-resolver';
-import { getAdminSession } from '@/utils/admin-session';
+import { getAdminSession, getActiveProjectId } from '@/utils/admin-session';
 import { AdminHeader } from '@/components/admin/core/admin-header';
 import { MarkupAnalyticsWidget } from '@/components/admin/services/command-center/markup-analytics';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,58 +30,33 @@ export default async function AdminServicesPage({
 }) {
   const { providerId } = await searchParams;
   const projectId = await getActiveProjectId();
-  // eslint-disable-next-line unused-imports/no-unused-vars
   const session = await getAdminSession();
+  if (!session) return null;
 
-  const isGlobalMode = projectId === 'all';
-
-  const dataWhere: any = isGlobalMode ? {} : {
-    OR: [
-      { projectId: null },
-      { projectId: projectId }
-    ]
+  const ctx: AdminContext = {
+    userId: session.id,
+    role: session.role as any,
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
   };
 
-  const [services, providers, categories, projects, overrides, providerLogs, usdRateRecord] = await Promise.all([
-    prisma.internalService.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        providerMappings: {
-          where: isGlobalMode ? {} : {
-            OR: [
-              { projectId: null },
-              { projectId: (projectId as string) }
-            ]
-          },
-          orderBy: { priority: 'asc' },
-          include: {
-            provider: true,
-            providerService: true
-          }
-        },
-        serviceCategory: true,
-      }
-    }),
-    prisma.provider.findMany({
-      where: dataWhere,
-      include: { _count: { select: { services: true } } },
-      orderBy: { name: 'asc' }
-    }),
-    getServiceCategoriesAction(),
-    prisma.project.findMany({
-      orderBy: { name: 'asc' }
-    }),
-    prisma.projectServiceOverride.findMany({
-      where: (isGlobalMode || !projectId) ? {} : { projectId: projectId as string }
-    }),
-    prisma.providerBalanceLog.findMany({
-      where: { provider: dataWhere },
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.currencyRate.findUnique({ where: { code: 'USD' } })
-  ]);
+  const activeProjectId = projectId || 'all';
+  const result = await AdminDataService.getServicesDashboardData(ctx, activeProjectId);
+  if (!result.success) {
+    return <div className="p-8 text-red-500">Ошибка: {result.error.message}</div>;
+  }
 
-  const usdRate = usdRateRecord?.rate.toNumber() || 90;
+  const {
+    services,
+    providers,
+    projects,
+    overrides,
+    usdRate,
+    providerLogs
+  } = result.data;
+
+  // Categories are fetched via action for now to maintain consistency with existing business logic if it has special processing
+  const categories = await getServiceCategoriesAction();
 
   const latestLogsMap = new Map();
   providerLogs.forEach(log => {
@@ -90,7 +65,7 @@ export default async function AdminServicesPage({
     }
   });
 
-  const serializedProviders = providers.map((p) => {
+  const serializedProviders = providers.map((p: any) => {
     const log = latestLogsMap.get(p.id);
     return {
       id: p.id,
@@ -99,8 +74,8 @@ export default async function AdminServicesPage({
       apiKey: p.apiKey,
       apiUrl: p.apiUrl,
       isEnabled: p.isEnabled,
-      balanceThreshold: p.balanceThreshold?.toNumber() || 0,
-      currentBalance: log?.balance.toNumber() || 0,
+      balanceThreshold: p.balanceThreshold?.toNumber ? p.balanceThreshold.toNumber() : Number(p.balanceThreshold || 0),
+      currentBalance: log?.balance?.toNumber ? log.balance.toNumber() : Number(log?.balance || 0),
       metadata: p.metadata,
       projectId: p.projectId,
       balanceCurrency: (p.balanceCurrency as 'RUB' | 'USD') || 'RUB',
@@ -110,13 +85,13 @@ export default async function AdminServicesPage({
     } as AdminProvider;
   });
 
-  const serializedServices = services.map((s) => ({
+  const serializedServices = services.map((s: any) => ({
     id: s.id,
     name: s.name,
     description: s.description,
-    pricePer1000: s.pricePer1000.toNumber(),
-    lastProviderPrice: s.lastProviderPrice ? s.lastProviderPrice.toNumber() : null,
-    marketPrice: s.marketPrice ? s.marketPrice.toNumber() : null,
+    pricePer1000: s.pricePer1000?.toNumber ? s.pricePer1000.toNumber() : Number(s.pricePer1000 || 0),
+    lastProviderPrice: s.lastProviderPrice?.toNumber ? s.lastProviderPrice.toNumber() : (s.lastProviderPrice ? Number(s.lastProviderPrice) : null),
+    marketPrice: s.marketPrice?.toNumber ? s.marketPrice.toNumber() : (s.marketPrice ? Number(s.marketPrice) : null),
     isActive: s.isActive,
     platform: s.platform,
     category: s.category,
@@ -128,10 +103,10 @@ export default async function AdminServicesPage({
     categoryId: s.categoryId,
     minQty: s.minQty,
     maxQty: s.maxQty,
-    providerPriceOriginal: s.providerPriceOriginal?.toNumber() || null,
+    providerPriceOriginal: s.providerPriceOriginal?.toNumber ? s.providerPriceOriginal.toNumber() : (s.providerPriceOriginal ? Number(s.providerPriceOriginal) : null),
     providerCurrencyOriginal: s.providerCurrencyOriginal,
-    markup: s.markup?.toNumber() || null,
-    providerMappings: s.providerMappings.map(m => ({
+    markup: s.markup?.toNumber ? s.markup.toNumber() : (s.markup ? Number(s.markup) : null),
+    providerMappings: s.providerMappings.map((m: any) => ({
       id: m.id,
       priority: m.priority,
       isActive: m.isActive,
@@ -141,13 +116,13 @@ export default async function AdminServicesPage({
         id: m.provider.id,
         name: m.provider.name,
         type: m.provider.type,
-        balanceThreshold: m.provider.balanceThreshold?.toNumber() || 0
+        balanceThreshold: m.provider.balanceThreshold?.toNumber ? m.provider.balanceThreshold.toNumber() : Number(m.provider.balanceThreshold || 0)
       } : null,
       providerService: m.providerService ? {
         id: m.providerService.id,
         name: m.providerService.name,
-        rawPrice: m.providerService.rawPrice.toNumber(),
-        rawPriceOriginal: m.providerService.rawPriceOriginal?.toNumber() || null,
+        rawPrice: m.providerService.rawPrice?.toNumber ? m.providerService.rawPrice.toNumber() : Number(m.providerService.rawPrice || 0),
+        rawPriceOriginal: m.providerService.rawPriceOriginal?.toNumber ? m.providerService.rawPriceOriginal.toNumber() : (m.providerService.rawPriceOriginal ? Number(m.providerService.rawPriceOriginal) : null),
         rawCurrencyOriginal: m.providerService.rawCurrencyOriginal,
         rawData: m.providerService.rawData
       } : null
@@ -159,7 +134,7 @@ export default async function AdminServicesPage({
     } : undefined,
   })) as SerializedService[];
 
-  const serializedOverrides = overrides.map(o => ({
+  const serializedOverrides = overrides.map((o: any) => ({
     ...o,
     customPrice: o.customPrice?.toNumber() || null,
     markup: o.markup?.toNumber() || null

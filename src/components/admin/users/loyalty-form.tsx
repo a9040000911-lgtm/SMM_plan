@@ -50,8 +50,17 @@ export function LoyaltyForm({ initialLevels, initialRules }: LoyaltyFormProps) {
         setRules(rules.filter((_, i) => i !== index));
     };
 
+    const handleSubmit = async (formData: FormData) => {
+        const result = await updateLoyaltySettingsAction(formData);
+        if (result.success) {
+            alert('Settings updated');
+        } else {
+            alert('Error: ' + result.error);
+        }
+    };
+
     return (
-        <form action={updateLoyaltySettingsAction} className="space-y-8">
+        <form action={handleSubmit} className="space-y-8">
             {/* SECTION: LOYALTY TIERS */}
             <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-8 border-b border-slate-100 flex items-center justify-between">
@@ -220,7 +229,7 @@ export function LoyaltyForm({ initialLevels, initialRules }: LoyaltyFormProps) {
                     </div>
                 </div>
                 <button type="submit" className="flex items-center gap-2 px-10 py-5 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-500/20">
-                    <Save size={20} />
+                    <Plus size={20} />
                     <span className="uppercase tracking-widest text-xs">{lt.apply}</span>
                 </button>
             </div>

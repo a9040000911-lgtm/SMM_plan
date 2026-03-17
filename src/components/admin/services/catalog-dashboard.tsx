@@ -112,7 +112,7 @@ export function CatalogDashboard({
                 toast.success(`Успешно: ${res.count} услуг обновлено`);
                 router.refresh();
             } else {
-                toast.error(res.error || 'Ошибка при массовом обновлении');
+                toast.error((res as any).error || 'Ошибка при массовом обновлении');
             }
         } catch (_e) {
             toast.error('Произошла ошибка при запуске AI');
@@ -129,7 +129,7 @@ export function CatalogDashboard({
                 toast.success('Статус обновлен');
                 router.refresh();
             } else {
-                toast.error(res.error || 'Ошибка обновления');
+                toast.error((res as any).error || 'Ошибка обновления');
             }
         } catch (_error) {
             toast.error('Ошибка сети');
@@ -146,7 +146,7 @@ export function CatalogDashboard({
                 toast.success('Цена обновлена');
                 router.refresh();
             } else {
-                toast.error(res.error || 'Ошибка обновления');
+                toast.error((res as any).error || 'Ошибка обновления');
             }
         } catch (_error) {
             toast.error('Ошибка сети');

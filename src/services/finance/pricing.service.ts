@@ -5,24 +5,12 @@
  */
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
-import { SettingsService } from '@/services/core';
-import { LoyaltyService } from '@/services/users';
+import { SettingsService } from '@/services/core/settings.service';
+import { LoyaltyService } from '@/services/users/loyalty.service';
 import { Category } from '@/generated/client';
 import { PricingRules } from '@/types/project-settings';
 
-export interface MarkupRule {
-    providerName?: string;
-    category?: Category | string;
-    markupPercent: number; // e.g. 30 for 30%
-    fixedMarkup: number;   // e.g. 10 for +10 RUB
-    minPrice: number;
-}
-
-export interface LadderLevel {
-    threshold: number;      // Цена закупки, до которой действует этот уровень
-    multiplier: number;     // Множитель (например, 2 для 100%)
-    fixedMarkup: number;    // Фиксированная наценка в RUB
-}
+import { MarkupRule, LadderLevel } from '@/services/types';
 
 export class PricingService {
     private static readonly LADDER_SETTINGS_KEY = 'PRICING_LADDER';
@@ -113,7 +101,6 @@ export class PricingService {
         }
 
         // --- NEW SAFETY CHECK ---
-        // Если после всех расчетов цена 0, но закупка > 0 — используем safetyPrice
         if (price.isZero() && cost.gt(0)) {
             price = safetyPrice;
         }
@@ -135,23 +122,6 @@ export class PricingService {
         // Формула: (Закуп + 100% маржи) * 1.03 (шлюз)
         const safetyPrice = cost.mul(1 + this.MIN_PROFIT_MARGIN).mul(1 + this.PAYMENT_GATEWAY_FEE);
         return new Decimal(Math.ceil(safetyPrice.toNumber() * 10) / 10).toDecimalPlaces(2, Decimal.ROUND_CEIL);
-    }
-
-    private static findBestRule(rules: MarkupRule[], providerName?: string, category?: string | Category): MarkupRule {
-        const sorted = rules.sort((a, b) => {
-            const scoreA = (a.providerName ? 2 : 0) + (a.category ? 1 : 0);
-            const scoreB = (b.providerName ? 2 : 0) + (b.category ? 1 : 0);
-            return scoreB - scoreA;
-        });
-
-        for (const r of sorted) {
-            const pMatch = !r.providerName || (providerName && r.providerName === providerName);
-            const cMatch = !r.category || (category && r.category === category);
-
-            if (pMatch && cMatch) return r;
-        }
-
-        return { markupPercent: 50, fixedMarkup: 0, minPrice: 10 };
     }
 
     /**
@@ -306,11 +276,9 @@ export class PricingService {
      */
     static getPricePerUnit(pricePer1000: Decimal | number): string {
         const unitPrice = new Decimal(pricePer1000).div(1000);
-
         if (unitPrice.gte(1)) {
             return unitPrice.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toString();
         }
-
         return unitPrice.toDecimalPlaces(4, Decimal.ROUND_HALF_UP).toString();
     }
 
@@ -326,16 +294,11 @@ export class PricingService {
 
         const service = await prisma.internalService.findUnique({
             where: { id: serviceId },
-            include: {
-                projectOverrides: {
-                    where: { projectId: projectId }
-                }
-            }
+            include: { projectOverrides: { where: { projectId: projectId } } }
         });
 
         if (!service) throw new Error('Service not found');
 
-        // 1. Приоритет №1: Ручной оверрайд
         if (service.projectOverrides && service.projectOverrides.length > 0) {
             const override = service.projectOverrides[0];
             if (override.customPrice) {
@@ -343,14 +306,8 @@ export class PricingService {
                 if (cost && cost.gt(0)) {
                     const safetyPrice = this.getSafetyPrice(cost);
                     const maxPrice = cost.mul(this.MAX_MARKUP_MULTIPLIER);
-
-                    // Гарантируем, что даже ручная цена не ниже пола и не выше потолка "злоупотребления"
-                    if (override.customPrice.lt(safetyPrice)) {
-                        return safetyPrice;
-                    }
-                    if (override.customPrice.gt(maxPrice)) {
-                        return maxPrice;
-                    }
+                    if (override.customPrice.lt(safetyPrice)) return safetyPrice;
+                    if (override.customPrice.gt(maxPrice)) return maxPrice;
                 }
                 return override.customPrice;
             }
@@ -388,29 +345,18 @@ export class PricingService {
      */
     static async getMarkupAnalytics() {
         const services = await prisma.internalService.findMany({
-            select: {
-                id: true,
-                name: true,
-                pricePer1000: true,
-                lastProviderPrice: true,
-                platform: true
-            }
+            select: { id: true, name: true, pricePer1000: true, lastProviderPrice: true, platform: true }
         });
 
         const stats = {
             total: services.length,
-            normal: 0,      // < 1000% (x11)
-            high: 0,        // 1000-5000% (x51)
-            warning: 0,     // 5000-15000% (x151)
-            abuse: 0,       // > 15000% - Злоупотребление (Блокируется системой)
-            loss: 0         // < 100% (убыток)
+            normal: 0, high: 0, warning: 0, abuse: 0, loss: 0
         };
 
         const extremeServices: any[] = [];
 
         services.forEach(s => {
             if (!s.lastProviderPrice || s.lastProviderPrice.isZero()) return;
-
             const multiplier = s.pricePer1000.div(s.lastProviderPrice).toNumber();
             const markupPercent = (multiplier - 1) * 100;
 
@@ -421,11 +367,8 @@ export class PricingService {
             else {
                 stats.abuse++;
                 extremeServices.push({
-                    id: s.id,
-                    name: s.name,
-                    platform: s.platform,
-                    markup: Math.round(markupPercent),
-                    price: s.pricePer1000.toNumber()
+                    id: s.id, name: s.name, platform: s.platform,
+                    markup: Math.round(markupPercent), price: s.pricePer1000.toNumber()
                 });
             }
         });

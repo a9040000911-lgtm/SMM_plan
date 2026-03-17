@@ -15,10 +15,17 @@ import { ProjectService } from "@/services/core";
 
 export const dynamic = 'force-dynamic';
 
+import { Suspense } from "react";
+import { CmsBridgeProvider } from "@/components/cms/CmsBridge";
+
+import { CmsService } from "@/services/cms/cms.service";
+
 export default async function ClientLayout({ children }: { children: React.ReactNode }) {
     const projectId = await getClientProjectId();
     let enableBugReporter = process.env.NEXT_PUBLIC_ENABLE_BUG_REPORTER !== 'false';
     let enableReviews = process.env.NEXT_PUBLIC_ENABLE_REVIEWS !== 'false';
+
+    const cmsStrings = await CmsService.getProjectStrings(projectId);
 
     if (projectId) {
         const project = await ProjectService.getById(projectId);
@@ -30,20 +37,24 @@ export default async function ClientLayout({ children }: { children: React.React
     }
 
     return (
-        <TmaRedirect>
-            <div className="font-sans bg-white text-slate-900 antialiased selection:bg-blue-600/10 min-h-screen relative overflow-x-hidden">
-                <Toaster position="top-center" expand={false} richColors />
-                <Header />
-                <main className="min-h-screen pt-20 pb-20 md:pb-0 flex flex-col">
-                    {children}
-                </main>
-                <FloatingActionButtons
-                    enableBugReporter={enableBugReporter}
-                    enableReviews={enableReviews}
-                />
-                <Footer />
-                <MobileAppNav />
-            </div>
-        </TmaRedirect>
+        <Suspense fallback={null}>
+            <CmsBridgeProvider>
+                <TmaRedirect>
+                    <div className="font-sans bg-white text-slate-900 antialiased selection:bg-blue-600/10 min-h-screen relative overflow-x-hidden">
+                        <Toaster position="top-center" expand={false} richColors />
+                        <Header />
+                        <main className="min-h-screen pt-20 pb-20 md:pb-0 flex flex-col">
+                            {children}
+                        </main>
+                        <FloatingActionButtons
+                            enableBugReporter={enableBugReporter}
+                            enableReviews={enableReviews}
+                        />
+                        <Footer cmsContent={cmsStrings} />
+                        <MobileAppNav />
+                    </div>
+                </TmaRedirect>
+            </CmsBridgeProvider>
+        </Suspense>
     );
 }

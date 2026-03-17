@@ -4,41 +4,30 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { auth } from "@/auth";
-
 import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
 import { getClientProjectId } from '@/utils/project-resolver';
 import { ScheduledOrdersUI } from "@/components/stitch/dashboard/ScheduledOrdersUI";
+import { OrderLifecycleService } from "@/services/orders/order-lifecycle.service";
+import { UserService } from "@/services/users/user.service";
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Запланированные заказы | Smmplan' };
 
-async function getUser() {
+export default async function ScheduledOrdersPage() {
     const session = await auth();
     if (!session?.user?.email) redirect('/login');
+    
     const projectId = await getClientProjectId();
-    const user = await prisma.user.findFirst({ where: { email: session.user.email, projectId } });
+    const user = await UserService.getUserByEmail(session.user.email, projectId);
     if (!user) redirect('/login');
-    return user;
-}
 
-export default async function ScheduledOrdersPage() {
-    const user = await getUser();
+    const result = await OrderLifecycleService.getScheduledOrders(user.id);
 
-    const scheduledOrders = await prisma.scheduledOrder.findMany({
-        where: { userId: user.id },
-        orderBy: { scheduleTime: 'asc' },
-        include: {
-            service: {
-                select: {
-                    name: true,
-                    platform: true,
-                }
-            }
-        }
-    });
+    if (!result.success) {
+        return <div>Ошибка при загрузке запланированных заказов</div>;
+    }
 
-    const serializedOrders = JSON.parse(JSON.stringify(scheduledOrders));
+    const serializedOrders = JSON.parse(JSON.stringify(result.data));
 
     return (
         <div className="container mx-auto px-4 py-8">

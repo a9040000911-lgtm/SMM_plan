@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { prisma } from '@/lib/prisma';
-import { getActiveProjectId } from '@/utils/project-resolver';
+import { getActiveProjectId } from '@/utils/admin-session';
 import { CategoryManager } from '@/components/admin/services/categories/category-manager';
 import { Platform } from '@/generated/client';
 import { AdminHeader } from '@/components/admin/core/admin-header';
@@ -20,7 +20,7 @@ export default async function CategoryManagementPage() {
     const allCategories = await prisma.serviceCategory.findMany({
         where: isGlobalMode ? {} : {
             OR: [
-                { projectId: projectId },
+                { projectId: projectId || undefined },
                 { projectId: null }
             ]
         },
@@ -62,7 +62,7 @@ export default async function CategoryManagementPage() {
                 title="Управление категориями"
                 subtitle="Настройка отображения, группировка по соцсетям и управление приоритетами"
                 projects={projects}
-                projectId={projectId}
+                projectId={projectId || 'all'}
             />
 
             <CategoryManager

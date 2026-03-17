@@ -4,11 +4,11 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { auth } from "@/auth";
-
 import { redirect, notFound } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
 import { getClientProjectId } from '@/utils/project-resolver';
 import { OrderDetailsUI } from "@/components/stitch/dashboard/OrderDetailsUI";
+import { OrderLifecycleService } from "@/services/orders/order-lifecycle.service";
+import { UserService } from "@/services/users/user.service";
 
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: any) {
@@ -16,29 +16,25 @@ export async function generateMetadata({ params }: any) {
     return { title: `Заказ #${p.id} — Детальная информация | Smmplan` };
 }
 
-async function getOrderData(orderId: string) {
-    const session = await auth();
-    if (!session?.user?.email) redirect('/login');
-    const projectId = await getClientProjectId();
-    const user = await prisma.user.findFirst({ where: { email: session.user.email, projectId } });
-    if (!user) redirect('/login');
-
-    const id = parseInt(orderId);
-    if (isNaN(id)) notFound();
-
-    const order = await prisma.order.findFirst({
-        where: { id, userId: user.id },
-        include: { internalService: { select: { name: true, platform: true, category: true, requirements: true, numericId: true } } }
-    });
-    if (!order) notFound();
-    return order;
-}
-
 export default async function OrderDetailPage({ params }: any) {
     const p = await params;
-    const order = await getOrderData(p.id);
+    const session = await auth();
+    if (!session?.user?.email) redirect('/login');
+    
+    const projectId = await getClientProjectId();
+    const user = await UserService.getUserByEmail(session.user.email, projectId);
+    if (!user) redirect('/login');
+
+    const orderId = parseInt(p.id);
+    if (isNaN(orderId)) notFound();
+
+    const result = await OrderLifecycleService.getOrderById(orderId, user.id);
+
+    if (!result.success) {
+        notFound();
+    }
 
     return (
-        <OrderDetailsUI order={JSON.parse(JSON.stringify(order))} />
+        <OrderDetailsUI order={JSON.parse(JSON.stringify(result.data))} />
     );
 }

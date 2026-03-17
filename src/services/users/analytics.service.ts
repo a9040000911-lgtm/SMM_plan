@@ -9,6 +9,8 @@ import { Decimal } from 'decimal.js';
 import { bot } from '@/lib/bot';
 import { ConfigService } from '@/lib/config.service';
 import { formatAmount } from '@/utils/formatter';
+import { DashboardStats } from '../types';
+
 
 export class AnalyticsService {
   /**
@@ -282,5 +284,41 @@ export class AnalyticsService {
       .slice(0, 5); // Changed .take(5) to .slice(0, 5)
 
     return { timeline, risks, totalProjectedChurn: risks.reduce((a, b) => a + b.churn, 0) };
+  }
+
+  /**
+   * Aggregates stats specifically for the user dashboard.
+   */
+  static async getUserDashboardStats(userId: string): Promise<DashboardStats> {
+    const [activeCount, completedCount, totalSpentAgg] = await Promise.all([
+      prisma.order.count({ 
+        where: { userId, status: { in: ['PENDING', 'PROCESSING', 'IN_PROGRESS'] } } 
+      }),
+      prisma.order.count({ 
+        where: { userId, status: 'COMPLETED' } 
+      }),
+      prisma.order.aggregate({ 
+        where: { userId }, 
+        _sum: { totalPrice: true } 
+      }),
+    ]);
+
+    return {
+      activeCount,
+      completedCount,
+      totalSpent: totalSpentAgg._sum.totalPrice?.toNumber() || 0
+    };
+  }
+
+  /**
+   * Fetches latest orders for a specific user.
+   */
+  static async getRecentOrders(userId: string, limit: number = 5) {
+    return await prisma.order.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: { internalService: { select: { name: true, platform: true } } }
+    });
   }
 }

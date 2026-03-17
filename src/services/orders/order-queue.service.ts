@@ -13,7 +13,6 @@ import { ConfigService } from '@/lib/config.service';
 import { NotificationTemplates } from '@/bot/utils/notification-templates';
 import { ProviderOrderResult, OrderWithRelations } from '@/types/orders';
 import { OrderRefundService } from './order-refund.service';
-import { OrderSyncService } from './order-sync.service';
 import { MarketerSettings } from '@/types/project-settings';
 import { createLogger } from '@/lib/logger';
 import { encodePublicId } from '@/utils/id-obfuscator';
@@ -215,110 +214,4 @@ export class OrderQueueService {
         return await DripFeedService.processRun(orderId);
     }
 
-    static async tryAutoRefill(orderId: number): Promise<boolean> {
-        const order = await prisma.order.findUnique({
-            where: { id: orderId },
-            include: {
-                user: true,
-                project: true,
-                internalService: {
-                    include: {
-                        providerMappings: {
-                            where: { isActive: true },
-                            orderBy: { priority: 'asc' },
-                            include: { provider: true }
-                        }
-                    }
-                }
-            }
-        }) as OrderWithRelations | null;
-
-        if (!order) return false;
-
-        const settings = order.project?.marketerSettings as MarketerSettings | null;
-        const isVip = settings?.isVipFailoverEnabled === true;
-
-        const nextMappings = await prisma.internalServiceMapping.findMany({
-            where: {
-                internalServiceId: order.internalServiceId,
-                OR: [
-                    { projectId: order.projectId },
-                    { projectId: null }
-                ],
-                isActive: true,
-                provider: { name: { not: order.providerName || '' } }
-            },
-            orderBy: [
-                { projectId: 'desc' },
-                { priority: 'asc' }
-            ],
-            include: { provider: true }
-        });
-
-        if (nextMappings.length === 0) {
-            this.logger.info(`[Auto-Refill] No alternative providers for order ${order.id}`);
-            return false;
-        }
-
-        for (const mapping of nextMappings) {
-            const providerSvc = await prisma.providerService.findUnique({
-                where: { id: mapping.providerServiceId }
-            });
-
-            if (!providerSvc) continue;
-
-            const costPer1000 = providerSvc.rawPrice;
-            const userPaidPer1000 = order.totalPrice.mul(1000).div(order.quantity);
-
-            if (costPer1000.gte(userPaidPer1000)) {
-                if (!isVip) {
-                    this.logger.info(`[Auto-Refill] Alternative provider ${mapping.provider.name} is too expensive (${costPer1000} > ${userPaidPer1000})`);
-                    continue;
-                }
-                this.logger.info(`[Auto-Refill] VIP Guardian: Choosing expensive provider ${mapping.provider.name} (${costPer1000} > ${userPaidPer1000}) to ensure results.`);
-            }
-
-            this.logger.info(`[Auto-Refill] Attempting restart for order ${order.id} via ${mapping.provider.name}`);
-
-            try {
-                const res: ProviderOrderResult = await ProviderService.createOrder(order, order.quantity, { providerId: mapping.providerId, providerServiceId: mapping.providerServiceId.toString() });
-
-                if (res.success) {
-                    await prisma.order.update({
-                        where: { id: order.id },
-                        data: {
-                            externalId: res.externalId,
-                            providerName: res.providerName,
-                            status: 'PROCESSING',
-                            providerRawResponse: res.rawData || { info: 'Auto-Refill successful' }
-                        }
-                    });
-
-                    const telegramConfig = await ConfigService.getTelegramConfig(order.projectId || undefined);
-                    const adminId = telegramConfig.adminId;
-                    const { bot } = await import('@/lib/bot');
-
-                    if (adminId) {
-                        const loss = costPer1000.minus(userPaidPer1000).mul(order.quantity).div(1000);
-                        const lossMsg = loss.gt(0) ? `\n⚠️ <b>Расход на лояльность:</b> <code>-${loss.toFixed(2)}₽</code> (принято решение в пользу клиента)` : '';
-
-                        await bot.telegram.sendMessage(adminId,
-                            NotificationTemplates.ORDER.REFILL_SUCCESS_ADMIN(order.id, order.providerName || '', res.providerName || '', lossMsg),
-                            { parse_mode: 'HTML' }
-                        ).catch(() => { });
-                    }
-
-                    return true;
-                }
-            } catch (e) {
-                this.logger.error(`[Auto-Refill] Failed to restart via ${mapping.provider.name}:`, e);
-            }
-        }
-
-        return false;
-    }
-
-    static async syncOrdersStatus(orderIds?: number[]) {
-        return OrderSyncService.syncAllActive(orderIds);
-    }
 }

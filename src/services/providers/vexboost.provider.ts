@@ -7,6 +7,7 @@ import axios from 'axios';
 import { Provider } from '@/generated/client';
 import { IProvider, ProviderServiceData } from './base-provider';
 import { ProviderOrderResult, ProviderStatusResult } from '@/types/orders';
+import { validateSafeUrl } from '@/utils/url-validator';
 
 // Реализация специфичной для VexBoost логики
 export class VexboostProvider implements IProvider {
@@ -15,6 +16,7 @@ export class VexboostProvider implements IProvider {
 
   // Конструктор принимает конфигурацию из БД
   constructor(config: Provider) {
+    validateSafeUrl(config.apiUrl, `VexboostProvider(${config.name})`);
     this.apiKey = config.apiKey;
     this.apiUrl = config.apiUrl;
   }

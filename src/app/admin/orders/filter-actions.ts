@@ -5,8 +5,9 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
+import { AdminDataService } from '@/services/admin/admin-data.service';
 import { Platform, Category } from '@/generated/client';
+import { getAdminContext } from '@/utils/admin-context';
 
 export interface FilterServiceItem {
     id: string;
@@ -19,29 +20,18 @@ export async function getServicesForFilter(
     platform?: Platform | 'ALL',
     category?: Category | 'ALL'
 ): Promise<FilterServiceItem[]> {
-    const where: any = {};
+    try {
+        const ctx = await getAdminContext();
+        const res = await AdminDataService.getInternalServices(ctx, {
+            platform,
+            category,
+            take: 100
+        });
 
-    if (platform && platform !== 'ALL') {
-        where.platform = platform;
+        if (!res.success) throw new Error(res.error?.message);
+        return res.data || [];
+    } catch (error: any) {
+        console.error('[getServicesForFilter] Error:', error);
+        return [];
     }
-
-    if (category && category !== 'ALL') {
-        where.category = category;
-    }
-
-    const services = await prisma.internalService.findMany({
-        where,
-        select: {
-            id: true,
-            name: true,
-            platform: true,
-            category: true,
-        },
-        orderBy: {
-            name: 'asc',
-        },
-        take: 100 // Limit to avoid massive payloads, maybe improve later with search
-    });
-
-    return services;
 }

@@ -4,27 +4,14 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { auth } from "@/auth";
-
 import { redirect, notFound } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
 import { NewOrderUI } from "@/components/stitch/dashboard/NewOrderUI";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
+import { CatalogService } from "@/services/core/catalog.service";
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Оформление заказа — Персонализация | Smmplan' };
-
-async function getService(serviceId: string) {
-    const session = await auth();
-    if (!session?.user?.email) redirect('/login');
-
-    // InternalService id is a String in schema.prisma
-    const service = await prisma.internalService.findFirst({
-        where: { id: serviceId }
-    });
-    if (!service) notFound();
-    return service;
-}
 
 export default async function NewOrderPage({ searchParams }: any) {
     const sp = await searchParams;
@@ -34,7 +21,14 @@ export default async function NewOrderPage({ searchParams }: any) {
         redirect('/catalog');
     }
 
-    const service = await getService(serviceId as string);
+    const session = await auth();
+    if (!session?.user?.email) redirect('/login');
+
+    const result = await CatalogService.getServiceById(serviceId as string);
+
+    if (!result.success) {
+        notFound();
+    }
 
     return (
         <Suspense fallback={
@@ -43,7 +37,7 @@ export default async function NewOrderPage({ searchParams }: any) {
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Инициализация формы заказа...</p>
             </div>
         }>
-            <NewOrderUI initialService={JSON.parse(JSON.stringify(service))} serviceId={serviceId as string} />
+            <NewOrderUI initialService={JSON.parse(JSON.stringify(result.data))} serviceId={serviceId as string} />
         </Suspense>
     );
 }

@@ -7,6 +7,7 @@ import axios from 'axios';
 import { Provider } from '@/generated/client';
 import { IProvider, ProviderServiceData } from './base-provider';
 import { ProviderOrderResult, ProviderStatusResult } from '@/types/orders';
+import { validateSafeUrl } from '@/utils/url-validator';
 
 // Реализация, специфичная для Stream Promotion API
 export class StreamPromotionProvider implements IProvider {
@@ -15,6 +16,7 @@ export class StreamPromotionProvider implements IProvider {
   private readonly userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36';
 
   constructor(config: Provider) {
+    validateSafeUrl(config.apiUrl, `StreamPromotionProvider(${config.name})`);
     this.apiKey = config.apiKey;
     this.apiUrl = config.apiUrl;
   }

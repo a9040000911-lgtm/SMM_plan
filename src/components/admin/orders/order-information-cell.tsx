@@ -124,7 +124,7 @@ export function OrderInformationCell({ order }: OrderInformationCellProps) {
                         <div className="flex gap-1.5">
                             <span className="text-slate-500 whitespace-nowrap">Провайдер:</span>
                             <span className="text-slate-700">
-                                {order.providerName || '—'} {mapping ? `(${providerServiceId})` : ''}
+                                {order.providerName || '—'} {mapping && !providerServiceId.includes('-') ? `(#${providerServiceId})` : ''}
                             </span>
                         </div>
                         <div className="flex gap-1.5">

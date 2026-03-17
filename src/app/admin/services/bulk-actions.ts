@@ -5,20 +5,9 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
+import { AdminDataService } from '@/services/admin/admin-data.service';
 import { revalidatePath } from 'next/cache';
-import { getAdminSession } from '@/utils/admin-session';
-
-async function requireSupportOrAdmin() {
-    const session = await getAdminSession();
-    if (!session) {
-        throw new Error("Unauthorized: Session not found");
-    }
-    if (!['ADMIN', 'SUPPORT'].includes(session.role)) {
-        throw new Error(`Forbidden: Role ${session.role} is not authorized for this action`);
-    }
-    return session;
-}
+import { getAdminContext } from '@/utils/admin-context';
 
 export async function bulkMoveServicesToCategoryAction(
     serviceIds: string[],
@@ -27,21 +16,14 @@ export async function bulkMoveServicesToCategoryAction(
     targetCategoryEnum: string
 ) {
     try {
-        await requireSupportOrAdmin();
-
+        const ctx = await getAdminContext();
         if (!serviceIds.length) return { success: false, error: 'No services selected' };
 
-        await prisma.internalService.updateMany({
-            where: { id: { in: serviceIds } },
-            data: {
-                categoryId: targetCategoryId,
-                platform: targetPlatform as any,
-                category: targetCategoryEnum as any
-            }
-        });
+        const res = await AdminDataService.bulkMoveServicesToCategory(ctx, serviceIds, targetCategoryId, targetPlatform, targetCategoryEnum);
+        if (!res.success) throw new Error(res.error?.message);
 
         revalidatePath('/admin/services');
-        return { success: true, count: serviceIds.length };
+        return { success: true, count: res.data };
     } catch (error: any) {
         console.error('Failed to bulk move services:', error);
         return { success: false, error: error.message };
@@ -50,13 +32,12 @@ export async function bulkMoveServicesToCategoryAction(
 
 export async function bulkToggleStatusAction(serviceIds: string[], isActive: boolean) {
     try {
-        await requireSupportOrAdmin();
-        await prisma.internalService.updateMany({
-            where: { id: { in: serviceIds } },
-            data: { isActive }
-        });
+        const ctx = await getAdminContext();
+        const res = await AdminDataService.bulkToggleServices(ctx, serviceIds, isActive);
+        if (!res.success) throw new Error(res.error?.message);
+
         revalidatePath('/admin/services');
-        return { success: true, count: serviceIds.length };
+        return { success: true, count: res.data };
     } catch (error: any) {
         return { success: false, error: error.message };
     }

@@ -3,16 +3,16 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { Platform, Category } from '@/generated/client';
+import type { Platform, Category } from '@/generated/client';
 import { PlatformParser, AnalysisResult } from '../types';
 
 export const TiktokParser: PlatformParser = {
-    name: Platform.TIKTOK,
+    name: 'TIKTOK' as Platform,
     domains: ['tiktok.com', 'vm.tiktok.com', 'vt.tiktok.com'],
     parse(url: string): AnalysisResult | null {
         if (url.includes('/video/') || url.includes('/t/')) {
-            return { platform: Platform.TIKTOK, possibleCategories: [Category.VIEWS, Category.LIKES, Category.REPOSTS, Category.COMMENTS, Category.SAVES], objectType: 'TT_VIDEO' };
+            return { platform: 'TIKTOK' as Platform, possibleCategories: ['VIEWS' as Category, 'LIKES' as Category, 'REPOSTS' as Category, 'COMMENTS' as Category, 'SAVES' as Category], objectType: 'TT_VIDEO' };
         }
-        return { platform: Platform.TIKTOK, possibleCategories: [Category.SUBSCRIBERS], objectType: 'TT_PROFILE' };
+        return { platform: 'TIKTOK' as Platform, possibleCategories: ['SUBSCRIBERS' as Category], objectType: 'TT_PROFILE' };
     }
 };

@@ -43,8 +43,8 @@ export class TelegramAuth {
         const secretKey = createHash('sha256').update(botToken).digest();
         const hmac = createHmac('sha256', secretKey).update(checkString).digest('hex');
 
-        // Проверка на свежесть (24 часа)
-        const isExpired = (Math.floor(Date.now() / 1000) - data.auth_date) > 86400;
+        // Проверка на свежесть (2 часа)
+        const isExpired = (Math.floor(Date.now() / 1000) - data.auth_date) > 7200;
 
         return hmac === hash && !isExpired;
     }
@@ -79,7 +79,7 @@ export class TelegramAuth {
 
             const authDate = parseInt(data['auth_date'] || '0');
             const now = Math.floor(Date.now() / 1000);
-            if (now - authDate > 86400) {
+            if (now - authDate > 7200) {
                 return { isValid: false, error: 'Data is stale' };
             }
 

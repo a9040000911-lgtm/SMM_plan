@@ -8,3 +8,4 @@ export * from './link.service';
 export * from './smart-sync.service';
 export * from './smart-analyzer.service';
 export * from './sync.service';
+export * from './smart-mapping.service';

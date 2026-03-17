@@ -4,39 +4,30 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { auth } from "@/auth";
-
 import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
 import { getClientProjectId } from '@/utils/project-resolver';
 import { SettingsUI } from "@/components/stitch/dashboard/SettingsUI";
+import { UserService } from "@/services/users/user.service";
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Настройки — Безопасность и Личные данные | Smmplan' };
 
-async function getUser() {
+export default async function SettingsPage() {
     const session = await auth();
     if (!session?.user?.email) redirect('/login');
+    
     const projectId = await getClientProjectId();
-    const user = await prisma.user.findFirst({ where: { email: session.user.email, projectId } });
-    if (!user) redirect('/login');
+    const userResult = await UserService.getUserByEmail(session.user.email, projectId);
+    if (!userResult) redirect('/login');
 
-    // Add bot username for TG binding
-    const project = projectId ? await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { botUsername: true }
-    }) : null;
+    const result = await UserService.getUserSettings(userResult.id, projectId || 'all');
 
-    return {
-        ...user,
-        botUsername: project?.botUsername,
-        hasPassword: !!user.password,
-    };
-}
-
-export default async function SettingsPage() {
-    const user = await getUser();
+    if (!result.success) {
+        console.error(`[SettingsPage] Failed to fetch settings: ${result.error.message}`);
+        return <div>Ошибка при загрузке настроек</div>;
+    }
 
     return (
-        <SettingsUI userData={JSON.parse(JSON.stringify(user))} />
+        <SettingsUI userData={JSON.parse(JSON.stringify(result.data))} />
     );
 }

@@ -196,7 +196,7 @@ export function ServiceEditorModal({
                     if (useOverride.maxQty) overridePayload.customMaxQty = formData.maxQty;
 
                     // We also want to manage isActive somehow, but let's stick to these for now
-                    await upsertProjectOverrideAction(activeProjectId, service.id, overridePayload);
+                    await upsertProjectOverrideAction(service.id, activeProjectId, overridePayload);
                 }
             } else {
                 res = await createManualServiceAction(payload);
@@ -660,3 +660,4 @@ export function ServiceEditorModal({
         </div>
     );
 }
+

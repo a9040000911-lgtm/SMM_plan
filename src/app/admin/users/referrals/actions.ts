@@ -5,48 +5,24 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
+import { getAdminSession } from '@/utils/admin-session';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
 
-async function verifyAdmin() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get('admin_session');
+async function getCtx(): Promise<AdminContext> {
+  const session = await getAdminSession();
   if (!session) throw new Error('Unauthorized');
+  return {
+    userId: session.id,
+    role: session.role as any,
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
+  };
 }
 
 export async function getUserReferralData(userId: string) {
-  await verifyAdmin();
-
-  // Получаем список рефералов 1-го уровня с их тратами
-  const referrals = await prisma.user.findMany({
-    where: { referrerId: userId },
-    select: {
-      id: true,
-      username: true,
-      email: true,
-      spent: true,
-      createdAt: true,
-      _count: { select: { orders: true } }
-    },
-    orderBy: { createdAt: 'desc' }
-  });
-
-  // Serialize Decimal fields to strings
-  const serializedReferrals = referrals.map(r => ({
-    ...r,
-    spent: r.spent.toString(), // Convert Decimal to string
-  }));
-
-  // Расчет прибыли платформы с этой ветки
-  // (Допустим, 10% от трат рефералов уходит пригласителю, остальное - доход системы)
-  const totalSpentByNetwork = serializedReferrals.reduce((acc, r) => acc + parseFloat(r.spent), 0);
-  
-  return {
-    referrals: serializedReferrals,
-    stats: {
-      totalCount: serializedReferrals.length,
-      totalSpent: totalSpentByNetwork,
-      averageLTV: serializedReferrals.length > 0 ? totalSpentByNetwork / serializedReferrals.length : 0
-    }
-  };
+  const ctx = await getCtx();
+  const result = await AdminDataService.getUserReferralData(ctx, userId);
+  if (!result.success) throw new Error(result.error.message);
+  return result.data;
 }

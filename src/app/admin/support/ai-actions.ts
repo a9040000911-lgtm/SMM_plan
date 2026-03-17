@@ -6,50 +6,35 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { prisma } from '@/lib/prisma';
 import { ConfigService } from '@/lib/config.service';
+import { getAdminSession } from '@/utils/admin-session';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
+
+async function getCtx(): Promise<AdminContext> {
+    const session = await getAdminSession();
+    if (!session || !['ADMIN', 'SUPPORT'].includes(session.role)) throw new Error('Unauthorized');
+    return {
+        userId: session.id,
+        role: session.role as any,
+        allowedProjects: session.allowedProjects,
+        isGlobalAdmin: session.isGlobalAdmin
+    };
+}
 
 export async function getSupportAiSuggestionAction(ticketId: string) {
     try {
+        const ctx = await getCtx();
         const config = await ConfigService.getAiConfig();
         if (!config.apiKey) throw new Error('AI API Key not configured');
 
-        // 1. Fetch ticket, context (messages), and user orders
-        const ticketRaw = await prisma.supportTicket.findUnique({
-            where: { id: ticketId },
-            include: {
-                messages: {
-                    orderBy: { createdAt: 'desc' },
-                    take: 10
-                },
-                user: {
-                    select: {
-                        id: true,
-                        username: true,
-                        balance: true,
-                        createdAt: true,
-                        orders: {
-                            orderBy: { createdAt: 'desc' },
-                            take: 5,
-                            select: {
-                                id: true,
-                                status: true,
-                                totalPrice: true,
-                                createdAt: true,
-                                link: true,
-                                internalService: { select: { name: true } }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        if (!ticketRaw) throw new Error('Ticket not found');
+        const result = await AdminDataService.getSupportAiContext(ctx, ticketId);
+        if (!result.success) throw new Error(result.error.message);
+        
+        const ticketRaw = result.data;
 
         const genAI = new GoogleGenerativeAI(config.apiKey);
         
-        // Proxy support
         let requestOptions: any = {};
         if (config.proxy) {
             try {
@@ -70,10 +55,10 @@ export async function getSupportAiSuggestionAction(ticketId: string) {
 КЛИЕНТ: ${ticketRaw.user.username}
 БАЛАНС: ${ticketRaw.user.balance}₽
 ПОСЛЕДНИЕ ЗАКАЗЫ:
-${ticketRaw.user.orders.map(o => `- ID ${o.id}: ${o.internalService.name}, Статус: ${o.status}, Ссылка: ${o.link}`).join('\n')}
+${ticketRaw.user.orders.map((o: any) => `- ID ${o.id}: ${o.internalService.name}, Статус: ${o.status}, Ссылка: ${o.link}`).join('\n')}
 
 ИСТОРИЯ ПЕРЕПИСКИ (последние 10 сообщений):
-${ticketRaw.messages.reverse().map(m => `[${m.sender}] ${m.text}`).join('\n')}
+${ticketRaw.messages.reverse().map((m: any) => `[${m.sender}] ${m.text}`).join('\n')}
 
 ИНСТРУКЦИИ:
 1. Будь вежливым, профессиональным, но лаконичным.
@@ -82,8 +67,8 @@ ${ticketRaw.messages.reverse().map(m => `[${m.sender}] ${m.text}`).join('\n')}
 4. Отвечай В ТОЧНОСТИ тем текстом, который администратор должен отправить клиенту. Без вступлений типа "Вот ответ:".
 `;
 
-        const result = await model.generateContent(prompt);
-        return { success: true, suggestion: result.response.text().trim() };
+        const aiResult = await model.generateContent(prompt);
+        return { success: true, suggestion: aiResult.response.text().trim() };
     } catch (e: any) {
         console.error('[SupportAI] Suggestion error:', e);
         return { success: false, error: e.message };

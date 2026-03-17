@@ -48,7 +48,7 @@ export function ServiceLibraryModal({
             if (res.success) {
                 toast.success('Услуга добавлена в ваш проект');
             } else {
-                toast.error(res.error || 'Ошибка активации');
+                toast.error((res as any).error || 'Ошибка активации');
             }
         } catch (_e) {
             toast.error('Ошибка сети');

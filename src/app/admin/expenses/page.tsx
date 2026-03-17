@@ -5,60 +5,36 @@
  */
 
 import React from 'react';
-import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
 import {
   Receipt,
-  Trash2,
   TrendingDown
 } from 'lucide-react';
 import { formatAmount } from '@/utils/formatter';
 import { ExpenseForm } from '@/components/admin/expenses/expense-form';
+import { getAdminSession } from '@/utils/admin-session';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
+import { DeleteExpenseButton } from '@/components/admin/expenses/delete-expense-button';
 
 export const dynamic = 'force-dynamic';
 
-async function getExpensesAndSession() {
-  const cookieStore = await cookies();
-  const sessionData = cookieStore.get('admin_session');
-  if (!sessionData) return { expenses: [], session: null, allProjects: [] };
-  const { verifyAdminSession } = await import('@/lib/jwt');
-  const session = await verifyAdminSession(sessionData.value);
-  if (!session) return { expenses: [], session: null, allProjects: [] };
+export default async function ExpensesPage() {
+  const session = await getAdminSession();
+  if (!session) return null;
 
-  const where: any = {};
-  if (!session.isGlobalAdmin) {
-    where.projectId = { in: session.allowedProjects };
+  const ctx: AdminContext = {
+    userId: session.id,
+    role: session.role as any,
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
+  };
+
+  const result = await AdminDataService.getExpensesData(ctx);
+  if (!result.success) {
+    return <div className="p-8 text-red-500">Ошибка: {result.error.message}</div>;
   }
 
-  const expenses = await prisma.businessExpense.findMany({
-    where,
-    orderBy: { date: 'desc' },
-    take: 50,
-  });
-
-  const { ProjectService } = await import('@/services/core');
-  const allProjects = session.isGlobalAdmin ? await ProjectService.getAllProjects() : [];
-
-  return { expenses, session, allProjects };
-}
-
-export default async function ExpensesPage() {
-  const { expenses: rawExpenses, session, allProjects: rawAllProjects } = await getExpensesAndSession();
-
-  const expenses = rawExpenses.map(e => ({
-    ...e,
-    amount: e.amount.toNumber(),
-    date: e.date.toISOString(),
-    createdAt: e.createdAt.toISOString(),
-    updatedAt: e.updatedAt.toISOString(),
-  }));
-
-  const allProjects = rawAllProjects.map(p => ({
-    ...p,
-    createdAt: p.createdAt.toISOString(),
-    updatedAt: p.updatedAt.toISOString(),
-  }));
-
+  const { expenses, allProjects } = result.data;
   const totalExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
 
   const categoriesMap: any = {
@@ -89,14 +65,12 @@ export default async function ExpensesPage() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        {/* Форма добавления */}
         <ExpenseForm
           categoriesMap={categoriesMap}
           projects={allProjects}
-          isGlobalAdmin={session?.isGlobalAdmin || false}
+          isGlobalAdmin={session.isGlobalAdmin}
         />
 
-        {/* Список расходов */}
         <div className="xl:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
             <h3 className="font-black text-slate-800 uppercase tracking-tighter flex items-center gap-2 text-sm">
@@ -124,11 +98,7 @@ export default async function ExpensesPage() {
                       <div className="text-sm font-black text-rose-600">-{formatAmount(e.amount)}₽</div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <form action={async () => { 'use server'; await prisma.businessExpense.delete({ where: { id: e.id } }); }}>
-                        <button type="submit" className="p-2 text-slate-300 hover:text-rose-600 transition-colors opacity-0 group-hover:opacity-100">
-                          <Trash2 size={16} />
-                        </button>
-                      </form>
+                      <DeleteExpenseButton expenseId={e.id} />
                     </td>
                   </tr>
                 ))}

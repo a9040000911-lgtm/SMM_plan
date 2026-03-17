@@ -15,7 +15,10 @@
     "lint": "eslint src",
     "backup": "tsx scripts/backup-to-yandex.ts",
     "prisma:patch": "node scripts/patch-prisma-enums.js",
-    "db:generate": "prisma generate && npm run prisma:patch"
+    "db:generate": "prisma generate && npm run prisma:patch",
+    "lint:architecture": "depcruise src",
+    "docs:generate": "tsx scripts/generate-swagger.ts",
+    "security:sbom": "tsx scripts/export-sbom.ts"
   },
   "prisma": {
     "seed": "tsx scripts/seed-real-data.ts"
@@ -43,10 +46,10 @@
     "ioredis": "5.4.2",
     "jose": "^5.9.6",
     "lucide-react": "^0.475.0",
-    "next": "16.0.10",
+    "next": "^16.0.10",
     "next-auth": "5.0.0-beta.25",
     "next-themes": "^0.4.4",
-    "nodemailer": "^6.10.0",
+    "nodemailer": "^6.9.10",
     "pg": "^8.18.0",
     "react": "19.0.0",
     "react-day-picker": "9.5.0",
@@ -70,6 +73,7 @@
     "@eslint/js": "^9.39.2",
     "@next/eslint-plugin-next": "^16.1.6",
     "@playwright/test": "^1.58.2",
+    "@scalar/nextjs-api-reference": "^0.10.3",
     "@swc/core": "^1.15.18",
     "@swc/jest": "0.2.39",
     "@tailwindcss/postcss": "4.0.9",
@@ -86,6 +90,8 @@
     "autoprefixer": "^10.4.20",
     "babel-jest": "29.7.0",
     "baseline-browser-mapping": "^2.9.19",
+    "dependency-cruiser": "^17.3.9",
+    "esbuild": "^0.27.4",
     "eslint": "9.21.0",
     "eslint-config-next": "16.0.10",
     "eslint-plugin-security": "3.0.1",
@@ -104,7 +110,8 @@
     "tsconfig-paths": "4.2.0",
     "tsx": "4.19.3",
     "typescript": "5.7.3",
-    "typescript-eslint": "8.24.1"
+    "typescript-eslint": "8.24.1",
+    "zod-to-json-schema": "^3.25.1"
   },
   "overrides": {
     "jsdom": "^26.0.0",

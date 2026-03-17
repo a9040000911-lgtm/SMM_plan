@@ -4,31 +4,27 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import React from 'react';
-import { prisma } from '@/lib/prisma';
-import { getActiveProjectId } from '@/utils/project-resolver';
+import { getClientProjectId } from '@/utils/project-resolver';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight, FileText, Clock, ShieldCheck } from 'lucide-react';
 import { sanitizeHtml } from '@/utils/sanitizer';
+import { CmsService } from '@/services/cms/cms.service';
 
 export const dynamic = 'force-dynamic';
 export default async function LegalDocPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
-    const projectId = await getActiveProjectId();
+    const projectId = await getClientProjectId();
     if (!projectId) return notFound();
 
     // Получаем текущий документ
-    const doc = await (prisma as any).legalDocument.findUnique({
-        where: { projectId_slug: { projectId, slug } }
-    });
-
-    if (!doc || !doc.isActive) return notFound();
+    const docResult = await CmsService.getLegalDocument(projectId, slug);
+    if (!docResult.success || !docResult.data.isActive) return notFound();
+    const doc = docResult.data;
 
     // Получаем список всех активных документов для сайдбара
-    const allDocs = await (prisma as any).legalDocument.findMany({
-        where: { projectId, isActive: true },
-        select: { slug: true, title: true }
-    });
+    const allDocsResult = await CmsService.getAllLegalDocuments(projectId);
+    const allDocs = allDocsResult.success ? allDocsResult.data : [];
 
     return (
         <div className="flex flex-col lg:flex-row gap-12 py-8">
@@ -106,7 +102,7 @@ export default async function LegalDocPage({ params }: { params: Promise<{ slug:
                         © {new Date().getFullYear()} SMMPLAN. Все права защищены.
                     </div>
                     <div className="flex items-center gap-8">
-                        <button onClick={() => window.print()} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline cursor-pointer">
+                        <button onClick={() => typeof window !== 'undefined' && window.print()} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline cursor-pointer">
                             Распечатать PDF
                         </button>
                         <Link href="/support" className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600">

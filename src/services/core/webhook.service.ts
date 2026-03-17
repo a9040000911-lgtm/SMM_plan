@@ -4,13 +4,12 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import express from 'express';
-import { confirmPayment } from '@/services/orders';
-import { PaymentService } from '@/services/finance';
+import { PaymentConfirmationService } from '@/services/orders/payment-confirmation.service';
+import { PaymentService } from '@/services/finance/payment.service';
+import { ConfigService } from '@/lib/config.service';
 
 const app = express();
 app.use(express.json());
-
-import { ConfigService } from '@/lib/config.service';
 
 const PORT = ConfigService.getSystemConfig().webhookPort;
 
@@ -32,7 +31,8 @@ export function startWebhookServer() {
       const realPayment = await PaymentService.getPaymentStatus(paymentId);
 
       if (realPayment && realPayment.status === 'succeeded') {
-        const success = await confirmPayment(paymentId);
+        // Используем сервис подтверждения напрямую
+        const success = await PaymentConfirmationService.confirmPayment(paymentId);
         if (success) {
           console.log(`[Webhook] Payment ${paymentId} verified and confirmed.`);
         }

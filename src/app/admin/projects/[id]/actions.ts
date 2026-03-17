@@ -5,62 +5,56 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { BotModuleGenerator, Tone, BotModule } from '@/services/ai/bot-module.generator';
-import { cookies } from 'next/headers';
 import { ProjectService } from '@/services/core';
+import { getAdminSession } from '@/utils/admin-session';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
 
-// Authentication Check Helper
-async function checkAuth(projectId: string) {
-    const cookieStore = await cookies();
-    const sessionData = cookieStore.get('admin_session');
-    const { verifyAdminSession } = await import('@/lib/jwt');
-    const session = sessionData ? await verifyAdminSession(sessionData.value) : null;
-
+async function getCtx(projectId: string): Promise<AdminContext> {
+    const session = await getAdminSession();
     if (!session) throw new Error('Unauthorized');
     if (!session.isGlobalAdmin && !session.allowedProjects?.includes(projectId)) {
         throw new Error('Forbidden');
     }
+    return {
+        userId: session.id,
+        role: session.role as any,
+        allowedProjects: session.allowedProjects,
+        isGlobalAdmin: session.isGlobalAdmin
+    };
 }
 
 export async function generateFunnelAction(projectId: string, tone: Tone) {
-    await checkAuth(projectId);
+    const ctx = await getCtx(projectId);
+    const projectResult = await AdminDataService.getProjectRaw(ctx, projectId);
+    if (!projectResult.success) throw new Error(projectResult.error.message);
 
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new Error('Project not found');
-
+    const project = projectResult.data;
     const context = `Project Name: ${project.name}. Description: An automated SMM panel for Instagram, Telegram, TikTok. Target Audience: Influencers, businesses.`;
 
-    // Generate new funnel
     const modules = await BotModuleGenerator.generateFunnel(context, tone);
     return modules;
 }
 
 export async function saveBotModulesAction(projectId: string, modules: BotModule[]) {
-    await checkAuth(projectId);
+    await getCtx(projectId);
     await BotModuleGenerator.saveModules(projectId, modules);
     revalidatePath(`/admin/projects/${projectId}`);
     return { success: true };
 }
 
 export async function updateProjectConfigAction(projectId: string, updates: any) {
-    await checkAuth(projectId);
+    const ctx = await getCtx(projectId);
+    const projectResult = await AdminDataService.getProjectRaw(ctx, projectId);
+    if (!projectResult.success) throw new Error(projectResult.error.message);
 
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new Error('Project not found');
+    const currentConfig = projectResult.data.config || {};
+    const newConfig = { ...currentConfig, ...updates };
 
-    const currentConfig = (project.config as any) || {};
-
-    await prisma.project.update({
-        where: { id: projectId },
-        data: {
-            config: {
-                ...currentConfig,
-                ...updates
-            }
-        }
-    });
+    const result = await AdminDataService.updateProjectConfig(ctx, projectId, newConfig);
+    if (!result.success) throw new Error(result.error.message);
 
     ProjectService.clearCache();
     revalidatePath(`/admin/projects/${projectId}`);
@@ -68,14 +62,9 @@ export async function updateProjectConfigAction(projectId: string, updates: any)
 }
 
 export async function updateMarketerSettingsAction(projectId: string, settings: any) {
-    await checkAuth(projectId);
-
-    await prisma.project.update({
-        where: { id: projectId },
-        data: {
-            marketerSettings: settings
-        }
-    });
+    const ctx = await getCtx(projectId);
+    const result = await AdminDataService.updateMarketerSettings(ctx, projectId, settings);
+    if (!result.success) throw new Error(result.error.message);
 
     ProjectService.clearCache();
     revalidatePath(`/admin/projects/${projectId}`);
@@ -89,28 +78,13 @@ export async function updateProjectServiceOverrideAction(
     customPrice: number | null,
     markup: number | null = null
 ) {
-    await checkAuth(projectId);
-
-    await prisma.projectServiceOverride.upsert({
-        where: {
-            projectId_internalServiceId: {
-                projectId,
-                internalServiceId: serviceId
-            }
-        },
-        create: {
-            projectId,
-            internalServiceId: serviceId,
-            isActive,
-            customPrice: customPrice !== null ? customPrice : undefined,
-            markup: markup !== null ? markup : undefined
-        },
-        update: {
-            isActive,
-            customPrice: customPrice !== null ? customPrice : null,
-            markup: markup !== null ? markup : null
-        }
+    const ctx = await getCtx(projectId);
+    const result = await AdminDataService.updateProjectServiceOverride(ctx, projectId, serviceId, {
+        isActive,
+        customPrice,
+        markup
     });
+    if (!result.success) throw new Error(result.error.message);
 
     revalidatePath(`/admin/projects/${projectId}/services`);
     return { success: true };
@@ -125,38 +99,12 @@ export async function bulkUpdateProjectOverridesAction(
         customPrice?: number | null;
     }
 ) {
-    await checkAuth(projectId);
-
-    if (!serviceIds.length) return { success: false, error: 'No services selected' };
-
-    // We use a transaction to ensure all upserts succeed or fail together
-    await prisma.$transaction(
-        serviceIds.map(serviceId =>
-            prisma.projectServiceOverride.upsert({
-                where: {
-                    projectId_internalServiceId: {
-                        projectId,
-                        internalServiceId: serviceId
-                    }
-                },
-                create: {
-                    projectId,
-                    internalServiceId: serviceId,
-                    isActive: data.isActive ?? true,
-                    markup: data.markup !== undefined ? (data.markup ?? undefined) : undefined,
-                    customPrice: data.customPrice !== undefined ? (data.customPrice ?? undefined) : undefined,
-                },
-                update: {
-                    ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
-                    ...(data.markup !== undefined ? { markup: data.markup } : {}),
-                    ...(data.customPrice !== undefined ? { customPrice: data.customPrice } : {}),
-                }
-            })
-        )
-    );
+    const ctx = await getCtx(projectId);
+    const result = await AdminDataService.bulkUpdateProjectOverrides(ctx, projectId, serviceIds, data);
+    if (!result.success) throw new Error(result.error.message);
 
     revalidatePath(`/admin/projects/${projectId}/services`);
-    return { success: true, count: serviceIds.length };
+    return { success: true, count: result.data.count };
 }
 
 export async function mapProjectServiceToProviderAction(
@@ -165,44 +113,9 @@ export async function mapProjectServiceToProviderAction(
     providerId: string,
     providerServiceId: number
 ) {
-    await checkAuth(projectId);
-
-    // Set all existing mappings for this service in this project to inactive
-    await prisma.internalServiceMapping.updateMany({
-        where: { projectId, internalServiceId },
-        data: { isActive: false, priority: 0 }
-    });
-
-    // Create or update the new mapping
-    const existingMapping = await prisma.internalServiceMapping.findFirst({
-        where: {
-            projectId: projectId,
-            internalServiceId,
-            providerId
-        }
-    });
-
-    if (existingMapping) {
-        await prisma.internalServiceMapping.update({
-            where: { id: existingMapping.id },
-            data: {
-                providerServiceId: String(providerServiceId),
-                isActive: true,
-                priority: 1
-            }
-        });
-    } else {
-        await prisma.internalServiceMapping.create({
-            data: {
-                projectId,
-                internalServiceId,
-                providerServiceId: String(providerServiceId),
-                providerId,
-                priority: 1,
-                isActive: true
-            }
-        });
-    }
+    const ctx = await getCtx(projectId);
+    const result = await AdminDataService.mapProjectServiceToProvider(ctx, projectId, internalServiceId, providerId, providerServiceId);
+    if (!result.success) throw new Error(result.error.message);
 
     revalidatePath(`/admin/projects/${projectId}/services`);
     return { success: true };

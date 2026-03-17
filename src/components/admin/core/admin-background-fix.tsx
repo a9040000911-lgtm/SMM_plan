@@ -11,14 +11,15 @@ export function AdminBackgroundFix() {
     useEffect(() => {
         // Set body background to light gray
         document.body.style.backgroundColor = '#f8fafc';
-
-        // Add light class to html/body if needed
+        
+        // Force light class and remove dark
+        document.documentElement.classList.remove('dark');
         document.documentElement.classList.add('light');
         document.documentElement.style.colorScheme = 'light';
+        document.body.classList.remove('dark');
 
         return () => {
             // Restore default on unmount if moving away from admin
-            // However, since it's a layout, it stays as long as in /admin
         };
     }, []);
 

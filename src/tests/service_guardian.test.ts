@@ -70,7 +70,7 @@ describe('ServiceGuardian', () => {
         };
         (ProviderService.getInstance as jest.Mock).mockResolvedValue(mockProviderInstance);
 
-        const result = await ServiceGuardian.verifyService('int-1', mockMapping);
+        const result = await ServiceGuardian.verifyService('int-1', mockMapping, mockProviderInstance as any);
 
         expect(result.isValid).toBe(true);
         expect(result.criticalChange).toBe(false);
@@ -89,7 +89,7 @@ describe('ServiceGuardian', () => {
         };
         (ProviderService.getInstance as jest.Mock).mockResolvedValue(mockProviderInstance);
 
-        const result = await ServiceGuardian.verifyService('int-1', mockMapping);
+        const result = await ServiceGuardian.verifyService('int-1', mockMapping, mockProviderInstance as any);
 
         expect(result.isValid).toBe(true);
         expect(result.priceDeltaPercent).toBeCloseTo(15);
@@ -112,7 +112,7 @@ describe('ServiceGuardian', () => {
         };
         (ProviderService.getInstance as jest.Mock).mockResolvedValue(mockProviderInstance);
 
-        const result = await ServiceGuardian.verifyService('int-1', mockMapping);
+        const result = await ServiceGuardian.verifyService('int-1', mockMapping, mockProviderInstance as any);
 
         expect(result.isValid).toBe(false);
         expect(result.criticalChange).toBe(true);
@@ -137,7 +137,7 @@ describe('ServiceGuardian', () => {
         };
         (ProviderService.getInstance as jest.Mock).mockResolvedValue(mockProviderInstance);
 
-        const result = await ServiceGuardian.verifyService('int-1', mockMapping);
+        const result = await ServiceGuardian.verifyService('int-1', mockMapping, mockProviderInstance as any);
 
         expect(result.isValid).toBe(false);
         expect(result.criticalChange).toBe(true);
@@ -160,7 +160,7 @@ describe('ServiceGuardian', () => {
         };
         (ProviderService.getInstance as jest.Mock).mockResolvedValue(mockProviderInstance);
 
-        const result = await ServiceGuardian.verifyService('int-1', mockMapping);
+        const result = await ServiceGuardian.verifyService('int-1', mockMapping, mockProviderInstance as any);
 
         expect(result.isValid).toBe(false);
         expect(result.criticalChange).toBe(true);

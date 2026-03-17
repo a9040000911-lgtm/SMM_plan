@@ -10,12 +10,12 @@ import { prisma } from '@/lib/prisma';
 import { normalizeLink } from '@/utils/normalizer';
 import { LinkService } from '@/services/providers';
 import { getLinkTips } from '@/utils/tips';
-import { getActiveProjectId } from '@/utils/project-resolver';
+import { getClientProjectId } from '@/utils/project-resolver';
 import { validateProjectTMAData } from '@/utils/tma-auth';
 
 export async function POST(req: NextRequest) {
   try {
-    const projectId = await getActiveProjectId();
+    const projectId = await getClientProjectId();
     console.log(`[API Analyze] Resolving for Project ID: ${projectId}`);
 
     // 1. АВТОРИЗАЦИЯ
@@ -87,14 +87,14 @@ export async function POST(req: NextRequest) {
     const sortedServices = [...services].sort((a: any, b: any) => {
       if (a.isCurated && !b.isCurated) return -1;
       if (!a.isCurated && b.isCurated) return 1;
-      return a.pricePer1000.toNumber() - b.pricePer1000.toNumber();
+      return (Number(a.pricePer1000) || 0) - (Number(b.pricePer1000) || 0);
     });
 
     sortedServices.forEach(s => {
       const sData = {
         id: s.id,
         name: s.name,
-        price: s.pricePer1000.toNumber(),
+        price: Number(s.pricePer1000),
         description: s.description,
         requirements: s.requirements,
         min: s.minQty,

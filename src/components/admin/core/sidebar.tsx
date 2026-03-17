@@ -60,7 +60,7 @@ export async function Sidebar() {
     {
       title: t.nav_sections.marketing,
       items: [
-        { id: 'marketing', name: t.marketing, href: '/admin/content', icon: Newspaper },
+        { id: 'marketing', name: 'Сайт и Контент', href: '/admin/content', icon: Newspaper },
         { id: 'promocodes', name: t.promocodes, href: '/admin/promo-codes', icon: Tag },
         { id: 'reviews', name: 'Отзывы', href: '/admin/marketing/reviews', icon: MessageSquare },
         { id: 'advocacy', name: t.advocacy, href: '/admin/advocacy/nps', icon: Award },

@@ -5,29 +5,15 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { LinkService } from "@/services/providers/link.service";
-import prisma from "@/lib/prisma";
-import { Platform } from "@/generated/client";
+import { CatalogService } from "@/services/core/catalog.service";
 
 export async function validateLinkFrontendAction(link: string, serviceId: string) {
-    try {
-        const service = await prisma.internalService.findUnique({
-            where: { id: serviceId },
-            select: { platform: true, targetType: true, allowedTargetTypes: true }
-        });
-
-        if (!service) return { success: false, error: "Service not found" };
-
-        const validation = LinkService.validate(
-            link,
-            service.platform as Platform,
-            service.targetType,
-            service.allowedTargetTypes || undefined
-        );
-
-        return { success: true, validation };
-    } catch (error) {
-        console.error("Link frontend validation action error:", error);
-        return { success: false, error: "An error occurred during link validation" };
+    const result = await CatalogService.validateLink(link, serviceId);
+    
+    if (!result.success) {
+        console.error("Link frontend validation action error:", result.error.message);
+        return { success: false, error: result.error.message };
     }
+
+    return { success: true, validation: result.data };
 }

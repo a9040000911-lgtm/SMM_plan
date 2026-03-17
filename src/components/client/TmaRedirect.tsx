@@ -13,14 +13,30 @@ export function TmaRedirect({ children }: { children: React.ReactNode }) {
     const [isTma, setIsTma] = useState<boolean | null>(null);
 
     useEffect(() => {
-        // Detect Telegram WebApp
-        const tg = (window as any).Telegram?.WebApp;
-        if (tg?.initData) {
-            setIsTma(true);
-        } else {
-            setIsTma(false);
-        }
-    }, []);
+        // Safe check for Telegram WebApp
+        const checkTma = () => {
+            const tg = (window as any).Telegram?.WebApp;
+            if (tg?.initData) {
+                setIsTma(true);
+            } else {
+                setIsTma(false);
+            }
+        };
+
+        // Attempt initial check
+        checkTma();
+
+        // If still null (loading state), set a hard timeout of 3s 
+        // to prevent indefinite spinner if script is blocked (ERR_CONNECTION_RESET)
+        const timeout = setTimeout(() => {
+            if (isTma === null) {
+                console.warn("TMA Initialization timeout. Falling back to Web view.");
+                setIsTma(false);
+            }
+        }, 3000);
+
+        return () => clearTimeout(timeout);
+    }, [isTma]);
 
     if (isTma === null) {
         return (

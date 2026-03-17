@@ -5,35 +5,29 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
+import { getAdminSession } from '@/utils/admin-session';
+import { AdminSupportService } from '@/services/admin/admin-support.service';
+import { AdminContext } from '@/services/types';
 
-async function getAdminName() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get('admin_session');
-  if (!session) return 'Admin';
-  const { verifyAdminSession } = await import('@/lib/jwt');
-  const data = await verifyAdminSession(session.value);
-  return data?.username || 'Admin';
+async function getCtx(): Promise<AdminContext & { username: string }> {
+  const session = await getAdminSession();
+  if (!session) throw new Error('Unauthorized');
+  return {
+    userId: session.id,
+    role: session.role as any,
+    username: session.username || 'Admin',
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
+  };
 }
 
 /**
  * Обновляет метку присутствия сотрудника в тикете
  */
 export async function setPresence(ticketId: string) {
-  const adminName = await getAdminName();
-
-  // Мы используем таблицу Settings как временное хранилище (key-value)
-  // В идеале тут должен быть Redis, но для текущей архитектуры Settings подойдет
-  const presenceKey = `SUPPORT_PRESENCE_${ticketId}`;
-  const now = new Date().toISOString();
-
-  await prisma.settings.upsert({
-    where: { projectId_key: { projectId: 'global', key: presenceKey } },
-    update: { value: `${adminName}|${now}` },
-    create: { projectId: 'global', key: presenceKey, value: `${adminName}|${now}` }
-  });
-
+  const ctx = await getCtx();
+  const result = await AdminSupportService.getInstance().setSupportPresence(ctx, ticketId, ctx.username);
+  if (!result.success) throw new Error(result.error.message);
   return { success: true };
 }
 
@@ -41,23 +35,8 @@ export async function setPresence(ticketId: string) {
  * Проверяет, кто сейчас в тикете (кроме текущего админа)
  */
 export async function getTicketPresence(ticketId: string) {
-  const adminName = await getAdminName();
-  const presenceKey = `SUPPORT_PRESENCE_${ticketId}`;
-
-  const record = await prisma.settings.findUnique({
-    where: { projectId_key: { projectId: 'global', key: presenceKey } }
-  });
-
-  if (!record) return null;
-
-  const [name, time] = record.value.split('|');
-  const lastSeen = new Date(time);
-  const diff = Date.now() - lastSeen.getTime();
-
-  // Если сотрудника видели менее 30 секунд назад и это не текущий админ
-  if (diff < 30000 && name !== adminName) {
-    return name;
-  }
-
-  return null;
+  const ctx = await getCtx();
+  const result = await AdminSupportService.getInstance().getSupportPresence(ctx, ticketId, ctx.username);
+  if (!result.success) throw new Error(result.error.message);
+  return result.data;
 }

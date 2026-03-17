@@ -6,7 +6,7 @@
 
 import { prisma } from '@/lib/prisma';
 
-import { ProviderService } from '@/services/providers';
+import { ProviderService } from '@/services/providers/provider.service';
 import { MLForecasterService, MLPrediction } from './ml-forecaster.service';
 
 export interface ProviderForecast {

@@ -263,17 +263,17 @@ export class AdminDataService {
                         totalPrice: o.totalPrice?.toNumber() || 0,
                         costPrice: o.costPrice?.toNumber() || 0,
                         discountAmount: o.discountAmount?.toNumber() || 0,
-                        refundedAmount: o.refundedAmount?.toNumber() || 0,
+                        refundedAmount: o.refundedAmount?.toNumber ? o.refundedAmount.toNumber() : Number(o.refundedAmount || 0),
                         internalService: o.internalService ? {
                             ...o.internalService,
-                            pricePer1000: o.internalService.pricePer1000?.toNumber() || 0,
-                            lastProviderPrice: o.internalService.lastProviderPrice?.toNumber() || null,
-                            marketPrice: o.internalService.marketPrice?.toNumber() || null,
-                            markup: o.internalService.markup?.toNumber() || null,
-                            providerPriceOriginal: o.internalService.providerPriceOriginal?.toNumber() || null,
+                            pricePer1000: o.internalService.pricePer1000?.toNumber ? o.internalService.pricePer1000.toNumber() : Number(o.internalService.pricePer1000 || 0),
+                            lastProviderPrice: o.internalService.lastProviderPrice?.toNumber ? o.internalService.lastProviderPrice.toNumber() : (o.internalService.lastProviderPrice ? Number(o.internalService.lastProviderPrice) : null),
+                            marketPrice: o.internalService.marketPrice?.toNumber ? o.internalService.marketPrice.toNumber() : (o.internalService.marketPrice ? Number(o.internalService.marketPrice) : null),
+                            markup: o.internalService.markup?.toNumber ? o.internalService.markup.toNumber() : (o.internalService.markup ? Number(o.internalService.markup) : null),
+                            providerPriceOriginal: o.internalService.providerPriceOriginal?.toNumber ? o.internalService.providerPriceOriginal.toNumber() : (o.internalService.providerPriceOriginal ? Number(o.internalService.providerPriceOriginal) : null),
                             providerMappings: o.internalService.providerMappings?.map((pm: any) => ({
                                 ...pm,
-                                customPrice: pm.customPrice?.toNumber() || null,
+                                customPrice: pm.customPrice?.toNumber ? pm.customPrice.toNumber() : (pm.customPrice ? Number(pm.customPrice) : null),
                                 provider: pm.provider
                             }))
                         } : null
@@ -354,11 +354,11 @@ export class AdminDataService {
                 data: {
                     services: services.map(s => ({
                         ...s,
-                        pricePer1000: s.pricePer1000.toNumber(),
-                        lastProviderPrice: s.lastProviderPrice?.toNumber() || null,
-                        marketPrice: s.marketPrice?.toNumber() || null,
-                        markup: s.markup?.toNumber() || null,
-                        providerPriceOriginal: s.providerPriceOriginal?.toNumber() || null,
+                        pricePer1000: s.pricePer1000?.toNumber ? s.pricePer1000.toNumber() : Number(s.pricePer1000 || 0),
+                        lastProviderPrice: s.lastProviderPrice?.toNumber ? s.lastProviderPrice.toNumber() : (s.lastProviderPrice ? Number(s.lastProviderPrice) : null),
+                        marketPrice: s.marketPrice?.toNumber ? s.marketPrice.toNumber() : (s.marketPrice ? Number(s.marketPrice) : null),
+                        markup: s.markup?.toNumber ? s.markup.toNumber() : (s.markup ? Number(s.markup) : null),
+                        providerPriceOriginal: s.providerPriceOriginal?.toNumber ? s.providerPriceOriginal.toNumber() : (s.providerPriceOriginal ? Number(s.providerPriceOriginal) : null),
                         providerMappings: s.providerMappings.map((pm: any) => ({
                             ...pm,
                             providerService: pm.providerService ? {
@@ -369,7 +369,7 @@ export class AdminDataService {
                     })),
                     providers: providers.map(p => ({
                         ...p,
-                        balanceThreshold: p.balanceThreshold.toNumber()
+                        balanceThreshold: p.balanceThreshold.toNumber ? p.balanceThreshold.toNumber() : Number(p.balanceThreshold)
                     })),
                     projects,
                     overrides: overrides.map(o => ({
@@ -380,7 +380,7 @@ export class AdminDataService {
                     usdRate,
                     providerLogs: providerLogs.map(l => ({
                         ...l,
-                        balance: l.balance.toNumber()
+                        balance: l.balance.toNumber ? l.balance.toNumber() : Number(l.balance)
                     }))
                 }
             };

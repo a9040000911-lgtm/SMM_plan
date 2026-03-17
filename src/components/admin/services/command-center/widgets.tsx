@@ -30,6 +30,7 @@ import { syncProviderAction } from '@/app/admin/providers/actions';
 import { CopyButton } from '@/components/admin/core/copy-button';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ProjectBulkManagerModal } from '../ProjectBulkManagerModal';
 
 // --- WIDGET 1: ACTION CARDS (BENTO) ---
 export function ActionCardsWidget() {
@@ -164,6 +165,7 @@ export function ServicesTableWidget() {
     const { unit, formatPrice } = usePriceDisplay();
 
     const [rowPlatformOverrides, setRowPlatformOverrides] = useState<Record<string, string>>({});
+    const [projectsModalService, setProjectsModalService] = useState<any>(null);
 
     const toggleSelect = (id: string) => {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
@@ -384,7 +386,7 @@ export function ServicesTableWidget() {
                                                             m.priority === 1 ? "bg-blue-500/5 border-blue-100" : "bg-white"
                                                         )}>
                                                             <div className="flex items-center justify-between gap-2">
-                                                                <span className="text-[9px] font-black text-slate-900 uppercase truncate">
+                                                                 <span className="text-[9px] font-black text-slate-900 uppercase truncate">
                                                                     {m.provider?.name || 'Unknown'}
                                                                 </span>
                                                                 <span className={cn(
@@ -465,6 +467,13 @@ export function ServicesTableWidget() {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-1">
+                                                <button 
+                                                    onClick={() => setProjectsModalService(s)}
+                                                    className="p-1.5 text-slate-400 hover:text-emerald-600 transition-colors"
+                                                    title="Управление в проектах"
+                                                >
+                                                    <Globe size={14} />
+                                                </button>
                                                 <Link href={`/admin/services/${s.id}`} className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors">
                                                     <Edit size={14} />
                                                 </Link>
@@ -479,6 +488,12 @@ export function ServicesTableWidget() {
                         </tbody>
                     </table>
                 </div>
+
+                <ProjectBulkManagerModal
+                    isOpen={!!projectsModalService}
+                    onClose={() => setProjectsModalService(null)}
+                    service={projectsModalService}
+                />
 
                 {/* Pagination Footer */}
                 <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between shrink-0">

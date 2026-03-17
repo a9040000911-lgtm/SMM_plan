@@ -34,7 +34,7 @@ services:
     environment:
       - POSTGRES_USER=smmuser
       - POSTGRES_PASSWORD=smmpassword
-      - POSTGRES_DB=smmplanRfr
+      - POSTGRES_DB=smmplan
     ports:
       - "127.0.0.1:5433:5432"
     volumes:

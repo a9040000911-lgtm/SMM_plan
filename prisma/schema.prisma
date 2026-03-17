@@ -2,6 +2,7 @@ generator client {
   provider      = "prisma-client-js"
   engineType    = "library"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
+  output        = "../src/generated/client"
 }
 
 datasource db {
@@ -42,6 +43,9 @@ model Project {
   npsSurveys              NPSSurvey[]
   news                    News[]
   orders                  Order[]
+  cmsPages                CmsPage[]
+  cmsStrings              CmsString[]
+  mediaAssets             MediaAsset[]
   serviceOverrides        ProjectServiceOverride[]
   promoCodes              PromoCode[]
   providers               Provider[]
@@ -186,6 +190,7 @@ model User {
   referrals            User[]                @relation("UserReferrals")
   userPromos           UserPromo[]
   accessibleProjects   Project[]             @relation("StaffProjects")
+  adminLogs            AdminLog[]            @relation("AdminToLog")
 
   @@unique([projectId, earlyBirdRank])
   @@map("User")
@@ -383,6 +388,9 @@ model Order {
   supportTickets      SupportTicket[]
   transactions        Transaction[]
 
+  @@index([userId])
+  @@index([projectId, status])
+  @@index([externalId])
   @@map("Order")
 }
 
@@ -475,6 +483,7 @@ model InternalService {
   orders                   Order[]
   projectOverrides         ProjectServiceOverride[]
   scheduledOrders          ScheduledOrder[]
+  curatorNote              String?
   changeLogs               ServiceChangeLog[]
 
   @@map("InternalService")
@@ -585,6 +594,7 @@ model Transaction {
   user       User              @relation(fields: [userId], references: [id])
 
   @@index([projectId])
+  @@index([userId])
   @@map("Transaction")
 }
 
@@ -652,7 +662,9 @@ model AdminLog {
   action    String
   targetId  String?
   details   String
+  metadata  Json?
   createdAt DateTime @default(now())
+  admin     User     @relation("AdminToLog", fields: [adminId], references: [id])
 
   @@map("AdminLog")
 }
@@ -826,6 +838,7 @@ model NPSSurvey {
   @@index([projectId])
   @@index([score])
   @@index([createdAt])
+  @@index([orderId])
   @@map("NPSSurvey")
 }
 
@@ -1109,4 +1122,66 @@ enum ProviderPaymentType {
   TOPUP
   REFUND
   ADJUSTMENT
+}
+
+model CmsPage {
+  id        String     @id @default(uuid())
+  projectId String
+  slug      String
+  title     String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  blocks    CmsBlock[]
+  strings   CmsString[]
+
+  @@unique([projectId, slug])
+  @@map("CmsPage")
+}
+
+model CmsBlock {
+  id          String   @id @default(uuid())
+  pageId      String
+  type        String // HERO, FEATURES, REVIEWS, etc.
+  slot        String? // HERO_ZONE, BOTTOM_ZONE, etc.
+  content     Json // Widget content
+  order       Int      @default(0)
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  page        CmsPage  @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, order])
+  @@map("CmsBlock")
+}
+
+model CmsString {
+  id          String   @id @default(uuid())
+  projectId   String
+  pageId      String? // Optional for global strings
+  key         String
+  value       String
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  page        CmsPage? @relation(fields: [pageId], references: [id])
+
+  @@unique([projectId, key, pageId])
+  @@index([projectId, key])
+  @@map("CmsString")
+}
+
+model MediaAsset {
+  id        String   @id @default(uuid())
+  projectId String
+  url       String
+  type      String   @default("IMAGE") // IMAGE, VIDEO
+  altText   String?
+  fileSize  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("MediaAsset")
 }

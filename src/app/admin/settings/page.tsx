@@ -5,7 +5,6 @@
  */
 
 import React from 'react';
-import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { Locale, dictionaries } from '@/i18n/dictionaries';
 import { AdminTabs } from '@/components/admin/core/admin-tabs';
@@ -17,70 +16,37 @@ import { ProjectSelector } from './components';
 import { PlatformsManager } from './platforms-manager';
 import { GlobalSettingsForm } from './global-settings-form';
 import { getAdminSession } from '@/utils/admin-session';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
 
 export const dynamic = 'force-dynamic';
 
-async function getProjectData(projectId?: string) {
-  let project;
-  if (projectId) {
-    project = await prisma.project.findUnique({ where: { id: projectId } });
-  }
-
-  if (!project) {
-    // Default to first available or '101' if global query failed
-    project = await prisma.project.findFirst({ orderBy: { createdAt: 'asc' } });
-  }
-
-  // Get project-specific settings + Global overrides (?)
-  // For now, settings are stored with projectId.
-  const globalSettings = await prisma.settings.findMany({
-    where: project ? { projectId: project.id } : { projectId: null }
-  });
-
-  const settingsMap: Record<string, string> = {};
-  globalSettings.forEach(s => settingsMap[s.key] = s.value);
-
-  // Get list of projects for selector
-  const allProjects = await prisma.project.findMany({
-    select: { id: true, name: true, slug: true }
-  });
-
-  return { project, settingsMap, allProjects };
-}
-
 export default async function SettingsPage(props: { searchParams: Promise<any> }) {
   const searchParams = await props.searchParams;
-  const requestedProjectId = searchParams.projectId;
-  const { project: rawProject, settingsMap, allProjects: rawAllProjects } = await getProjectData(requestedProjectId);
+  const requestedProjectId = typeof searchParams.projectId === 'string' ? searchParams.projectId : undefined;
 
-  const project = rawProject ? {
-    ...rawProject,
-    createdAt: rawProject.createdAt.toISOString(),
-    updatedAt: rawProject.updatedAt.toISOString(),
-  } : null;
+  const session = await getAdminSession();
+  if (!session) return null;
 
-  const allProjects = rawAllProjects.map(p => ({
-    ...p
-  }));
+  const ctx: AdminContext = {
+    userId: session.id,
+    role: session.role as any,
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
+  };
+
+  const result = await AdminDataService.getSettingsDashboardData(ctx, requestedProjectId);
 
   const cookieStore = await cookies();
   const lang = cookieStore.get('smmplan_lang')?.value as Locale || 'ru';
   const t = dictionaries[lang].admin.settings;
 
-  if (!project) return <div>{t.project_not_found}</div>;
+  if (!result.success) {
+    return <div className="p-8 text-red-500">Ошибка: {result.error.message}</div>;
+  }
 
-  // FETCH PLATFORMS
-  const platforms = await prisma.socialPlatform.findMany({
-    orderBy: { isActive: 'desc' } // Active first
-  });
-
-  // FETCH GLOBAL SETTINGS
-  const globalSettingsList = await prisma.globalSetting.findMany();
-  const globalSettingsMap: Record<string, string> = {};
-  globalSettingsList.forEach(s => globalSettingsMap[s.key] = s.value);
-
-  const session = await getAdminSession();
-  const isGlobalAdmin = session?.isGlobalAdmin || false;
+  const { project, settingsMap, allProjects, platforms, globalSettingsMap } = result.data;
+  const isGlobalAdmin = session.isGlobalAdmin;
 
   const tabs = [
     { label: t.tabs.config, icon: <Settings size={16} />, id: 'config' },
@@ -92,7 +58,6 @@ export default async function SettingsPage(props: { searchParams: Promise<any> }
 
   return (
     <div className="space-y-8 pb-12">
-      {/* Project Selector Header */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="p-2 bg-slate-900 text-white rounded-xl">

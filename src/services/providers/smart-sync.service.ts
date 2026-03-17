@@ -4,10 +4,10 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
-import { ServiceSyncService } from '@/services/providers';
+import { ServiceSyncService } from './sync.service';
 import { Decimal } from 'decimal.js';
-import { BroadcastService } from '@/services/support';
-import { PricingService } from '@/services/finance';
+import { BroadcastService } from '@/services/support/broadcast.service';
+import { PricingService } from '@/services/finance/pricing.service';
 
 export class SmartSyncService {
   /**

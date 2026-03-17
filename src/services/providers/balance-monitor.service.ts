@@ -5,7 +5,6 @@
  */
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
-import { ProviderService } from './provider.service';
 
 export class BalanceMonitorService {
     /**
@@ -13,6 +12,7 @@ export class BalanceMonitorService {
      * Также пытается автоматически обнаружить внешние пополнения.
      */
     static async checkAndLogAllBalances() {
+        const { ProviderService } = await import('./provider.service');
         const providers = await prisma.provider.findMany({ where: { isEnabled: true } });
 
         for (const provider of providers) {
@@ -114,6 +114,8 @@ export class BalanceMonitorService {
             select: { tgId: true }
         });
 
+        const { ProviderService } = await import('./provider.service');
+
         for (const provider of providers) {
             const instance = await ProviderService.getInstance(provider.id);
             if (!instance) continue;
@@ -194,6 +196,7 @@ export class BalanceMonitorService {
      * Проверяет доступность API и измеряет задержку (Latency).
      */
     static async pingProvider(providerId: string): Promise<{ success: boolean; latency: number; error?: string }> {
+        const { ProviderService } = await import('./provider.service');
         const instance = await ProviderService.getInstance(providerId);
         if (!instance) return { success: false, latency: 0, error: 'Provider not found or disabled' };
 

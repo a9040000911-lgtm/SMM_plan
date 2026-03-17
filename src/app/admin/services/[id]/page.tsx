@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { prisma } from '@/lib/prisma';
-import { getActiveProjectId } from '@/utils/project-resolver';
+import { getActiveProjectId } from '@/utils/admin-session';
 import { notFound } from 'next/navigation';
 import {
   ArrowLeft,

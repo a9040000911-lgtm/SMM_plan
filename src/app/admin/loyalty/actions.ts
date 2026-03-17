@@ -5,11 +5,28 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { getAdminSession } from '@/utils/admin-session';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
+
+async function requireAdmin(): Promise<AdminContext> {
+    const session = await getAdminSession();
+    if (!session || session.role !== 'ADMIN') {
+        throw new Error('Unauthorized');
+    }
+    return {
+        userId: session.id,
+        role: session.role as any,
+        allowedProjects: session.allowedProjects,
+        isGlobalAdmin: session.isGlobalAdmin
+    };
+}
 
 export async function updateLoyaltySettingsAction(formData: FormData) {
     try {
+        const ctx = await requireAdmin();
+
         const levelsCount = parseInt(formData.get('levels_count') as string || '0');
         const levels = [];
         for (let i = 0; i < levelsCount; i++) {
@@ -45,29 +62,13 @@ export async function updateLoyaltySettingsAction(formData: FormData) {
             }
         }
 
-        // Save to global settings (projectId: null)
-        const upsertSetting = async (key: string, value: string) => {
-            const existing = await prisma.settings.findFirst({
-                where: { projectId: null, key }
-            });
-            if (existing) {
-                await prisma.settings.update({
-                    where: { id: existing.id },
-                    data: { value }
-                });
-            } else {
-                await prisma.settings.create({
-                    data: { projectId: null, key, value }
-                });
-            }
-        };
-
-        await upsertSetting('LOYALTY_CONFIG_JSON', JSON.stringify(levels));
-        await upsertSetting('REWARD_RULES_JSON', JSON.stringify(rules));
+        const result = await AdminDataService.updateLoyaltySettings(ctx, null, levels, rules);
+        if (!result.success) throw new Error(result.error.message);
 
         revalidatePath('/admin/loyalty');
-    } catch (error) {
+        return { success: true };
+    } catch (error: any) {
         console.error('Failed to update loyalty settings:', error);
-        // In a real app we might want to throw to trigger error boundary or use useFormState
+        return { success: false, error: error.message };
     }
 }

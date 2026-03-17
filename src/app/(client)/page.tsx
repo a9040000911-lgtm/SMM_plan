@@ -5,8 +5,8 @@
  */
 import { HomeContent } from "@/components/stitch/home/HomeContent";
 import { Metadata } from "next";
-import { prisma } from "@/lib/prisma";
 import { getClientProjectId } from "@/utils/project-resolver";
+import { CmsService } from "@/services/cms/cms.service";
 
 export const dynamic = 'force-dynamic';
 
@@ -22,22 +22,25 @@ export const metadata: Metadata = {
 export default async function HomePage() {
     const projectId = await getClientProjectId();
 
+    // Fetch CMS content for the home page
+    const cmsStrings = await CmsService.getProjectStrings(projectId);
+    const cmsBlocks = await CmsService.getProjectBlocks(projectId);
+
     // Fetch only approved reviews for this project
-    const reviews = await prisma.review.findMany({
-        where: {
-            projectId: projectId || undefined,
-            status: 'APPROVED'
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 12
-    });
+    const reviewResult = await CmsService.getApprovedReviews(projectId);
+    const reviews = reviewResult.success ? reviewResult.data : [];
 
     return (
         <div className="min-h-screen bg-white flex flex-col selection:bg-blue-600/10 selection:text-blue-600 relative overflow-x-hidden">
             {/* Minimal Background Aura */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120%] h-[800px] bg-[radial-gradient(ellipse_at_top,rgba(37,99,235,0.05)_0%,transparent_70%)] pointer-events-none" />
 
-            <HomeContent initialReviews={JSON.parse(JSON.stringify(reviews))} projectId={projectId} />
+            <HomeContent 
+                initialReviews={JSON.parse(JSON.stringify(reviews))} 
+                projectId={projectId} 
+                cmsContent={cmsStrings}
+                cmsBlocks={cmsBlocks}
+            />
 
             {/* Structured Data (JSON-LD) */}
             <script

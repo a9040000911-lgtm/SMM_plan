@@ -4,9 +4,9 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
-import { AnalyticsService } from '@/services/users';
-import { BroadcastService } from '@/services/support';
-import { handleRefund } from '@/services/orders/order-processor.service';
+import { AnalyticsService } from '@/services/users/analytics.service';
+import { BroadcastService } from '@/services/support/broadcast.service';
+import { OrderRefundService } from '@/services/orders/order-refund.service';
 import { OrderStatus, TransactionStatus } from '@/generated/client';
 
 export class SelfHealingService {
@@ -108,24 +108,16 @@ export class SelfHealingService {
       where: {
         status: OrderStatus.PENDING,
         createdAt: { lt: fifteenMinsAgo },
-        isDripFeed: false // Drip-feed обрабатывается отдельно
-      }
+        isDripFeed: false
+      },
+      include: { user: true, internalService: true }
     });
 
     if (stuckOrders.length > 0) {
       console.log(`[Self-Healing] Found ${stuckOrders.length} stuck PENDING orders.`);
 
       for (const order of stuckOrders) {
-        // Маркируем как ERROR, чтобы воркеры не пытались бесконечно его пинать, 
-        // или чтобы admin мог увидеть проблему.
-        await prisma.order.update({
-          where: { id: order.id },
-          data: {
-            status: OrderStatus.CANCELED, // Лучше отменить и вернуть деньги
-          }
-        });
-
-        await handleRefund(order, OrderStatus.CANCELED, 0);
+        await OrderRefundService.handleRefund(order as any, OrderStatus.CANCELED, 0);
 
         await prisma.adminLog.create({
           data: {
@@ -167,15 +159,15 @@ export class SelfHealingService {
   static async autoRefundFailedOrders() {
     const failedOrders = await prisma.order.findMany({
       where: {
-        status: 'CANCELED', // В нашей системе ERROR часто переходит в CANCELED для возврата
+        status: 'CANCELED',
         refundedAmount: 0,
         totalPrice: { gt: 0 }
-      }
+      },
+      include: { user: true, internalService: true }
     });
 
     for (const order of failedOrders) {
-      // handleRefund уже безопасно проверяет двойные возвраты
-      await handleRefund(order, OrderStatus.CANCELED, 0);
+      await OrderRefundService.handleRefund(order as any, OrderStatus.CANCELED, 0);
     }
   }
 
@@ -183,8 +175,6 @@ export class SelfHealingService {
    * Находит активные услуги с нулевой ценой закупки, отключает их и уведомляет админа
    */
   static async reconcileZeroPriceServices() {
-    console.log('[Self-Healing] Reconciling zero price services...');
-
     const zeroPriceServices = await prisma.internalService.findMany({
       where: {
         isActive: true,
@@ -197,13 +187,11 @@ export class SelfHealingService {
     });
 
     if (zeroPriceServices.length > 0) {
-      // 1. Disable these services
       await prisma.internalService.updateMany({
         where: { id: { in: zeroPriceServices.map(s => s.id) } },
         data: { isActive: false }
       });
 
-      // 2. Log to AdminLog for each
       for (const svc of zeroPriceServices) {
         await prisma.adminLog.create({
           data: {
@@ -215,20 +203,13 @@ export class SelfHealingService {
         });
       }
 
-      // 3. Notify Admin
-      const list = zeroPriceServices
-        .map(s => `• <b>${s.name}</b> (<code>${s.id}</code>)`)
-        .join('\n');
-
+      const list = zeroPriceServices.map(s => `• <b>${s.name}</b> (<code>${s.id}</code>)`).join('\n');
       const alertMsg =
         `🛡 <b>SELF-HEALING: PROFIT GUARD</b>\n` +
         `────────────────────\n` +
-        `Следующие услуги были <b>АВТОМАТИЧЕСКИ ОТКЛЮЧЕНЫ</b> из-за нулевой цены закупки:\n\n` +
-        `${list}\n\n` +
-        `<i>Продажи заблокированы для предотвращения убытков.</i>`;
+        `Услуги отключены из-за 0 закупки:\n\n${list}`;
 
       await BroadcastService.notifyAdmin(alertMsg);
-      console.log(`[Self-Healing] Auto-muted ${zeroPriceServices.length} zero-price services.`);
     }
   }
 }

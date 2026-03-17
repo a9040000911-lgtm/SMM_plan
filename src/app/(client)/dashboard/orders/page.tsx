@@ -4,41 +4,31 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { auth } from "@/auth";
-
 import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
 import { getClientProjectId } from '@/utils/project-resolver';
 import { OrdersUI } from "@/components/stitch/dashboard/OrdersUI";
+import { OrderLifecycleService } from "@/services/orders/order-lifecycle.service";
+import { UserService } from "@/services/users/user.service";
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Мои заказы — История активности | Smmplan' };
 
-async function getUser() {
+export default async function OrdersPage() {
     const session = await auth();
     if (!session?.user?.email) redirect('/login');
+    
     const projectId = await getClientProjectId();
-    const user = await prisma.user.findFirst({ where: { email: session.user.email, projectId } });
+    const user = await UserService.getUserByEmail(session.user.email, projectId);
     if (!user) redirect('/login');
-    return user;
-}
 
-export default async function OrdersPage() {
-    const user = await getUser();
+    const result = await OrderLifecycleService.getUserOrders(user.id);
 
-    const orders = await prisma.order.findMany({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' },
-        include: {
-            internalService: {
-                select: {
-                    name: true,
-                    platform: true,
-                }
-            }
-        }
-    });
+    if (!result.success) {
+        console.error(`[OrdersPage] Failed to fetch orders: ${result.error.message}`);
+        return <div>Ошибка при загрузке заказов</div>;
+    }
 
-    const serializedOrders = JSON.parse(JSON.stringify(orders));
+    const serializedOrders = JSON.parse(JSON.stringify(result.data));
 
     return (
         <OrdersUI initialOrders={serializedOrders} />

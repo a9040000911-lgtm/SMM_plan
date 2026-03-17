@@ -5,18 +5,19 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
+import { getAdminSession } from '@/utils/admin-session';
+import { AdminFinanceService } from '@/services/admin/admin-finance.service';
+import { AdminContext } from '@/services/types';
 
-async function getAdminRole() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get('admin_session');
-  if (!session) return null;
-  try {
-    const { verifyAdminSession } = await import('@/lib/jwt');
-    const data = await verifyAdminSession(session.value);
-    return data?.role || null;
-  } catch { return null; }
+async function getCtx(): Promise<AdminContext> {
+  const session = await getAdminSession();
+  if (!session) throw new Error('Unauthorized');
+  return {
+    userId: session.id,
+    role: session.role as any,
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
+  };
 }
 
 export async function exportTransactionsCsvAction(
@@ -30,48 +31,17 @@ export async function exportTransactionsCsvAction(
     endDate?: string
   }
 ) {
-  const role = await getAdminRole();
-  if (!['ADMIN', 'SUPPORT'].includes(role || '')) throw new Error('Unauthorized');
+  const ctx = await getCtx();
+  if (!['ADMIN', 'SUPPORT'].includes(ctx.role)) throw new Error('Unauthorized');
 
-  const { search, type, status, minAmount, maxAmount, startDate, endDate } = params;
+  const result = await AdminFinanceService.getInstance().getTransactionsForExport(ctx, params);
+  if (!result.success) throw new Error(result.error.message);
 
-  const where: any = {};
-  if (type && type !== 'ALL') where.type = type;
-  if (status && status !== 'ALL') where.status = status;
-  if (minAmount || maxAmount) {
-    where.amount = {};
-    if (minAmount) where.amount.gte = parseFloat(minAmount);
-    if (maxAmount) where.amount.lte = parseFloat(maxAmount);
-  }
-  if (startDate || endDate) {
-    where.createdAt = {};
-    if (startDate) where.createdAt.gte = new Date(startDate);
-    if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      where.createdAt.lte = end;
-    }
-  }
-  if (search) {
-    const isNumeric = /^\d+$/.test(search);
-    where.OR = [
-      { id: { contains: search, mode: 'insensitive' } },
-      { externalId: { contains: search, mode: 'insensitive' } },
-      { user: { username: { contains: search, mode: 'insensitive' } } },
-      { user: { email: { contains: search, mode: 'insensitive' } } },
-      isNumeric ? { user: { tgId: BigInt(search) } } : undefined,
-    ].filter(Boolean);
-  }
-
-  const txs = await prisma.transaction.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-    include: { user: true }
-  });
+  const txs = result.data;
 
   // Формируем CSV
   const headers = ['ID', 'Date', 'User', 'TG_ID', 'Type', 'Amount', 'Status', 'External_ID'];
-  const rows = txs.map(t => [
+  const rows = txs.map((t: any) => [
     t.id,
     t.createdAt.toISOString(),
     t.user.username || t.user.email || 'N/A',
@@ -84,7 +54,7 @@ export async function exportTransactionsCsvAction(
 
   const csvContent = [
     headers.join(','),
-    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ...rows.map((row: any[]) => row.map((cell: any) => `"${cell}"`).join(','))
   ].join('\n');
 
   return csvContent;

@@ -129,7 +129,7 @@ export const ReviewsCarousel = memo(({ reviews }: ReviewsCarouselProps) => {
 
     return (
         <div className="w-full relative py-8">
-            <div className="max-w-7xl mx-auto relative px-10 md:px-14">
+            <div className="relative">
                 {/* Contain with enough padding for shadows and rounded corners */}
                 <div className="relative overflow-visible min-h-[280px] -m-4 p-4">
                     <div className={cn(

@@ -10,6 +10,7 @@ import { Save, Globe, Tag, Layers, FileText, Info } from 'lucide-react';
 import { createService } from '@/app/admin/services/actions';
 import { InfoTooltip } from '@/components/admin/core/info-tooltip';
 import { ServiceSelector } from '@/components/admin/services/service-selector';
+import { toast } from 'sonner';
 
 const PLATFORMS = ['TELEGRAM', 'INSTAGRAM', 'VK', 'TIKTOK', 'YOUTUBE', 'TWITCH', 'WHATSAPP', 'SPOTIFY', 'SOUNDCLOUD', 'LINKEDIN', 'PINTEREST', 'SNAPCHAT', 'TROVO', 'KWAI', 'MESSENGER_MAX', 'OTHER'];
 const CATEGORIES = ['SUBSCRIBERS', 'LIKES', 'VIEWS', 'REACTIONS', 'REPOSTS', 'COMMENTS', 'TRAFFIC', 'DISLIKES', 'OTHER'];
@@ -89,8 +90,17 @@ export function NewServiceForm({
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleSubmit = async (formData: FormData) => {
+        const res = await createService(formData);
+        if (!res.success) {
+            toast.error(res.error || 'Ошибка при создании сервиса');
+        } else {
+            toast.success('Сервис успешно создан');
+        }
+    };
+
     return (
-        <form action={createService} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <form action={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
                 <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-8 space-y-6">
                     <div className="flex items-center gap-2 pb-4 border-b border-slate-100">

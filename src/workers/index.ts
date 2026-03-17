@@ -7,10 +7,9 @@
 import { Worker, Job } from 'bullmq';
 import { processPendingOrders, syncPaymentsStatus } from '@/services/orders';
 import { OrderSyncService } from '@/services/orders/order-sync.service';
-import { ProviderService } from '@/services/providers';
 import { RetentionService } from '@/services/users';
 import { ReconciliationService } from '@/services/finance';
-import { SmartSyncService } from '@/services/providers';
+import { SmartSyncService } from '@/services/providers/smart-sync.service';
 import { SelfHealingService } from '@/services/core';
 import { AutoMonitoringService } from '@/services/orders';
 
@@ -39,7 +38,10 @@ export const syncWorker = new Worker('status-sync', async (job: Job) => {
   console.log(`[Worker] Syncing order statuses (Job ID: ${job.id})`);
   await OrderSyncService.syncAllActive();
   await syncPaymentsStatus();
-  await ProviderService.checkAndLogAllBalances();
+
+  // Прямой вызов BalanceMonitorService во избежание циклов в ProviderService
+  const { BalanceMonitorService } = await import('@/services/providers/balance-monitor.service');
+  await BalanceMonitorService.checkAndLogAllBalances();
 
   // Авто-репрайсинг (раз в час или по расписанию очереди)
   await SmartSyncService.syncPricesAndMarkup();
@@ -74,7 +76,6 @@ syncWorker.on('failed', (job, err) => {
 export const dripFeedWorker = new Worker('drip-feed', async (job: Job) => {
   const { orderId } = job.data;
   console.log(`[Worker] Executing drip-feed run for order ${orderId}`);
-  // Логика будет реализована в order-processor.service
   const { processDripFeedRun } = await import('@/services/orders');
   await processDripFeedRun(orderId);
 }, { connection });
@@ -114,8 +115,6 @@ export const autoMonitoringWorker = new Worker('auto-monitoring', async (job: Jo
 autoMonitoringWorker.on('failed', (job, err) => {
   console.error(`[Worker] Auto-Monitor Job ${job?.id} for task ${job?.data.taskId} failed:`, err);
 });
-
-// ... (previous code)
 
 export * from './check-balance.job';
 export * from './scheduled-orders.job';

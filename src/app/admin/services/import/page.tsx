@@ -25,7 +25,7 @@ import {
   PLATFORMS, CATEGORIES, PLATFORM_LABELS, TARGET_TYPES,
   SmartAnalyzerLogic as SmartAnalyzerService
 } from '@/services/providers/smart-analyzer.logic';
-// No tier/group actions needed
+import { MappingSuggestion } from '@/services/providers/smart-mapping.service';
 
 export default function ServiceImportPage() {
   const [services, setServices] = useState<any[]>([]);
@@ -44,10 +44,10 @@ export default function ServiceImportPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [providers, setProviders] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState('all');
   const [priceUnit, setPriceUnit] = useState<'1' | '1000'>('1000');
   const [currency, setCurrency] = useState<'RUB' | 'USD'>('RUB');
-
-  // Tiers and Groups state removed
 
   const EXCHANGE_RATE = 95; // Approximate rate for display
 
@@ -62,7 +62,15 @@ export default function ServiceImportPage() {
       })
       .catch(console.error);
 
-    // Category and project loading logic remains if any
+    // Fetch Projects
+    fetch('/api/admin/system/projects')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setProjects(data);
+        }
+      })
+      .catch(console.error);
   }, []);
 
   const handleAIAnalyze = async () => {
@@ -85,7 +93,6 @@ export default function ServiceImportPage() {
       const newCustomPrivate = { ...customIsPrivate };
       data.forEach((item: any) => {
         if (item.analysis) {
-          // Находим ID услуги по имени
           const service = services.find(s => s.name === item.name);
           if (service) {
             const rowId = `${service.providerName}_${service.id}`;
@@ -118,7 +125,6 @@ export default function ServiceImportPage() {
 
       if (search) url.searchParams.set('search', search);
       if (providerFilter) url.searchParams.set('provider', providerFilter);
-      // Теперь передаём фильтры платформы и категории на сервер
       if (platformFilter) url.searchParams.set('platform', platformFilter);
       if (categoryFilter) url.searchParams.set('category', categoryFilter);
       if (hideImported) url.searchParams.set('hideImported', 'true');
@@ -146,15 +152,15 @@ export default function ServiceImportPage() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setPage(1); // Сброс на первую страницу при изменении фильтра
+      setPage(1); 
       fetchServices();
     }, 400);
     return () => clearTimeout(timer);
-  }, [search, providerFilter, platformFilter, categoryFilter, hideImported, minPrice, maxPrice, sortOrder]); // fetchServices removed to avoid loop
+  }, [search, providerFilter, platformFilter, categoryFilter, hideImported, minPrice, maxPrice, sortOrder]); 
 
   useEffect(() => {
     fetchServices();
-  }, [page, fetchServices]); // Загрузка при смене страницы
+  }, [page, fetchServices]); 
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedIds);
@@ -170,14 +176,10 @@ export default function ServiceImportPage() {
     const allSelected = importableInView.every(s => selectedIds.has(`${s.providerName}_${s.id}`));
 
     if (allSelected) {
-      // Unselect specific items from current view? Or clear all?
-      // Current behavior suggests page-based selection, so let's clear all for simplicity 
-      // OR better: remove only current view items from set to support multi-page selection
       const next = new Set(selectedIds);
       importableInView.forEach(s => next.delete(`${s.providerName}_${s.id}`));
       setSelectedIds(next);
     } else {
-      // Add current view items to set
       const next = new Set(selectedIds);
       importableInView.forEach(s => next.add(`${s.providerName}_${s.id}`));
       setSelectedIds(next);
@@ -213,7 +215,7 @@ export default function ServiceImportPage() {
           description: s.rawData?.description || 'Импортировано из API.',
           providerId: s.id,
           providerName: s.providerName,
-          providerUUID: s.providerId, // Pass the actual Provider UUID
+          providerUUID: s.providerId, 
           rawData: s.rawData,
           priceUnit: priceUnit === '1' ? 1 : 1000,
           unitName: priceUnit === '1' ? 'шт.' : '1000 шт.',
@@ -224,10 +226,13 @@ export default function ServiceImportPage() {
       const res = await fetch('/api/admin/services/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(servicesToImport)
+        body: JSON.stringify({
+          items: servicesToImport,
+          projectId: selectedProjectId
+        })
       });
       if (res.ok) {
-        toast.success(`Успешно импортировано услуг: ${servicesToImport.length}`);
+        toast.success(`Успешно импортировано услуг: ${servicesToImport.length}${selectedProjectId !== 'all' ? ' и активировано в проекте' : ''}`);
         setSelectedIds(new Set());
         fetchServices();
       }
@@ -280,8 +285,20 @@ export default function ServiceImportPage() {
 
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-3 animate-in fade-in zoom-in duration-200">
-
-              {/* Tiers and Groups selection removed */}
+              {/* Project Selector for Import */}
+              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-2xl border border-slate-200 shadow-sm">
+                <span className="text-[10px] font-black text-slate-400 uppercase">В проект:</span>
+                <select
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                  className="bg-transparent border-none text-xs font-bold text-slate-700 outline-none focus:ring-0"
+                >
+                  <option value="all">Только в каталог</option>
+                  {projects.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
 
               <button
                 onClick={handleAIAnalyze}
@@ -351,7 +368,6 @@ export default function ServiceImportPage() {
             {CATEGORIES.map(c => <option key={c} value={c}>{getActivityLabel(c)}</option>)}
           </select>
 
-          {/* New Price Filter Row */}
           <div className="lg:col-span-2 grid grid-cols-3 gap-2">
             <input
               type="number"
@@ -412,6 +428,7 @@ export default function ServiceImportPage() {
               <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider">Приват</th>
               <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider">Название услуги</th>
               <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider">Цена</th>
+              <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider min-w-[200px]">Умное сопоставление</th>
               <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-right">Статус</th>
             </tr>
           </thead>
@@ -507,6 +524,52 @@ export default function ServiceImportPage() {
                       );
                     })()}
                   </td>
+                  <td className="px-6 py-4">
+                    {!isImported && s.suggestions && s.suggestions.length > 0 ? (
+                      <div className="flex flex-col gap-1.5">
+                        {s.suggestions.map((suggestion: MappingSuggestion) => {
+                          const confidence = Math.round(suggestion.confidence * 100);
+                          const isHigh = confidence > 85;
+                          const isMedium = confidence > 60;
+                          
+                          return (
+                            <button
+                              key={suggestion.internalService.id}
+                              onClick={() => {
+                                // Logic to pre-fill ID or link to this internal service
+                                toast.info(`Выбрано соответствие: ${suggestion.internalService.name}`);
+                              }}
+                              className={`flex flex-col p-1.5 rounded-lg border text-left transition-all hover:shadow-sm ${
+                                isHigh ? 'bg-emerald-50 border-emerald-100 hover:border-emerald-200' :
+                                isMedium ? 'bg-amber-50 border-amber-100 hover:border-amber-200' :
+                                'bg-slate-50 border-slate-100'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className={`text-[10px] font-bold truncate ${isHigh ? 'text-emerald-700' : isMedium ? 'text-amber-700' : 'text-slate-600'}`}>
+                                  {suggestion.internalService.name}
+                                </span>
+                                <span className={`text-[9px] font-black px-1 rounded ${
+                                  isHigh ? 'bg-emerald-200 text-emerald-800' :
+                                  isMedium ? 'bg-amber-200 text-amber-800' :
+                                  'bg-slate-200 text-slate-700'
+                                }`}>
+                                  {confidence}%
+                                </span>
+                              </div>
+                              <span className="text-[8px] text-slate-400 italic truncate">{suggestion.reason}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : !isImported ? (
+                      <span className="text-[10px] text-slate-400 italic">Нет прямых совпадений</span>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-blue-600 font-bold">
+                         <span className="text-[10px] uppercase truncate">ID: {s.mapping?.internalServiceId}</span>
+                      </div>
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-right">
                     {isImported ? (
                       <div className="flex items-center justify-end gap-1.5 text-emerald-600 font-bold">
@@ -534,14 +597,12 @@ export default function ServiceImportPage() {
         )}
       </div>
 
-      {/* ПАГИНАЦИЯ */}
       <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 gap-4">
         <div className="text-xs text-slate-500 font-bold">
           Показано {services.length} из {totalItems} услуг
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* Previous Button */}
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page === 1 || isLoading}
@@ -550,31 +611,25 @@ export default function ServiceImportPage() {
             Назад
           </button>
 
-          {/* Page Numbers */}
           <div className="flex items-center gap-1">
             {(() => {
               const pages = [];
-              const maxVisiblePages = 5; // How many pages to show directly
+              const maxVisiblePages = 5; 
 
               if (totalPages <= maxVisiblePages + 2) {
-                // If total pages are small, show all
                 for (let i = 1; i <= totalPages; i++) {
                   pages.push(i);
                 }
               } else {
-                // Complex logic for many pages
                 if (page <= 3) {
-                  // Near start: 1, 2, 3, 4 ... Last
                   for (let i = 1; i <= 4; i++) pages.push(i);
                   pages.push('...');
                   pages.push(totalPages);
                 } else if (page >= totalPages - 2) {
-                  // Near end: 1 ... N-3, N-2, N-1, N
                   pages.push(1);
                   pages.push('...');
                   for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
                 } else {
-                  // Middle: 1 ... P-1, P, P+1 ... Last
                   pages.push(1);
                   pages.push('...');
                   pages.push(page - 1);
@@ -617,7 +672,6 @@ export default function ServiceImportPage() {
             })()}
           </div>
 
-          {/* Next Button */}
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages || isLoading}

@@ -5,10 +5,9 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
+import { AdminDataService } from '@/services/admin/admin-data.service';
 import { revalidatePath } from 'next/cache';
-// Old Enum, checking if needed.
-// Actually we use 'SocialPlatform' model now.
+import { getAdminContext } from '@/utils/admin-context';
 
 export interface PlatformDTO {
     id?: string;
@@ -21,17 +20,17 @@ export interface PlatformDTO {
 
 export async function createPlatformAction(data: PlatformDTO) {
     try {
-        const platform = await prisma.socialPlatform.create({
-            data: {
-                slug: data.slug.toLowerCase().trim(),
-                name: data.name,
-                nameRu: data.nameRu,
-                keywords: data.keywords,
-                isActive: true
-            }
+        const ctx = await getAdminContext();
+        const res = await AdminDataService.upsertSocialPlatform(ctx, {
+            slug: data.slug.toLowerCase().trim(),
+            name: data.name,
+            nameRu: data.nameRu,
+            keywords: data.keywords,
+            isActive: true
         });
+        if (!res.success) throw new Error(res.error?.message);
         revalidatePath('/admin/settings');
-        return { success: true, platform };
+        return { success: true, platform: res.data };
     } catch (e: any) {
         return { success: false, error: e.message };
     }
@@ -39,18 +38,18 @@ export async function createPlatformAction(data: PlatformDTO) {
 
 export async function updatePlatformAction(id: string, data: Partial<PlatformDTO>) {
     try {
-        const platform = await prisma.socialPlatform.update({
-            where: { id },
-            data: {
-                ...(data.slug && { slug: data.slug.toLowerCase().trim() }),
-                ...(data.name && { name: data.name }),
-                ...(data.nameRu && { nameRu: data.nameRu }),
-                ...(data.keywords && { keywords: data.keywords }),
-                ...(data.isActive !== undefined && { isActive: data.isActive })
-            }
+        const ctx = await getAdminContext();
+        const res = await AdminDataService.upsertSocialPlatform(ctx, {
+            id,
+            ...(data.slug && { slug: data.slug.toLowerCase().trim() }),
+            ...(data.name && { name: data.name }),
+            ...(data.nameRu && { nameRu: data.nameRu }),
+            ...(data.keywords && { keywords: data.keywords }),
+            ...(data.isActive !== undefined && { isActive: data.isActive })
         });
+        if (!res.success) throw new Error(res.error?.message);
         revalidatePath('/admin/settings');
-        return { success: true, platform };
+        return { success: true, platform: res.data };
     } catch (e: any) {
         return { success: false, error: e.message };
     }
@@ -58,15 +57,21 @@ export async function updatePlatformAction(id: string, data: Partial<PlatformDTO
 
 export async function togglePlatformAction(id: string) {
     try {
-        const current = await prisma.socialPlatform.findUnique({ where: { id } });
+        const ctx = await getAdminContext();
+        const platformsRes = await AdminDataService.getSocialPlatforms(ctx);
+        if (!platformsRes.success) throw new Error(platformsRes.error?.message);
+        
+        const current = platformsRes.data?.find(p => p.id === id);
         if (!current) throw new Error('Platform not found');
 
-        const platform = await prisma.socialPlatform.update({
-            where: { id },
-            data: { isActive: !current.isActive }
+        const res = await AdminDataService.upsertSocialPlatform(ctx, {
+            id,
+            isActive: !current.isActive
         });
+        if (!res.success) throw new Error(res.error?.message);
+        
         revalidatePath('/admin/settings');
-        return { success: true, platform };
+        return { success: true, platform: res.data };
     } catch (e: any) {
         return { success: false, error: e.message };
     }
@@ -74,7 +79,9 @@ export async function togglePlatformAction(id: string) {
 
 export async function deletePlatformAction(id: string) {
     try {
-        await prisma.socialPlatform.delete({ where: { id } });
+        const ctx = await getAdminContext();
+        const res = await AdminDataService.deleteSocialPlatform(ctx, id);
+        if (!res.success) throw new Error(res.error?.message);
         revalidatePath('/admin/settings');
         return { success: true };
     } catch (e: any) {

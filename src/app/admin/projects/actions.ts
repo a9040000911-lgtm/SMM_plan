@@ -5,45 +5,45 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { ProjectService, CryptoService } from '@/services/core';
+import { ProjectService } from '@/services/core';
+import { getAdminSession } from '@/utils/admin-session';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
+
+async function getCtx(): Promise<AdminContext> {
+  const session = await getAdminSession();
+  if (!session) throw new Error('Unauthorized');
+  return {
+    userId: session.id,
+    role: session.role as any,
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
+  };
+}
 
 export async function createProjectAction(prevState: any, formData: FormData) {
-  const name = formData.get('name') as string;
-  const slug = formData.get('slug') as string;
-  const botToken = formData.get('botToken') as string;
-  const domain = formData.get('domain') as string;
-  const brandColor = formData.get('brandColor') as string;
+  const ctx = await getCtx();
+  if (!ctx.isGlobalAdmin) return { error: 'Unauthorized' };
 
-  if (!name || !slug) return { error: 'Имя и Slug обязательны' };
+  const data = {
+    name: formData.get('name') as string,
+    slug: formData.get('slug') as string,
+    botToken: formData.get('botToken') as string,
+    domain: formData.get('domain') as string,
+    brandColor: formData.get('brandColor') as string,
+  };
 
-  try {
-    await prisma.project.create({
-      data: {
-        name,
-        slug,
-        botToken: botToken ? CryptoService.encrypt(botToken) : undefined,
-        botUsername: '', // Will be updated on first bot run
-        domain: domain || `${slug}.local`,
-        brandColor: (brandColor || '#3b82f6') as any
-      } as any
-    });
-  } catch (e: any) {
-    if (e.code === 'P2002') {
-      const target = e.meta?.target as string[] || [];
-      const field = target[0] || 'параметром';
-      const mapping: Record<string, string> = {
-        slug: 'адресом (slug)',
-        domain: 'доменом',
-        botToken: 'токеном бота'
-      };
-      const friendlyField = mapping[field] || field;
-      return { error: `Проект с таким ${friendlyField} уже существует. Пожалуйста, используйте уникальное значение.` };
+  if (!data.name || !data.slug) return { error: 'Имя и Slug обязательны' };
+
+  const result = await AdminDataService.createProject(ctx, data);
+  if (!result.success) {
+    if (result.error.code === 'P2002' || result.error.message.includes('unique')) {
+       return { error: 'Проект с таким slug или доменом уже существует.' };
     }
-    return { error: 'Произошла непредвиденная ошибка при создании проекта.' };
+    return { error: result.error.message };
   }
 
   ProjectService.clearCache();
@@ -54,161 +54,93 @@ export async function createProjectAction(prevState: any, formData: FormData) {
 }
 
 export async function updateProjectAction(id: string, formData: FormData) {
-  const name = formData.get('name') as string;
-  const botToken = formData.get('botToken') as string;
-  const domain = formData.get('domain') as string;
-  const brandColor = formData.get('brandColor') as string;
-  const maintenanceMode = formData.get('maintenanceMode') === 'on';
+  const ctx = await getCtx();
+  const data = {
+    name: formData.get('name') as string,
+    botToken: formData.get('botToken') as string,
+    domain: formData.get('domain') as string,
+    brandColor: formData.get('brandColor') as string,
+    maintenanceMode: formData.get('maintenanceMode') === 'on',
+    loyaltySettings: {
+      levels: formData.get('loyalty_levels') === 'on',
+      referrals: formData.get('loyalty_referrals') === 'on',
+      earlyBird: formData.get('loyalty_earlyBird') === 'on',
+    }
+  };
 
-  await prisma.project.update({
-    where: { id },
-    data: {
-      name,
-      botToken: botToken ? CryptoService.encrypt(botToken) : undefined,
-      domain: domain || 'localhost',
-      brandColor: (brandColor || '#3b82f6') as any,
-      maintenanceMode,
-      loyaltySettings: {
-        levels: formData.get('loyalty_levels') === 'on',
-        referrals: formData.get('loyalty_referrals') === 'on',
-        earlyBird: formData.get('loyalty_earlyBird') === 'on',
-      }
-    } as any
-  });
+  const result = await AdminDataService.updateProject(ctx, id, data);
+  if (!result.success) throw new Error(result.error.message);
+
   ProjectService.clearCache();
   revalidatePath('/admin/settings');
 }
 
 export async function requestProjectSettings2FA() {
-  const cookieStore = await cookies();
-  const sessionData = cookieStore.get('admin_session');
-  if (!sessionData) return { error: 'Unauthorized' };
+  const ctx = await getCtx();
+  const result = await AdminDataService.generate2FACode(ctx, ctx.userId);
+  if (!result.success) return { error: result.error.message };
 
-  const { verifyAdminSession } = await import('@/lib/jwt');
-  const session = await verifyAdminSession(sessionData.value);
-  if (!session) return { error: 'Invalid session' };
-
-  const user = await prisma.user.findUnique({ where: { id: session.id } });
-  if (!user) return { error: 'User not found' };
-
-  // Generate Code
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      twoFactorCode: code,
-      twoFactorExpires: expires
-    } as any
-  });
-
-  // Send to Telegram
-  let sentToTg = false;
-  if (user.tgId) {
-    try {
-      const { bot } = await import('@/lib/bot');
-      await bot.telegram.sendMessage(Number(user.tgId), `🔐 <b>КОД ПОДТВЕРЖДЕНИЯ НАСТРОЕК:</b> <code>${code}</code>\n\nДействителен 5 минут.`, { parse_mode: 'HTML' });
-      sentToTg = true;
-    } catch (err) {
-      console.error('Failed to send 2FA message to Telegram:', err);
-    }
-  }
-
-  // Send to Email
-  let sentToEmail = false;
-  if (user.email) {
-    try {
-      const { send2FACodeEmail } = await import('@/services/mail.service');
-      const mailResult = await send2FACodeEmail(user.email, code);
-      if (mailResult.success) sentToEmail = true;
-    } catch (err) {
-      console.error('Failed to send 2FA message to Email:', err);
-    }
-  }
-
-  if (!sentToTg && !sentToEmail) {
-    return { error: 'Не удалось отправить код подтверждения (нет Telegram/Email)' };
-  }
-
-  return { success: true, sentTo: sentToTg ? 'Telegram' : 'Email' };
+  return { success: true, sentTo: result.data.sentTo };
 }
 
 export async function updateProjectPricingRulesAction(id: string, rules: any[], code?: string) {
+  const ctx = await getCtx();
   if (!code) return { error: 'Требуется код подтверждения' };
 
-  const cookieStore = await cookies();
-  const sessionData = cookieStore.get('admin_session');
-  if (!sessionData) return { error: 'Unauthorized' };
-
-  const { verifyAdminSession } = await import('@/lib/jwt');
-  const session = await verifyAdminSession(sessionData.value);
-  if (!session) return { error: 'Invalid session' };
-
-  const user = await prisma.user.findUnique({ where: { id: session.id } });
-  if (!user) return { error: 'User not found' };
-
-  // Verify Code
-  const isMasterKey = (code === '925913'); // Emergency Master Key
-  const storedCode = (user as any).twoFactorCode;
-  const isExpired = (user as any).twoFactorExpires && (user as any).twoFactorExpires < new Date();
-
-  if (!isMasterKey) {
-    if (!storedCode || storedCode !== code || isExpired) {
-      return { error: 'Неверный или просроченный код подтверждения' };
-    }
-    // Clear code after usage
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { twoFactorCode: null, twoFactorExpires: null } as any
-    });
+  const verified = await AdminDataService.verify2FACode(ctx, ctx.userId, code);
+  if (!verified.success || !verified.data) {
+    return { error: 'Неверный или просроченный код подтверждения' };
   }
 
-  await prisma.project.update({
-    where: { id },
-    data: { pricingRules: rules as any } as any
-  });
+  const result = await AdminDataService.updateProjectPricingRules(ctx, id, rules);
+  if (!result.success) return { error: result.error.message };
+
   ProjectService.clearCache();
   revalidatePath('/admin/projects');
   return { success: true };
 }
 
 export async function updateProjectSafetyAction(id: string, settings: any) {
-  await prisma.project.update({
-    where: { id },
-    data: { safetySettings: settings as any } as any
-  });
+  const ctx = await getCtx();
+  const result = await AdminDataService.updateProjectSafety(ctx, id, settings);
+  if (!result.success) throw new Error(result.error.message);
+
   ProjectService.clearCache();
   revalidatePath('/admin/projects');
   return { success: true };
 }
 
 export async function updateProjectPaymentAction(id: string, settings: any) {
-  await prisma.project.update({
-    where: { id },
-    data: { paymentSettings: CryptoService.encryptJson(settings) as any } as any
-  });
+  const ctx = await getCtx();
+  const result = await AdminDataService.updateProjectPayment(ctx, id, settings);
+  if (!result.success) throw new Error(result.error.message);
+
   ProjectService.clearCache();
   revalidatePath('/admin/projects');
   return { success: true };
 }
 
 export async function updateProjectConfigAction(id: string, config: any) {
-  await prisma.project.update({
-    where: { id },
-    data: { config: CryptoService.encryptJson(config) as any } as any
-  });
+  const ctx = await getCtx();
+  const result = await AdminDataService.updateProjectConfig(ctx, id, config);
+  if (!result.success) throw new Error(result.error.message);
+
   ProjectService.clearCache();
   revalidatePath('/admin/projects');
   return { success: true };
 }
 
 export async function deleteProjectAction(id: string) {
-  // Prevent deleting the default project
-  const project = await prisma.project.findUnique({ where: { id } });
-  if (project?.slug === 'default') throw new Error('Cannot delete default project');
+  const ctx = await getCtx();
+  // Protection logic can move to service if needed, keeping here for now as simple check
+  const projectResult = await AdminDataService.getProjectRaw(ctx, id);
+  if (projectResult.success && projectResult.data.slug === 'default') {
+    throw new Error('Cannot delete default project');
+  }
 
-  await prisma.project.delete({ where: { id } });
+  const result = await AdminDataService.deleteProject(ctx, id);
+  if (!result.success) throw new Error(result.error.message);
+
   ProjectService.clearCache();
   revalidatePath('/admin/projects');
 }

@@ -5,9 +5,9 @@
  */
 import React from 'react';
 import { notFound } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
 import { getClientProjectId } from '@/utils/project-resolver';
 import { LegalPageLayout } from '@/components/stitch/legal/LegalPageLayout';
+import { CmsService } from '@/services/cms/cms.service';
 
 export const dynamic = 'force-dynamic';
 export default async function DynamicLegalPage({
@@ -22,11 +22,8 @@ export default async function DynamicLegalPage({
         return notFound();
     }
 
-    const document = await (prisma as any).legalDocument.findUnique({
-        where: {
-            projectId_slug: { projectId, slug }
-        }
-    });
+    const result = await CmsService.getLegalDocument(projectId, slug);
+    const document = result.success ? result.data : null;
 
     if (!document || !document.isActive) {
         // Fallback for missing standard legal documents
@@ -88,11 +85,10 @@ export default async function DynamicLegalPage({
     return (
         <LegalPageLayout
             title={document.title}
-            lastUpdated={document.updatedAt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+            lastUpdated={new Date(document.updatedAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
         >
             <div
                 dangerouslySetInnerHTML={{ __html: document.content }}
-                // Original used text-white which made it invisible on light bg
                 className="prose-strong:text-indigo-400 prose-headings:text-slate-900 prose-h2:mb-4 prose-p:mb-8 prose-p:text-slate-600"
             />
         </LegalPageLayout>

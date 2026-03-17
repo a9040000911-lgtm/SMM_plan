@@ -5,35 +5,19 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
+import { AdminServices } from '@/services/admin/registry';
 import { revalidatePath } from 'next/cache';
-import { getAdminSession } from '@/utils/admin-session';
+import { getAdminContext } from '@/utils/admin-context';
 
 export async function updateGlobalSettingsAction(settings: Record<string, string>) {
     try {
-        const session = await getAdminSession();
-        if (!session?.isGlobalAdmin) {
+        const ctx = await getAdminContext();
+        if (!ctx.isGlobalAdmin) {
             throw new Error('Unauthorized: Global Admin access required');
         }
 
-        const operations = Object.entries(settings).map(([key, value]) =>
-            prisma.globalSetting.upsert({
-                where: { key },
-                update: { value },
-                create: { key, value }
-            })
-        );
-
-        await Promise.all(operations);
-
-        // Log the action
-        await prisma.adminLog.create({
-            data: {
-                adminId: session.id,
-                action: 'UPDATE_GLOBAL_SETTINGS',
-                details: `Обновлены глобальные настройки: ${Object.keys(settings).join(', ')}`
-            }
-        });
+        const res = await AdminServices.management.updateGlobalSettings(ctx, { settings });
+        if (!res.success) throw new Error(res.error?.message);
 
         revalidatePath('/admin/settings');
         return { success: true };
@@ -45,10 +29,10 @@ export async function updateGlobalSettingsAction(settings: Record<string, string
 
 export async function getGlobalSettingsAction() {
     try {
-        const settings = await prisma.globalSetting.findMany();
-        const map: Record<string, string> = {};
-        settings.forEach(s => map[s.key] = s.value);
-        return { success: true, settings: map };
+        const ctx = await getAdminContext();
+        const res = await AdminServices.management.getGlobalSettings(ctx);
+        if (!res.success) throw new Error(res.error?.message);
+        return { success: true, settings: res.data };
     } catch (e: any) {
         return { success: false, error: e.message };
     }

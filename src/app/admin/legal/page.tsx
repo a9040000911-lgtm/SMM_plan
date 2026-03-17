@@ -5,43 +5,35 @@
  */
 export const dynamic = 'force-dynamic';
 import React from 'react';
-import { prisma } from '@/lib/prisma';
 import { Scale } from 'lucide-react';
 import { LegalContentManager } from './components';
 import { cookies } from 'next/headers';
 import { dictionaries, Locale } from '@/i18n/dictionaries';
 import { ProjectSelector } from '@/components/admin/core/project-selector';
-
-async function getLegalData(requestedProjectId?: string) {
-    const allProjects = await prisma.project.findMany();
-
-    let project;
-    if (requestedProjectId && requestedProjectId !== 'all') {
-        project = allProjects.find(p => p.id === requestedProjectId);
-    }
-
-    if (!project && allProjects.length > 0) {
-        project = allProjects[0];
-    }
-
-    if (!project) return { project: null, documents: [], allProjects };
-
-    const documents = await (prisma as any).legalDocument.findMany({
-        where: { projectId: project.id },
-        orderBy: { createdAt: 'desc' }
-    });
-
-    return { project, documents, allProjects };
-}
+import { getAdminSession } from '@/utils/admin-session';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
 
 export default async function LegalAdminPage(props: { searchParams: Promise<any> }) {
     const searchParams = await props.searchParams;
     const cookieStore = await cookies();
+    const session = await getAdminSession();
+    if (!session) return null;
 
-    // Priority: query param overrides cookie, else default. (But ProjectSelector mostly uses searchParams)
+    const ctx: AdminContext = {
+        userId: session.id,
+        role: session.role as any,
+        allowedProjects: session.allowedProjects,
+        isGlobalAdmin: session.isGlobalAdmin
+    };
+
+    // Priority: query param overrides cookie, else default
     const activeProjectId = searchParams.projectId || cookieStore.get('active_project_id')?.value;
 
-    const { project, documents, allProjects } = await getLegalData(activeProjectId);
+    const result = await AdminDataService.getLegalDashboardData(ctx, activeProjectId);
+    if (!result.success) return <div className="p-8 text-red-500">Error: {result.error.message}</div>;
+
+    const { project, documents, allProjects } = result.data;
     const lang = cookieStore.get('smmplan_lang')?.value as Locale || 'ru';
     const t = dictionaries[lang].admin.legal;
 

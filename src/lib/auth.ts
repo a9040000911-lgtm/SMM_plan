@@ -6,7 +6,16 @@
 
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { limiter } from "@/utils/rate-limit";
+import { checkRateLimit } from "@/lib/rate-limiter";
+import { headers } from "next/headers";
+
+function getIpFromHeaders() {
+  const h = headers();
+  // We can't use getRealIp here easily because authorizeUser gets credentials, not req.
+  // But authorizeUser is called from auth.ts which has access to context.
+  // NextAuth authorize usually has headers available.
+  return ""; 
+}
 
 export async function authorizeUser(credentials: any) {
   // --- MAGIC TOKEN AUTH ---
@@ -46,10 +55,11 @@ export async function authorizeUser(credentials: any) {
   if (!credentials?.email || !credentials?.password) return null;
 
   // --- BRUTE FORCE PROTECTION ---
-  const loginLimit = await limiter.check(10, `login:${credentials.email.toLowerCase()}`);
+  const identifier = `login:${credentials.email.toLowerCase()}`;
+  const ratelimit = await checkRateLimit('auth', identifier);
 
-  if (!loginLimit.isAllowed) {
-    throw new Error("Too many login attempts. Please try again later.");
+  if (!ratelimit.success) {
+    throw new Error("Слишком много попыток входа. Пожалуйста, подождите.");
   }
 
   const { getClientProjectId } = await import("@/utils/project-resolver");

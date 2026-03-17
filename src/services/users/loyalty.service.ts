@@ -4,8 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
-import { SettingsService } from '@/services/core';
-
+import { SettingsService } from '@/services/core/settings.service';
 
 export interface LoyaltyLevel {
     name: string;
@@ -20,7 +19,6 @@ export const LOYALTY_LEVELS: LoyaltyLevel[] = [
     { name: '💎 DIAMOND', min: 50000, discount: 10 },
 ];
 
-
 export type LoyaltyScheme = 'CLASSIC' | 'GAMIFIED' | 'VIP';
 
 export interface LoyaltyInfo {
@@ -33,21 +31,16 @@ export interface LoyaltyInfo {
 
 export class LoyaltyService {
     static async getReferralPercent(userId: string, projectId: string): Promise<number> {
-        // --- FEATURE FLAG CHECK ---
         const { ProjectService, ProjectFeature } = await import('@/services/core/project.service');
         const isEnabled = await ProjectService.isFeatureEnabled(projectId, ProjectFeature.REFERRAL);
         if (!isEnabled) return 0;
 
         const user = await prisma.user.findUnique({ where: { id: userId } });
-
-        // --- INDIVIDUAL PERCENT ---
         if (user?.referralPercent && user.referralPercent > 0) {
             return user.referralPercent;
         }
 
         const basePercent = await SettingsService.getNumber('REFERRAL_PERCENT', projectId, 10);
-
-        // Pioneer Boost: 2x Referral Rate (or fixed 20%)
         if (user?.isEarlyBird) {
             return 20;
         }
@@ -60,7 +53,6 @@ export class LoyaltyService {
         const config = project?.config as any || {};
         const loyaltySettings = project?.loyaltySettings as any;
 
-        // --- FEATURE FLAG CHECK ---
         const { ProjectService, ProjectFeature } = await import('@/services/core/project.service');
         const isLoyaltyEnabled = projectId ? await ProjectService.isFeatureEnabled(projectId, ProjectFeature.LOYALTY) : true;
 
@@ -73,13 +65,7 @@ export class LoyaltyService {
             };
         }
 
-        // Scheme Selection (Default to CLASSIC)
         const scheme: LoyaltyScheme = config.loyaltyScheme || 'CLASSIC';
-        // ... rest of logic remains but is now protected
-        // ... (Skipping full text for brevity in this specific tool call if possible, 
-        // but multi_replace requires full replacement of the range)
-
-        // 1. Check Early Bird status (20% discount)
         let earlyBirdDiscount = 0;
         const isEarlyBirdEnabled = loyaltySettings?.earlyBird !== false;
 
@@ -87,7 +73,6 @@ export class LoyaltyService {
             if (user.isEarlyBird) {
                 earlyBirdDiscount = 20;
             } else {
-                // Check if user should become Early Bird (first 300 users)
                 const userCount = await prisma.user.count({ where: { projectId, createdAt: { lte: user.createdAt } } });
                 if (userCount <= 300) {
                     await prisma.user.update({ where: { id: user.id }, data: { isEarlyBird: true } });
@@ -96,9 +81,7 @@ export class LoyaltyService {
             }
         }
 
-        // 2. Calculate Base Loyalty based on Scheme
         let baseLoyalty: { level: LoyaltyLevel, nextLevel?: LoyaltyLevel, discount: number };
-
         switch (scheme) {
             case 'GAMIFIED':
                 baseLoyalty = this.calculateGamifiedLoyalty(spentAmount);
@@ -121,28 +104,21 @@ export class LoyaltyService {
         };
     }
 
-    // --- STRATEGIES ---
-
     private static async calculateClassicLoyalty(spent: number, projectId?: string | null) {
         const levels = await SettingsService.getJson<LoyaltyLevel[]>('LOYALTY_CONFIG_JSON', projectId!) || LOYALTY_LEVELS;
         const level = [...levels].sort((a, b) => b.min - a.min).find(l => spent >= l.min) || levels[0];
         const nextLevel = [...levels].sort((a, b) => a.min - b.min).find(l => l.min > spent);
-
         return { level, nextLevel, discount: level.discount };
     }
 
     private static calculateGamifiedLoyalty(spent: number) {
-        // 1000 RUB = 1 Level. Max Level 50.
-        // Discount = 0.2% per level (Max 10%).
         const levelNum = Math.min(Math.floor(spent / 1000) + 1, 50);
         const discount = parseFloat(((levelNum - 1) * 0.2).toFixed(1));
-
         const currentLevel: LoyaltyLevel = {
             name: `LEVEL ${levelNum}`,
             min: (levelNum - 1) * 1000,
             discount
         };
-
         let nextLevel: LoyaltyLevel | undefined;
         if (levelNum < 50) {
             nextLevel = {
@@ -151,14 +127,12 @@ export class LoyaltyService {
                 discount: parseFloat((levelNum * 0.2).toFixed(1))
             };
         }
-
         return { level: currentLevel, nextLevel, discount };
     }
 
     private static calculateVipLoyalty(spent: number) {
         const threshold = 50000;
         const isVip = spent >= threshold;
-
         if (isVip) {
             return {
                 level: { name: '👑 VIP CLUB', min: threshold, discount: 15 },
@@ -174,48 +148,29 @@ export class LoyaltyService {
         }
     }
 
-    /**
-     * Checks if a user is eligible for Pioneer status based on completed order rank.
-     */
     static async isUserPioneer(userId: string): Promise<boolean> {
         const user = await prisma.user.findUnique({ where: { id: userId } });
         return !!user?.earlyBirdRank;
     }
 
-    /**
-     * Checks if a refund should trigger a rollback of loyalty rewards.
-     * To be called INSIDE a transaction.
-     */
     static async checkAndRollbackRewards(tx: any, userId: string, currentSpent: number, refundAmount: number) {
         const newSpent = currentSpent - refundAmount;
-
-        // 1. Find all loyalty logs for SPEND_GTE triggers
         const logs = await tx.loyaltyLog.findMany({
-            where: {
-                userId,
-                trigger: { startsWith: 'SPEND_GTE' }
-            }
+            where: { userId, trigger: { startsWith: 'SPEND_GTE' } }
         });
 
         for (const log of logs) {
-            // Trigger format: SPEND_GTE:5000
             const threshold = parseFloat(log.trigger.split(':')[1]);
-
-            // If the new total spent is BELOW the threshold, we must rollback
             if (newSpent < threshold) {
-                console.log(`[Loyalty Rollback] User ${userId} dropped below ${threshold} (New: ${newSpent}). Revoking reward: ${log.reward}`);
-
-                // Revoke based on reward type
                 if (log.reward.startsWith('BALANCE:+')) {
                     const amount = parseFloat(log.reward.split('+')[1]);
-                    // Deduct from balance
                     await tx.user.update({
                         where: { id: userId },
                         data: { balance: { decrement: amount } }
                     });
-
                     const { LedgerService } = await import('@/services/finance/ledger.service');
-                    await LedgerService.record(tx, userId, new (await import('decimal.js')).Decimal(amount), 'MANUAL_ADJUSTMENT', log.id, `Откат бонуса лояльности: ${log.reward}`);
+                    const Decimal = (await import('decimal.js')).Decimal;
+                    await LedgerService.record(tx, userId, new Decimal(amount), 'MANUAL_ADJUSTMENT', log.id, `Откат бонуса лояльности: ${log.reward}`);
                 } else if (log.reward.startsWith('PROMO:')) {
                     const code = log.reward.split(':')[1];
                     await tx.promoCode.updateMany({
@@ -223,8 +178,6 @@ export class LoyaltyService {
                         data: { isActive: false }
                     });
                 }
-
-                // DELETE the log so they can earn it again
                 await tx.loyaltyLog.delete({ where: { id: log.id } });
             }
         }

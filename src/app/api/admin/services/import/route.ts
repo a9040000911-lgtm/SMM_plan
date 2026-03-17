@@ -7,11 +7,11 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Platform, Category } from '@/generated/client';
-import { SmartAnalyzerService } from '@/services/providers';
+import { SmartAnalyzerService, SmartMappingService } from '@/services/providers';
 import { PricingService } from '@/services/finance/pricing.service';
 import { Decimal } from 'decimal.js';
-
 import { GuaranteeParser } from '@/utils/guarantee-parser';
+import { checkRateLimit, getRealIp } from '@/lib/rate-limiter';
 
 export async function GET(req: NextRequest) {
   try {
@@ -24,12 +24,10 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
 
-    // Новые параметры фильтрации
     const minPrice = searchParams.get('minPrice');
     const maxPrice = searchParams.get('maxPrice');
     const sort = searchParams.get('sort');
 
-    // Базовый фильтр для БД
     const where: any = {};
     if (providerName) where.provider = { name: providerName };
 
@@ -61,7 +59,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Фильтр по цене
     if (minPrice || maxPrice) {
       where.rawPrice = {};
       if (minPrice) where.rawPrice.gte = parseFloat(minPrice);
@@ -74,8 +71,6 @@ export async function GET(req: NextRequest) {
     }
 
     if (platformFilter) {
-      // Search by both Prisma Platform enum AND socialPlatform slug
-      // Wrap in AND to avoid conflicts with search OR
       const platformCondition = {
         OR: [
           { platform: platformFilter },
@@ -85,7 +80,6 @@ export async function GET(req: NextRequest) {
       if (where.AND) {
         where.AND.push(platformCondition);
       } else if (where.OR) {
-        // If search already set OR, wrap both in AND
         const searchCondition = { OR: where.OR };
         delete where.OR;
         where.AND = [searchCondition, platformCondition];
@@ -95,8 +89,7 @@ export async function GET(req: NextRequest) {
     }
     if (categoryFilter) where.category = categoryFilter;
 
-    // Сортировка
-    let orderBy: any = { rawPrice: 'asc' }; // default
+    let orderBy: any = { rawPrice: 'asc' };
 
     if (sort === 'price_asc') {
       orderBy = { rawPrice: 'asc' };
@@ -104,10 +97,8 @@ export async function GET(req: NextRequest) {
       orderBy = { rawPrice: 'desc' };
     }
 
-    // Считаем общее количество
     const totalCount = await prisma.providerService.count({ where });
 
-    // Загружаем с пагинацией
     const services = await prisma.providerService.findMany({
       where,
       orderBy,
@@ -123,8 +114,13 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    const response = services.map((s: any) => {
+    const response = await Promise.all(services.map(async (s: any) => {
       const raw = s.rawData as any;
+      const analysis = SmartAnalyzerService.detectSync(s.name, raw.description || '', s.category || '');
+      
+      const suggestions = s.mappings.length === 0 
+        ? await SmartMappingService.findMatches(s.name, s.platform as Platform, s.category as Category)
+        : [];
 
       return {
         id: s.id,
@@ -141,9 +137,10 @@ export async function GET(req: NextRequest) {
         mapping: s.mappings[0] || null,
         mappings: s.mappings,
         rawData: s.rawData,
-        analysis: SmartAnalyzerService.detectSync(s.name, raw.description || '', s.category || '')
+        analysis,
+        suggestions
       };
-    });
+    }));
 
     return NextResponse.json({
       data: response,
@@ -160,14 +157,32 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // --- RATE LIMITING ---
+  const ip = getRealIp(req);
+  const ratelimit = await checkRateLimit('api', `admin_import:${ip}`);
+  if (!ratelimit.success) {
+    return NextResponse.json({ 
+      error: 'Превышен лимит запросов на импорт. Пожалуйста, подождите.' 
+    }, { 
+      status: 429,
+      headers: {
+        'X-RateLimit-Limit': ratelimit.limit.toString(),
+        'X-RateLimit-Remaining': ratelimit.remaining.toString(),
+        'X-RateLimit-Reset': ratelimit.reset.toString()
+      }
+    });
+  }
+
   try {
     const body = await req.json();
-    const services = Array.isArray(body) ? body : [body];
+    // Поддержка как чистого массива, так и объекта { items: [], projectId: "..." }
+    const servicesToImport = Array.isArray(body) ? body : (body.items || [body]);
+    const projectId = body.projectId;
 
     const results = await prisma.$transaction(async (tx) => {
       const createdIds = [];
 
-      for (const s of services) {
+      for (const s of servicesToImport) {
         const {
           id, name, platform, category, targetType: initialTargetType,
           pricePer1000, minQty, maxQty, providerId, providerUUID, priceUnit, unitName,
@@ -176,7 +191,6 @@ export async function POST(req: NextRequest) {
         let { description, isPrivate, targetType, requirements } = s;
         if (!targetType) targetType = initialTargetType;
 
-        // Если описание стандартное или отсутствует, генерируем новое
         if (!description || description === 'Импортировано из API.') {
           const analysis = await SmartAnalyzerService.analyzeService(name, s.rawData?.description || '', s.category || '');
           if (analysis?.description_ru) {
@@ -190,8 +204,6 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // 0. Calculate Price using Pricing Engine
-        // We find the Main Project ID for context (or use meaningful defaults)
         const mainProject = await prisma.project.findFirst();
         const projectIdFromDB = mainProject?.id;
 
@@ -206,10 +218,8 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        // 0.1 Resolve or create Category
         const categoryObj = await SmartAnalyzerService.resolveCategory(tx, platform, category as Category, targetType as string, null);
 
-        // 1. Создаем/обновляем внутреннюю услугу
         await tx.internalService.upsert({
           where: { id },
           update: {
@@ -250,7 +260,6 @@ export async function POST(req: NextRequest) {
           }
         });
 
-        // 2. Создаем маппинг
         const provider = await tx.provider.findUnique({ where: { id: providerUUID }, select: { projectId: true } });
         const targetProjectId = provider?.projectId || null;
 
@@ -287,7 +296,15 @@ export async function POST(req: NextRequest) {
         createdIds.push(id);
       }
       return createdIds;
-    });
+    }, { timeout: 30000 });
+
+    // Активация в проекте после импорта
+    if (projectId && projectId !== 'all') {
+      const { activateServiceInProject } = await import('@/app/admin/services/actions');
+      for (const serviceId of results) {
+        await activateServiceInProject(serviceId, projectId);
+      }
+    }
 
     return NextResponse.json({ success: true, count: results.length });
   } catch (error: any) {

@@ -10,7 +10,17 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(_req: NextRequest) {
     try {
+        const { getAdminSession } = await import('@/utils/admin-session');
+        const session = await getAdminSession();
+        if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+        const where: any = {};
+        if (!session.isGlobalAdmin) {
+            where.id = { in: session.allowedProjects || [] };
+        }
+
         const projects = await prisma.project.findMany({
+            where,
             select: {
                 id: true,
                 name: true,

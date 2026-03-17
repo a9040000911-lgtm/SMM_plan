@@ -27,7 +27,10 @@
         "./src/*"
       ],
       "@/generated/client": [
-        "./node_modules/.prisma/client"
+        "./src/generated/client"
+      ],
+      "@prisma/client": [
+        "./src/generated/client"
       ]
     }
   },

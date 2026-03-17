@@ -852,7 +852,7 @@ export function UserConversationPanel({ conversation, templates, macros: _macros
                                         </span>
                                     )}
                                     <button
-                                        onClick={() => copyToClipboard(conversation.user.tgId)}
+                                        onClick={() => copyToClipboard(conversation.user.tgId || '')}
                                         className={`p-1.5 rounded-md transition-all ${isCopied ? 'bg-green-100 text-green-600' : 'hover:bg-slate-200 text-slate-400'}`}
                                         title="Копировать TG ID"
                                     >
@@ -1143,3 +1143,4 @@ export function UserConversationPanel({ conversation, templates, macros: _macros
         </div>
     );
 }
+

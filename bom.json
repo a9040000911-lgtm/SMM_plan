@@ -1,0 +1,214 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "metadata": {
+    "timestamp": "2026-03-15T17:05:40.989Z",
+    "component": {
+      "name": "smmplan",
+      "version": "0.1.0",
+      "type": "application"
+    }
+  },
+  "components": [
+    {
+      "name": "@auth/prisma-adapter",
+      "version": "2.7.4",
+      "type": "library"
+    },
+    {
+      "name": "@dnd-kit/core",
+      "version": "^6.3.1",
+      "type": "library"
+    },
+    {
+      "name": "@dnd-kit/sortable",
+      "version": "^10.0.0",
+      "type": "library"
+    },
+    {
+      "name": "@dnd-kit/utilities",
+      "version": "^3.2.2",
+      "type": "library"
+    },
+    {
+      "name": "@google/generative-ai",
+      "version": "^0.21.0",
+      "type": "library"
+    },
+    {
+      "name": "@hookform/resolvers",
+      "version": "^5.2.2",
+      "type": "library"
+    },
+    {
+      "name": "@prisma/client",
+      "version": "5.22.0",
+      "type": "library"
+    },
+    {
+      "name": "@upstash/ratelimit",
+      "version": "^2.0.8",
+      "type": "library"
+    },
+    {
+      "name": "@upstash/redis",
+      "version": "^1.34.4",
+      "type": "library"
+    },
+    {
+      "name": "axios",
+      "version": "^1.7.9",
+      "type": "library"
+    },
+    {
+      "name": "bcryptjs",
+      "version": "^3.0.0",
+      "type": "library"
+    },
+    {
+      "name": "bullmq",
+      "version": "5.39.0",
+      "type": "library"
+    },
+    {
+      "name": "clsx",
+      "version": "^2.1.1",
+      "type": "library"
+    },
+    {
+      "name": "date-fns",
+      "version": "^4.1.0",
+      "type": "library"
+    },
+    {
+      "name": "decimal.js",
+      "version": "^10.4.3",
+      "type": "library"
+    },
+    {
+      "name": "dotenv",
+      "version": "^16.4.7",
+      "type": "library"
+    },
+    {
+      "name": "express",
+      "version": "^4.21.2",
+      "type": "library"
+    },
+    {
+      "name": "fastest-levenshtein",
+      "version": "^1.0.16",
+      "type": "library"
+    },
+    {
+      "name": "framer-motion",
+      "version": "^12.0.0",
+      "type": "library"
+    },
+    {
+      "name": "ioredis",
+      "version": "5.4.2",
+      "type": "library"
+    },
+    {
+      "name": "jose",
+      "version": "^5.9.6",
+      "type": "library"
+    },
+    {
+      "name": "lucide-react",
+      "version": "^0.475.0",
+      "type": "library"
+    },
+    {
+      "name": "next",
+      "version": "16.0.10",
+      "type": "library"
+    },
+    {
+      "name": "next-auth",
+      "version": "5.0.0-beta.25",
+      "type": "library"
+    },
+    {
+      "name": "next-themes",
+      "version": "^0.4.4",
+      "type": "library"
+    },
+    {
+      "name": "nodemailer",
+      "version": "^6.10.0",
+      "type": "library"
+    },
+    {
+      "name": "pg",
+      "version": "^8.18.0",
+      "type": "library"
+    },
+    {
+      "name": "react",
+      "version": "19.0.0",
+      "type": "library"
+    },
+    {
+      "name": "react-day-picker",
+      "version": "9.5.0",
+      "type": "library"
+    },
+    {
+      "name": "react-dom",
+      "version": "19.0.0",
+      "type": "library"
+    },
+    {
+      "name": "react-grid-layout",
+      "version": "^2.2.2",
+      "type": "library"
+    },
+    {
+      "name": "react-hook-form",
+      "version": "^7.71.1",
+      "type": "library"
+    },
+    {
+      "name": "react-icons",
+      "version": "^5.5.0",
+      "type": "library"
+    },
+    {
+      "name": "recharts",
+      "version": "^2.15.1",
+      "type": "library"
+    },
+    {
+      "name": "sonner",
+      "version": "^2.0.1",
+      "type": "library"
+    },
+    {
+      "name": "swr",
+      "version": "^2.4.0",
+      "type": "library"
+    },
+    {
+      "name": "tailwind-merge",
+      "version": "^3.5.0",
+      "type": "library"
+    },
+    {
+      "name": "telegraf",
+      "version": "4.16.3",
+      "type": "library"
+    },
+    {
+      "name": "undici",
+      "version": "^6.24.1",
+      "type": "library"
+    },
+    {
+      "name": "zod",
+      "version": "^3.25.10",
+      "type": "library"
+    }
+  ]
+}

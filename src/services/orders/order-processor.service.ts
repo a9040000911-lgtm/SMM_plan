@@ -8,6 +8,7 @@ import { OrderStatus } from '@/generated/client';
 import { OrderActivationService } from './order-activation.service';
 import { PaymentConfirmationService } from './payment-confirmation.service';
 import { OrderQueueService } from './order-queue.service';
+import { OrderSyncService } from './order-sync.service';
 import { ProviderMonitorService } from './provider-monitor.service';
 import { OrderRefundService } from './order-refund.service';
 
@@ -61,11 +62,11 @@ export class OrderProcessor {
   }
 
   static async tryAutoRefill(orderId: number) {
-    return OrderQueueService.tryAutoRefill(orderId);
+    return OrderSyncService.tryAutoRefill(orderId);
   }
 
   static async syncOrdersStatus(orderIds?: number[]) {
-    return OrderQueueService.syncOrdersStatus(orderIds);
+    return OrderSyncService.syncAllActive(orderIds);
   }
 
   static async monitorProviderBalance() {

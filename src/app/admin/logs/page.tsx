@@ -31,9 +31,9 @@ export default function LogsPage() {
     try {
       const res = await getAdminLogsAction(page, filters);
       if (res.success) {
-        setLogs(res.logs || []);
-        setTotalPages(res.pages || 1);
-        setTotal(res.total || 0);
+        setLogs(res.data.logs || []);
+        setTotalPages(res.data.pages || 1);
+        setTotal(res.data.total || 0);
       }
     } catch (e) {
       console.error(e);

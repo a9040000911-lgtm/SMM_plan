@@ -1,6 +1,11 @@
 import { PrismaClient, Platform, Category, Role, TransactionType, TransactionStatus, OrderStatus } from '@prisma/client';
 import { Decimal } from 'decimal.js';
 import * as dotenv from 'dotenv';
+import { ServiceSyncService } from '../src/services/providers/sync.service';
+import { SmartAnalyzerService } from '../src/services/providers/smart-analyzer.service';
+import { PricingService } from '../src/services/finance/pricing.service';
+import bcrypt from 'bcryptjs';
+
 dotenv.config();
 
 const prisma = new PrismaClient();
@@ -132,7 +137,7 @@ async function main() {
                 create: {
                     projectId: project.id,
                     internalServiceId: id,
-                    providerServiceId: s.id,
+                    providerServiceId: s.externalId,
                     providerId: provider.id,
                     isActive: true,
                     priority: 1
@@ -144,19 +149,37 @@ async function main() {
         }
     }
 
-    // 6. Create Test User
-    console.log('Creating test user...');
+    // 6. Create Test User and Prod Admin
+    console.log('Creating test user and production-like admin...');
+    const hashedPassword = await bcrypt.hash('admin12345678', 10);
+
     const testUser = await prisma.user.upsert({
         where: { email: 'tester@smmplan.ru' },
-        update: { balance: new Decimal(5000), role: 'USER' as Role },
+        update: { balance: new Decimal(5000), role: 'USER' as Role, password: hashedPassword },
         create: {
             email: 'tester@smmplan.ru',
             username: 'tester',
             balance: new Decimal(5000),
             projectId: project.id,
-            role: 'USER' as Role
+            role: 'USER' as Role,
+            password: hashedPassword
         }
     });
+
+    await prisma.user.upsert({
+        where: { email: 'art@artmspektr.ru' },
+        update: { role: 'ADMIN' as Role, isGlobalAdmin: true, password: hashedPassword },
+        create: {
+            email: 'art@artmspektr.ru',
+            username: 'Artem',
+            role: 'ADMIN' as Role,
+            isGlobalAdmin: true,
+            projectId: project.id,
+            balance: new Decimal(1000000),
+            password: hashedPassword
+        }
+    });
+    console.log('✅ Admin art@artmspektr.ru configured locally!');
 
     // 7. Create 10 Test Orders with transaction logs
     console.log('Creating 10 test orders and transactions...');
@@ -204,7 +227,7 @@ async function main() {
                 status: config.status,
                 costPrice: service.pricePer1000.div(2),
                 providerName: provider.name,
-                externalId: `test-ext-${i}-${Date.now()}`
+                externalId: `${Math.floor(100000 + Math.random() * 900000)}`
             }
         });
 

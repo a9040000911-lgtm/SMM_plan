@@ -5,72 +5,66 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getAdminSession } from '@/utils/admin-session';
 import { bot } from '@/lib/bot';
+import { AdminServices } from '@/services/admin/registry';
+import { AdminContext } from '@/services/types';
 
-async function requireAdmin() {
+async function requireAdmin(): Promise<AdminContext> {
   const session = await getAdminSession();
   if (!session || session.role !== 'ADMIN') {
     throw new Error('Unauthorized');
   }
-  return session;
+  return {
+    userId: session.id,
+    role: session.role as any,
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
+  };
 }
 
 export async function createNewsAction(formData: FormData) {
-  await requireAdmin();
+  const ctx = await requireAdmin();
   
-  const title = formData.get('title') as string;
-  const content = formData.get('content') as string;
-  const imageUrl = formData.get('imageUrl') as string;
-  const projectId = formData.get('projectId') as string;
+  const data = {
+    title: formData.get('title') as string,
+    content: formData.get('content') as string,
+    imageUrl: formData.get('imageUrl') as string,
+    projectId: formData.get('projectId') as string,
+  };
 
-  await prisma.news.create({
-    data: {
-      title,
-      content,
-      imageUrl: imageUrl || null,
-      projectId: projectId || null,
-    }
-  });
+  const result = await AdminServices.management.createNews(ctx, data);
+  if (!result.success) throw new Error(result.error.message);
 
   revalidatePath('/admin/content');
   redirect('/admin/content?tab=news');
 }
 
 export async function deleteNewsAction(id: string) {
-  try {
-    await prisma.news.delete({
-      where: { id }
-    });
+  const ctx = await requireAdmin();
+  const result = await AdminServices.management.deleteNews(ctx, id);
+  
+  if (result.success) {
     revalidatePath('/admin/content');
     return { success: true };
-  } catch (error: any) {
-    console.error('Failed to delete news:', error);
+  } else {
     return { success: false, error: 'Не удалось удалить новость.' };
   }
 }
 
 export async function broadcastNewsAction(newsId: string) {
+  const ctx = await requireAdmin();
+  
   try {
-    const news = await prisma.news.findUnique({ where: { id: newsId } });
-    if (!news) return { success: false, error: 'Новость не найдена' };
+    const result = await AdminServices.management.getNewsAndTargetUsers(ctx, newsId);
+    if (!result.success) return { success: false, error: result.error.message };
 
-    const users = await prisma.user.findMany({
-      where: {
-        tgId: { not: null },
-        projectId: news.projectId // Only target users of this project
-      },
-      select: { tgId: true }
-    });
-
+    const { news, users } = result.data;
     let successCount = 0;
     let failCount = 0;
 
-    // Send messages sequentially to avoid spam limits/complexity for now
-    // A better approach would be a background queue
     for (const user of users) {
       try {
         if (news.imageUrl) {
@@ -90,10 +84,7 @@ export async function broadcastNewsAction(newsId: string) {
       }
     }
 
-    await prisma.news.update({
-      where: { id: newsId },
-      data: { isSent: true }
-    });
+    await AdminServices.management.markNewsAsSent(ctx, newsId);
 
     revalidatePath('/admin/news');
     return { success: true, successCount, failCount };

@@ -5,6 +5,8 @@
  */
 import { Decimal } from 'decimal.js';
 import { Prisma, OrderStatus } from '@/generated/client';
+import { prisma } from '@/lib/prisma';
+import { ServiceResult } from '../types';
 
 export class OrderLifecycleService {
     /**
@@ -62,5 +64,82 @@ export class OrderLifecycleService {
                 updatedAt: new Date()
             }
         });
+    }
+
+    /**
+     * Возвращает список заказов пользователя.
+     */
+    static async getUserOrders(userId: string): Promise<ServiceResult<any[]>> {
+        try {
+            const orders = await prisma.order.findMany({
+                where: { userId },
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    internalService: {
+                        select: {
+                            name: true,
+                            platform: true,
+                        }
+                    }
+                }
+            });
+            return { success: true, data: orders };
+        } catch (error: any) {
+            return { success: false, error: { code: 'ORDERS_FETCH_FAILED', message: error.message } };
+        }
+    }
+
+    /**
+     * Возвращает детали конкретного заказа с проверкой владельца.
+     */
+    static async getOrderById(orderId: number, userId: string): Promise<ServiceResult<any>> {
+        try {
+            const order = await prisma.order.findFirst({
+                where: { id: orderId, userId },
+                include: { 
+                    internalService: { 
+                        select: { 
+                            name: true, 
+                            platform: true, 
+                            category: true, 
+                            requirements: true, 
+                            numericId: true 
+                        } 
+                    } 
+                }
+            });
+
+            if (!order) throw new Error('Заказ не найден');
+
+            return { success: true, data: order };
+        } catch (error: any) {
+            return { success: false, error: { code: 'ORDER_NOT_FOUND', message: error.message } };
+        }
+    }
+
+    /**
+     * Gets scheduled orders for a user.
+     */
+    static async getScheduledOrders(userId: string): Promise<ServiceResult<any[]>> {
+        try {
+            const scheduledOrders = await prisma.scheduledOrder.findMany({
+                where: { userId: userId },
+                orderBy: { scheduleTime: 'asc' },
+                include: {
+                    service: {
+                        select: {
+                            name: true,
+                            platform: true,
+                        }
+                    }
+                }
+            });
+            return { success: true, data: scheduledOrders };
+        } catch (error: any) {
+            return {
+                success: false,
+                error: { code: 'SCHEDULED_ORDERS_FETCH_FAILED', message: error.message }
+            };
+        }
     }
 }

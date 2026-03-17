@@ -5,7 +5,8 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Star, Send, Loader2, MessageCircle } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -23,6 +24,22 @@ export function LeaveReviewModal({ isOpen, onClose, projectId }: LeaveReviewModa
     const [rating, setRating] = useState(5);
     const [text, setText] = useState('');
     const [userName, setUserName] = useState('');
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+            const handleEsc = (e: KeyboardEvent) => {
+                if (e.key === 'Escape') onClose();
+            };
+            window.addEventListener('keydown', handleEsc);
+            return () => {
+                document.body.style.overflow = '';
+                window.removeEventListener('keydown', handleEsc);
+            };
+        }
+    }, [isOpen, onClose]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,7 +47,6 @@ export function LeaveReviewModal({ isOpen, onClose, projectId }: LeaveReviewModa
 
         setLoading(true);
         try {
-            // We use an API route for public submissions to ensure safety
             const res = await fetch('/api/reviews', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -59,96 +75,115 @@ export function LeaveReviewModal({ isOpen, onClose, projectId }: LeaveReviewModa
         }
     };
 
-    return (
+    if (!mounted) return null;
+
+    const modalContent = (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[9999] grid place-items-center p-4 overflow-y-auto custom-scrollbar bg-slate-900/60 backdrop-blur-md pb-20 pt-20">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+                        className="fixed inset-0"
                     />
 
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        initial={{ opacity: 0, scale: 0.9, y: 30 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden border border-slate-100"
+                        exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+                        className="bg-white w-full max-w-[400px] rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] relative z-10 flex flex-col max-h-[85vh] overflow-hidden border border-white/20"
                     >
-                        <div className="p-8">
-                            <div className="flex justify-between items-center mb-6">
-                                <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
-                                    <MessageCircle size={24} />
+                        {/* Header: Fixed */}
+                        <div className="shrink-0 p-8 pb-5 flex justify-between items-center bg-white border-b border-slate-50">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-600/30">
+                                    <MessageCircle size={22} />
                                 </div>
-                                <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors">
-                                    <X size={20} />
-                                </button>
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1">Ваш отзыв</h3>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Share experience</p>
+                                </div>
                             </div>
+                            <button 
+                                onClick={onClose} 
+                                className="p-3 hover:bg-slate-100 rounded-2xl text-slate-400 transition-all active:scale-95"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
 
-                            <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2">Оставить отзыв</h3>
-                            <p className="text-sm text-slate-500 font-medium mb-8">Ваше мнение помогает нам становиться лучше.</p>
-
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                {/* Rating */}
-                                <div className="flex justify-center gap-2 bg-slate-50 p-4 rounded-2xl">
-                                    {[1, 2, 3, 4, 5].map((s) => (
-                                        <button
-                                            key={s}
-                                            type="button"
-                                            onClick={() => setRating(s)}
-                                            className={`transition-all hover:scale-125 ${s <= rating ? 'text-amber-500' : 'text-slate-200'}`}
-                                        >
-                                            <Star size={32} fill={s <= rating ? 'currentColor' : 'none'} />
-                                        </button>
-                                    ))}
+                        {/* Content: Scrollable */}
+                        <div className="flex-1 overflow-y-auto p-8 pt-5 custom-scrollbar bg-white overscroll-contain">
+                            <form onSubmit={handleSubmit} className="space-y-8 pb-10">
+                                <div className="space-y-4">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Оценка сервиса</label>
+                                    <div className="flex justify-between items-center bg-slate-50/50 p-5 rounded-[2rem] border border-slate-100 shadow-inner">
+                                        {[1, 2, 3, 4, 5].map((s) => (
+                                            <button
+                                                key={s}
+                                                type="button"
+                                                onClick={() => setRating(s)}
+                                                className={`transition-all duration-300 ${s <= rating ? 'text-amber-500' : 'text-slate-200'}`}
+                                            >
+                                                <Star 
+                                                    size={32} 
+                                                    fill={s <= rating ? 'currentColor' : 'none'} 
+                                                    className={`transition-all ${s <= rating ? 'scale-110' : 'hover:scale-110'}`}
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
 
                                 {!session?.user && (
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Ваше имя (необязательно)</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Как вас зовут?</label>
                                         <input
                                             type="text"
                                             value={userName}
                                             onChange={(e) => setUserName(e.target.value)}
-                                            placeholder="Иван"
-                                            className="w-full bg-slate-50 border-0 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/10 placeholder:text-slate-300 transition-all"
+                                            placeholder="Александр"
+                                            className="w-full bg-slate-50/50 border border-slate-100 rounded-2xl px-6 py-4.5 text-sm font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600/20 transition-all placeholder:text-slate-300"
                                         />
                                     </div>
                                 )}
 
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Комментарий</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Ваши впечатления</label>
                                     <textarea
                                         value={text}
                                         onChange={(e) => setText(e.target.value)}
-                                        placeholder="Расскажите о своем опыте..."
-                                        className="w-full bg-slate-50 border-0 rounded-2xl px-5 py-4 text-sm font-medium text-slate-600 outline-none focus:ring-2 focus:ring-blue-500/10 placeholder:text-slate-300 transition-all min-h-[120px] resize-none"
+                                        placeholder="Напишите здесь всё, что считаете нужным..."
+                                        className="w-full bg-slate-50/50 border border-slate-100 rounded-[2rem] px-6 py-5 text-[15px] font-medium text-slate-600 outline-none focus:bg-white focus:ring-4 focus:ring-blue-600/5 focus:border-blue-600/20 transition-all placeholder:text-slate-300 min-h-[140px] resize-none leading-relaxed"
                                         required
                                     />
                                 </div>
 
-                                <div className="flex items-start gap-3">
+                                <div className="flex items-start gap-4 px-1">
                                     <input
                                         type="checkbox"
-                                        id="review_consent"
+                                        id="review_consent_final"
                                         required
-                                        className="mt-1 shrink-0 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                        className="mt-1 shrink-0 w-5 h-5 rounded-lg border-slate-200 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 transition-all cursor-pointer"
                                     />
-                                    <label htmlFor="review_consent" className="text-xs text-slate-500 font-medium leading-relaxed">
-                                        Я даю согласие на обработку моих персональных данных в соответствии с{' '}
-                                        <a href="/docs/policy" target="_blank" className="text-blue-600 hover:underline">Политикой конфиденциальности</a>
+                                    <label htmlFor="review_consent_final" className="text-[11px] text-slate-400 font-medium leading-tight select-none cursor-pointer">
+                                        Я подтверждаю своё согласие на <a href="/legal/privacy" target="_blank" className="text-blue-600 hover:underline font-extrabold transition-all">обработку персональных данных</a> в соответствии с политикой конфиденциальности.
                                     </label>
                                 </div>
 
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full bg-slate-900 text-white py-5 rounded-[1.5rem] font-black tracking-widest text-xs uppercase flex items-center justify-center gap-3 hover:bg-blue-600 transition-all shadow-xl shadow-slate-200 active:scale-95 disabled:opacity-50"
+                                    className="w-full bg-slate-950 text-white py-6 rounded-[2rem] font-black tracking-[0.2em] text-xs uppercase flex items-center justify-center gap-3 hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10 active:scale-95 disabled:opacity-50 group overflow-hidden relative"
                                 >
-                                    {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                                    Отправить отзыв
+                                    {loading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
+                                    <span>Отправить отзыв</span>
+                                    
+                                    {/* Subtle hover gloss */}
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                                 </button>
                             </form>
                         </div>
@@ -157,4 +192,6 @@ export function LeaveReviewModal({ isOpen, onClose, projectId }: LeaveReviewModa
             )}
         </AnimatePresence>
     );
+
+    return createPortal(modalContent, document.body);
 }

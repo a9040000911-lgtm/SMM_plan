@@ -3,36 +3,36 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { Platform, Category } from '@/generated/client';
+import type { Platform, Category } from '@/generated/client';
 import { AnalysisResult, PlatformParser } from '../types';
 
 export const MaxParser: PlatformParser = {
-    name: Platform.MAX,
+    name: 'MAX' as Platform,
     domains: ['max.ru', 'max.app', 't.max.ru', 'max.im'],
     parse(url: string): AnalysisResult | null {
         const isPrivate = url.includes('/join/') || url.includes('?invite=');
 
         if (url.includes('/join/') || url.includes('?invite=')) {
-            return { platform: Platform.MAX, possibleCategories: [Category.SUBSCRIBERS, Category.GROUPS], objectType: 'MAX_GROUP', isPrivate: true };
+            return { platform: 'MAX' as Platform, possibleCategories: ['SUBSCRIBERS' as Category, 'GROUPS' as Category], objectType: 'MAX_GROUP', isPrivate: true };
         }
 
-        if (url.includes('start=')) return { platform: Platform.MAX, possibleCategories: [Category.BOTS], objectType: 'MAX_BOT' };
+        if (url.includes('start=')) return { platform: 'MAX' as Platform, possibleCategories: ['BOTS' as Category], objectType: 'MAX_BOT' };
 
         const urlParts = url.split('?')[0].split('/');
         const lastPart = urlParts[urlParts.length - 1];
 
         if (/^\d+$/.test(lastPart)) {
             return {
-                platform: Platform.MAX,
-                possibleCategories: [Category.VIEWS, Category.REACTIONS, Category.REPOSTS, Category.COMMENTS],
+                platform: 'MAX' as Platform,
+                possibleCategories: ['VIEWS' as Category, 'REACTIONS' as Category, 'REPOSTS' as Category, 'COMMENTS' as Category],
                 objectType: 'MAX_POST',
                 isPrivate
             };
         }
 
         return {
-            platform: Platform.MAX,
-            possibleCategories: [Category.SUBSCRIBERS, Category.GROUPS, Category.VIEWS, Category.REACTIONS],
+            platform: 'MAX' as Platform,
+            possibleCategories: ['SUBSCRIBERS' as Category, 'GROUPS' as Category, 'VIEWS' as Category, 'REACTIONS' as Category],
             objectType: 'MAX_CHANNEL',
             isPrivate
         };

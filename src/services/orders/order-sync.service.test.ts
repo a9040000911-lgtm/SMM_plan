@@ -38,9 +38,11 @@ describe('OrderSyncService', () => {
         user: { id: 'user-1' },
     };
 
-    const mockProcessor = {
-        handleRefund: jest.fn(),
-        tryAutoRefill: jest.fn(),
+    const mockServices = {
+        OrderRefundService: {
+            handleRefund: jest.fn(),
+            tryAutoRefill: jest.fn(),
+        }
     };
 
     beforeEach(() => {
@@ -75,7 +77,7 @@ describe('OrderSyncService', () => {
             });
 
             // Act
-            await OrderSyncService.syncSingleOrder(mockOrder, mockProcessor);
+            await OrderSyncService.syncSingleOrder(mockOrder, mockServices as any);
 
             // Assert
             expect(prisma.order.update).toHaveBeenCalledWith({
@@ -91,28 +93,28 @@ describe('OrderSyncService', () => {
         it('should trigger tryAutoRefill for CANCELED orders and NOT refund if refilled', async () => {
             // Arrange
             (ProviderService.getOrderStatus as jest.Mock).mockResolvedValue({ status: 'Canceled', remains: 100 });
-            mockProcessor.tryAutoRefill.mockResolvedValue(true);
+            mockServices.OrderRefundService.tryAutoRefill.mockResolvedValue(true);
 
             // Act
-            await OrderSyncService.syncSingleOrder(mockOrder, mockProcessor);
+            await OrderSyncService.syncSingleOrder(mockOrder, mockServices as any);
 
             // Assert
-            expect(mockProcessor.tryAutoRefill).toHaveBeenCalledWith(mockOrder.id);
-            expect(mockProcessor.handleRefund).not.toHaveBeenCalled();
+            expect(mockServices.OrderRefundService.tryAutoRefill).toHaveBeenCalledWith(mockOrder.id);
+            expect(mockServices.OrderRefundService.handleRefund).not.toHaveBeenCalled();
             expect(prisma.order.update).not.toHaveBeenCalled();
         });
 
         it('should trigger handleRefund if tryAutoRefill fails for CANCELED orders', async () => {
             // Arrange
             (ProviderService.getOrderStatus as jest.Mock).mockResolvedValue({ status: 'Canceled', remains: 100 });
-            mockProcessor.tryAutoRefill.mockResolvedValue(false);
+            mockServices.OrderRefundService.tryAutoRefill.mockResolvedValue(false);
 
             // Act
-            await OrderSyncService.syncSingleOrder(mockOrder, mockProcessor);
+            await OrderSyncService.syncSingleOrder(mockOrder, mockServices as any);
 
             // Assert
-            expect(mockProcessor.tryAutoRefill).toHaveBeenCalledWith(mockOrder.id);
-            expect(mockProcessor.handleRefund).toHaveBeenCalledWith(mockOrder, 'CANCELED', 100);
+            expect(mockServices.OrderRefundService.tryAutoRefill).toHaveBeenCalledWith(mockOrder.id);
+            expect(mockServices.OrderRefundService.handleRefund).toHaveBeenCalledWith(mockOrder, 'CANCELED', 100);
         });
 
         it('should trigger partial refund for PARTIAL orders', async () => {
@@ -120,10 +122,10 @@ describe('OrderSyncService', () => {
             (ProviderService.getOrderStatus as jest.Mock).mockResolvedValue({ status: 'Partial', remains: 40 });
 
             // Act
-            await OrderSyncService.syncSingleOrder(mockOrder, mockProcessor);
+            await OrderSyncService.syncSingleOrder(mockOrder, mockServices as any);
 
             // Assert
-            expect(mockProcessor.handleRefund).toHaveBeenCalledWith(mockOrder, 'PARTIAL', 40);
+            expect(mockServices.OrderRefundService.handleRefund).toHaveBeenCalledWith(mockOrder, 'PARTIAL', 40);
             expect(prisma.order.update).not.toHaveBeenCalled();
         });
 
@@ -132,7 +134,7 @@ describe('OrderSyncService', () => {
             (ProviderService.getOrderStatus as jest.Mock).mockResolvedValue({ status: 'In Progress', remains: 50 });
 
             // Act
-            await OrderSyncService.syncSingleOrder(mockOrder, mockProcessor);
+            await OrderSyncService.syncSingleOrder(mockOrder, mockServices as any);
 
             // Assert
             expect(prisma.order.update).toHaveBeenCalledWith({
@@ -147,7 +149,7 @@ describe('OrderSyncService', () => {
             (ProviderService.getOrderStatus as jest.Mock).mockResolvedValue(errorResponse);
 
             // Act
-            await OrderSyncService.syncSingleOrder(mockOrder, mockProcessor);
+            await OrderSyncService.syncSingleOrder(mockOrder, mockServices as any);
 
             // Assert
             expect(prisma.order.update).toHaveBeenCalledWith({

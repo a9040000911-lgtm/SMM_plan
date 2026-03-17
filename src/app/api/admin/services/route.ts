@@ -6,12 +6,17 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAdminSession } from '@/utils/admin-session';
 import { PricingService } from '@/services/finance/pricing.service';
-
 import { sanitizeData } from '@/utils/service-sanitizer';
 
 export async function GET() {
     try {
+        const session = await getAdminSession();
+        if (!session) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const services = await prisma.internalService.findMany({
             orderBy: { id: 'asc' },
             include: {
