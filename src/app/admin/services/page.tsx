@@ -65,80 +65,9 @@ export default async function AdminServicesPage({
     }
   });
 
-  const serializedProviders = providers.map((p: any) => {
-    const log = latestLogsMap.get(p.id);
-    return {
-      id: p.id,
-      name: p.name,
-      type: p.type,
-      apiKey: p.apiKey,
-      apiUrl: p.apiUrl,
-      isEnabled: p.isEnabled,
-      balanceThreshold: p.balanceThreshold?.toNumber ? p.balanceThreshold.toNumber() : Number(p.balanceThreshold || 0),
-      currentBalance: log?.balance?.toNumber ? log.balance.toNumber() : Number(log?.balance || 0),
-      metadata: p.metadata,
-      projectId: p.projectId,
-      balanceCurrency: (p.balanceCurrency as 'RUB' | 'USD') || 'RUB',
-      pricesCurrency: (p.pricesCurrency as 'RUB' | 'USD') || 'RUB',
-      serviceCount: p._count.services,
-      _count: p._count
-    } as AdminProvider;
-  });
-
-  const serializedServices = services.map((s: any) => ({
-    id: s.id,
-    name: s.name,
-    description: s.description,
-    pricePer1000: s.pricePer1000?.toNumber ? s.pricePer1000.toNumber() : Number(s.pricePer1000 || 0),
-    lastProviderPrice: s.lastProviderPrice?.toNumber ? s.lastProviderPrice.toNumber() : (s.lastProviderPrice ? Number(s.lastProviderPrice) : null),
-    marketPrice: s.marketPrice?.toNumber ? s.marketPrice.toNumber() : (s.marketPrice ? Number(s.marketPrice) : null),
-    isActive: s.isActive,
-    platform: s.platform,
-    category: s.category,
-    targetType: s.targetType,
-    requirements: s.requirements,
-    guaranteeDays: s.guaranteeDays,
-    successRate: s.successRate,
-    isPrivate: s.isPrivate,
-    categoryId: s.categoryId,
-    minQty: s.minQty,
-    maxQty: s.maxQty,
-    providerPriceOriginal: s.providerPriceOriginal?.toNumber ? s.providerPriceOriginal.toNumber() : (s.providerPriceOriginal ? Number(s.providerPriceOriginal) : null),
-    providerCurrencyOriginal: s.providerCurrencyOriginal,
-    markup: s.markup?.toNumber ? s.markup.toNumber() : (s.markup ? Number(s.markup) : null),
-    providerMappings: s.providerMappings.map((m: any) => ({
-      id: m.id,
-      priority: m.priority,
-      isActive: m.isActive,
-      providerId: m.providerId,
-      providerServiceId: m.providerServiceId,
-      provider: m.provider ? {
-        id: m.provider.id,
-        name: m.provider.name,
-        type: m.provider.type,
-        balanceThreshold: m.provider.balanceThreshold?.toNumber ? m.provider.balanceThreshold.toNumber() : Number(m.provider.balanceThreshold || 0)
-      } : null,
-      providerService: m.providerService ? {
-        id: m.providerService.id,
-        name: m.providerService.name,
-        rawPrice: m.providerService.rawPrice?.toNumber ? m.providerService.rawPrice.toNumber() : Number(m.providerService.rawPrice || 0),
-        rawPriceOriginal: m.providerService.rawPriceOriginal?.toNumber ? m.providerService.rawPriceOriginal.toNumber() : (m.providerService.rawPriceOriginal ? Number(m.providerService.rawPriceOriginal) : null),
-        rawCurrencyOriginal: m.providerService.rawCurrencyOriginal,
-        rawData: m.providerService.rawData
-      } : null
-    })),
-    serviceCategory: s.serviceCategory ? {
-      id: s.serviceCategory.id,
-      name: s.serviceCategory.name,
-      icon: s.serviceCategory.icon
-    } : undefined,
-  })) as SerializedService[];
-
-  const serializedOverrides = overrides.map((o: any) => ({
-    ...o,
-    customPrice: o.customPrice?.toNumber() || null,
-    markup: o.markup?.toNumber() || null
-  })) as SerializedOverride[];
+  const serializedProviders = providers as AdminProvider[];
+  const serializedServices = services as SerializedService[];
+  const serializedOverrides = overrides as SerializedOverride[];
 
   return (
     <div className="max-w-[1700px] mx-auto px-4 sm:px-8 py-8 min-h-screen space-y-8">

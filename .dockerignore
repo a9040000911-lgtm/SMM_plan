@@ -6,15 +6,26 @@ node_modules
 .gitignore
 .dockerignore
 .agent
+.gemini
 .GEMINI
 .gemini-clipboard
 .swc
+.venv
+venv
+dist
+build
 
-# EXCEPTIONS: We need these for the Hybrid build
-!.next/standalone
-!.next/static
-!public
-!prisma
+# Archives (Massive bloat)
+*.tar
+*.tar.gz
+*.gz
+*.zip
+*.rar
+*.7z
+smmplan-app.tar
+smmplan-bot.tar
+deploy_app.tar.gz
+deploy_bot.tar.gz
 
 # Trash and logs
 all_orders_data

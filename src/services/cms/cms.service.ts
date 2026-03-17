@@ -6,6 +6,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
+import { toPlainObject } from '@/utils/serialization';
 import { ServiceResult } from '../types';
 
 const CACHE_TTL = 3600; // 1 hour
@@ -64,49 +65,54 @@ export class CmsService {
         const cacheKey = `${CACHE_PREFIX}strings:${projectId}:${pageSlug || 'global'}`;
 
         return this.getCached(cacheKey, async () => {
-            // 1. Fetch global strings (where pageId is null)
-            const globalSettings = await prisma.cmsString.findMany({
-                where: {
-                    projectId,
-                    pageId: null,
-                    isPublished: true
-                }
-            });
-
-            const strings: Record<string, string> = {};
-            globalSettings.forEach(s => {
-                strings[s.key] = s.value;
-            });
-
-            // 2. Fetch page-specific strings if slug is provided
-            if (pageSlug) {
-                const pageSettings = await prisma.cmsString.findMany({
+            try {
+                // 1. Fetch global strings (where pageId is null)
+                const globalSettings = await prisma.cmsString.findMany({
                     where: {
                         projectId,
-                        page: { slug: pageSlug },
+                        pageId: null,
                         isPublished: true
                     }
                 });
-                pageSettings.forEach(s => {
-                    strings[s.key] = s.value; // Override global with page-specific
-                });
-            }
 
-            // 3. Fallback to legacy Settings table for backward compatibility during migration
-            if (Object.keys(strings).length === 0) {
-                const legacySettings = await prisma.settings.findMany({
-                    where: {
-                        projectId,
-                        key: { startsWith: 'cms.' }
-                    }
+                const strings: Record<string, string> = {};
+                globalSettings.forEach(s => {
+                    strings[s.key] = s.value;
                 });
-                legacySettings.forEach(s => {
-                    const cleanKey = s.key.replace('cms.', '');
-                    if (!strings[cleanKey]) strings[cleanKey] = s.value;
-                });
-            }
 
-            return strings;
+                // 2. Fetch page-specific strings if slug is provided
+                if (pageSlug) {
+                    const pageSettings = await prisma.cmsString.findMany({
+                        where: {
+                            projectId,
+                            page: { slug: pageSlug },
+                            isPublished: true
+                        }
+                    });
+                    pageSettings.forEach(s => {
+                        strings[s.key] = s.value; // Override global with page-specific
+                    });
+                }
+
+                // 3. Fallback to legacy Settings table for backward compatibility during migration
+                if (Object.keys(strings).length === 0) {
+                    const legacySettings = await prisma.settings.findMany({
+                        where: {
+                            projectId,
+                            key: { startsWith: 'cms.' }
+                        }
+                    });
+                    legacySettings.forEach(s => {
+                        const cleanKey = s.key.replace('cms.', '');
+                        if (!strings[cleanKey]) strings[cleanKey] = s.value;
+                    });
+                }
+
+                return strings;
+            } catch (e) {
+                console.error(`[CmsService] Error fetching strings for project ${projectId}:`, e);
+                return {};
+            }
         });
     }
 
@@ -119,35 +125,40 @@ export class CmsService {
         const cacheKey = `${CACHE_PREFIX}blocks:${projectId}:${pageSlug}`;
 
         return this.getCached(cacheKey, async () => {
-            // Try to fetch from new relational model
-            const blocks = await prisma.cmsBlock.findMany({
-                where: {
-                    page: {
-                        projectId,
-                        slug: pageSlug
+            try {
+                // Try to fetch from new relational model
+                const blocks = await prisma.cmsBlock.findMany({
+                    where: {
+                        page: {
+                            projectId,
+                            slug: pageSlug
+                        },
+                        isPublished: true
                     },
-                    isPublished: true
-                },
-                orderBy: { order: 'asc' }
-            });
+                    orderBy: { order: 'asc' }
+                });
 
-            if (blocks.length > 0) {
-                return blocks.map(b => ({
-                    id: b.id,
-                    type: b.type,
-                    slot: b.slot,
-                    data: b.content
-                }));
+                if (blocks.length > 0) {
+                    return blocks.map(b => ({
+                        id: b.id,
+                        type: b.type,
+                        slot: b.slot,
+                        data: b.content
+                    }));
+                }
+
+                // Fallback to legacy Project.config for backward compatibility
+                const project = await prisma.project.findUnique({
+                    where: { id: projectId },
+                    select: { config: true }
+                });
+
+                const config = (project?.config as any) || {};
+                return config.cmsBlocks || [];
+            } catch (e) {
+                console.error(`[CmsService] Error fetching blocks for project ${projectId}:`, e);
+                return [];
             }
-
-            // Fallback to legacy Project.config for backward compatibility
-            const project = await prisma.project.findUnique({
-                where: { id: projectId },
-                select: { config: true }
-            });
-
-            const config = (project?.config as any) || {};
-            return config.cmsBlocks || [];
         });
     }
 
@@ -220,7 +231,7 @@ export class CmsService {
                 orderBy: { createdAt: 'desc' },
                 take: limit
             });
-            return { success: true, data: reviews };
+            return { success: true, data: toPlainObject(reviews) };
         } catch (error: any) {
             return {
                 success: false,

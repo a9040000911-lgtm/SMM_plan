@@ -21,19 +21,26 @@ import { CmsBridgeProvider } from "@/components/cms/CmsBridge";
 import { CmsService } from "@/services/cms/cms.service";
 
 export default async function ClientLayout({ children }: { children: React.ReactNode }) {
-    const projectId = await getClientProjectId();
+    let projectId: string | null = null;
+    let cmsStrings: Record<string, string> = {};
     let enableBugReporter = process.env.NEXT_PUBLIC_ENABLE_BUG_REPORTER !== 'false';
     let enableReviews = process.env.NEXT_PUBLIC_ENABLE_REVIEWS !== 'false';
 
-    const cmsStrings = await CmsService.getProjectStrings(projectId);
+    try {
+        projectId = await getClientProjectId();
+        cmsStrings = await CmsService.getProjectStrings(projectId);
 
-    if (projectId) {
-        const project = await ProjectService.getById(projectId);
-        if (project && project.config) {
-            const config = project.config as any;
-            if (config.enableBugReporter !== undefined) enableBugReporter = config.enableBugReporter;
-            if (config.enableReviews !== undefined) enableReviews = config.enableReviews;
+        if (projectId) {
+            const project = await ProjectService.getById(projectId);
+            if (project && project.config) {
+                const config = project.config as any;
+                if (config.enableBugReporter !== undefined) enableBugReporter = config.enableBugReporter;
+                if (config.enableReviews !== undefined) enableReviews = config.enableReviews;
+            }
         }
+    } catch (e) {
+        console.error('[ClientLayout] Fatal error in server-side data fetching:', e);
+        // Continue with fallbacks (projectId=null, empty cmsStrings, default flags)
     }
 
     return (

@@ -3,6 +3,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
+
 /**
  * Сверхмощная утилита для сериализации объектов Prisma.
  * Решает проблему "Only plain objects can be passed to Client Components".
@@ -15,14 +16,13 @@ export function toPlainObject<T>(obj: T): T {
         return obj.map(toPlainObject) as unknown as T;
     }
 
-    if (typeof obj === 'object') {
-        // Если это Decimal (имеет метод d и s или конструктор Decimal)
-        if ((obj as any).constructor?.name === 'Decimal' || typeof (obj as any).toNumber === 'function') {
-            return (obj as any).toNumber() as unknown as T;
-        }
+    if (typeof obj === 'bigint') {
+        return (obj as any).toString() as unknown as T;
+    }
 
-        // Если это BigInt
-        if (typeof obj === 'bigint') {
+    if (typeof obj === 'object') {
+        // Если это Decimal (из Prisma)
+        if ((obj as any).constructor?.name === 'Decimal' || typeof (obj as any).toFixed === 'function') {
             return (obj as any).toString() as unknown as T;
         }
 

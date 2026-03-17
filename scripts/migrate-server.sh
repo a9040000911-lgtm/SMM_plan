@@ -59,7 +59,7 @@ done
 
 # 5. Initialize Database Schema
 echo "🗄 pushing prisma schema..."
-docker exec -u root smmplan-app npx prisma@5.22.0 db push --accept-data-loss --skip-generate
+docker compose -f docker-compose.prod.yml exec -u root app npx prisma db push --accept-data-loss --skip-generate
 
 # 6. Run Post-Deployment Patches/Seeds
 # (Патч теперь делается на этапе сборки образа, здесь проверяем только БД)

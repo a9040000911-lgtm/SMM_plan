@@ -12,6 +12,7 @@ import { ReferralLeaderboardService } from "../users/referral-leaderboard.servic
 import { PricingService } from "../finance/pricing.service";
 import { safeAdminExecute } from "../utils";
 import { Decimal } from "decimal.js";
+import { toPlainObject } from "@/utils/serialization";
 import { z } from "zod";
 
 export interface UserFilters {
@@ -154,7 +155,7 @@ export class AdminDataService {
                 };
             }));
 
-            return { users: enrichedUsers, totalMatching, totalGlobal };
+            return toPlainObject({ users: enrichedUsers, totalMatching, totalGlobal });
         });
     }
 
@@ -257,7 +258,7 @@ export class AdminDataService {
 
             return {
                 success: true,
-                data: {
+                data: toPlainObject({
                     orders: orders.map(o => ({
                         ...o,
                         totalPrice: o.totalPrice?.toNumber() || 0,
@@ -281,7 +282,7 @@ export class AdminDataService {
                     totalMatching,
                     projects: allProjects,
                     providers: allProviders
-                }
+                })
             };
         } catch (error: any) {
             return {
@@ -351,38 +352,14 @@ export class AdminDataService {
 
             return {
                 success: true,
-                data: {
-                    services: services.map(s => ({
-                        ...s,
-                        pricePer1000: s.pricePer1000?.toNumber ? s.pricePer1000.toNumber() : Number(s.pricePer1000 || 0),
-                        lastProviderPrice: s.lastProviderPrice?.toNumber ? s.lastProviderPrice.toNumber() : (s.lastProviderPrice ? Number(s.lastProviderPrice) : null),
-                        marketPrice: s.marketPrice?.toNumber ? s.marketPrice.toNumber() : (s.marketPrice ? Number(s.marketPrice) : null),
-                        markup: s.markup?.toNumber ? s.markup.toNumber() : (s.markup ? Number(s.markup) : null),
-                        providerPriceOriginal: s.providerPriceOriginal?.toNumber ? s.providerPriceOriginal.toNumber() : (s.providerPriceOriginal ? Number(s.providerPriceOriginal) : null),
-                        providerMappings: s.providerMappings.map((pm: any) => ({
-                            ...pm,
-                            providerService: pm.providerService ? {
-                                ...pm.providerService,
-                                rate: pm.providerService.rate ? (typeof pm.providerService.rate === 'number' ? pm.providerService.rate : Number(pm.providerService.rate)) : 0
-                            } : null
-                        }))
-                    })),
-                    providers: providers.map(p => ({
-                        ...p,
-                        balanceThreshold: p.balanceThreshold.toNumber ? p.balanceThreshold.toNumber() : Number(p.balanceThreshold)
-                    })),
+                data: toPlainObject({
+                    services,
+                    providers,
                     projects,
-                    overrides: overrides.map(o => ({
-                        ...o,
-                        customPrice: o.customPrice ? (typeof o.customPrice === 'number' ? o.customPrice : Number(o.customPrice)) : null,
-                        markup: o.markup ? (typeof o.markup === 'number' ? o.markup : Number(o.markup)) : null
-                    })),
+                    overrides,
                     usdRate,
-                    providerLogs: providerLogs.map(l => ({
-                        ...l,
-                        balance: l.balance.toNumber ? l.balance.toNumber() : Number(l.balance)
-                    }))
-                }
+                    providerLogs
+                })
             };
         } catch (error: any) {
             return {
@@ -804,7 +781,7 @@ export class AdminDataService {
 
             return {
                 success: true,
-                data: {
+                data: toPlainObject({
                     revenue: Number(revenue._sum.amount || 0),
                     orderCount,
                     userCount,
@@ -819,7 +796,7 @@ export class AdminDataService {
                         user: o.user,
                         internalService: o.internalService
                     }))
-                }
+                })
             };
         } catch (error: any) {
             return {
@@ -989,14 +966,14 @@ export class AdminDataService {
 
             return {
                 success: true,
-                data: {
+                data: toPlainObject({
                     reports: reports.map(r => ({
                         ...r,
                         rewardAmount: r.rewardAmount.toString()
                     })),
                     total,
                     stats
-                }
+                })
             };
         } catch (error: any) {
             return {
@@ -1117,11 +1094,11 @@ export class AdminDataService {
 
             return {
                 success: true,
-                data: {
+                data: toPlainObject({
                     accessibleProjects,
                     sidebarUser,
                     isGlobalAdmin: ctx.isGlobalAdmin || dbUser?.isGlobalAdmin || false
-                }
+                })
             };
         } catch (error: any) {
             return {
@@ -1262,13 +1239,13 @@ export class AdminDataService {
 
             return {
                 success: true,
-                data: {
+                data: toPlainObject({
                     users,
                     orders: orders.map(o => ({ ...o, totalPrice: o.totalPrice.toString() })),
                     tickets,
                     services,
                     providers
-                }
+                })
             };
         } catch (error: any) {
             return {
@@ -1298,10 +1275,10 @@ export class AdminDataService {
 
             return {
                 success: true,
-                data: {
+                data: toPlainObject({
                     ...report,
                     rewardAmount: report.rewardAmount.toString()
-                }
+                })
             };
         } catch (error: any) {
             return {

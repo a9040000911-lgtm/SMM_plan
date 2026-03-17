@@ -41,12 +41,13 @@ ENV NEXT_PRIVATE_LOCAL_WEBPACK_WORKERS=1
 RUN npx prisma generate
 RUN npm run prisma:patch
 
-# Build Next.js with resource limits
+# Build Next.js with resource limits and disable Turbopack for stability in Docker
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PRIVATE_LOCAL_WEBPACK_WORKERS=1
 ENV IS_BUILD=true
 ENV NO_REDIS_CONNECTION=true
-RUN npm run build
+# Disable Turbopack for production build to avoid Tailwind 4 / Linux crashes
+RUN npm run build -- --no-turbo
 
 # Stage 3: Bot production runner (Optimized)
 FROM base AS bot-runner
@@ -68,8 +69,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
-
 # Set the correct permission for prerender cache
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
@@ -80,6 +79,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+
+# Ensure static files are accessible for volume mounting in Nginx
+# We explicitly copy them to a known path that will be used for volumes
+RUN mkdir -p /app/static-out/_next && \
+    cp -r ./.next/static /app/static-out/_next/static && \
+    cp -r ./public /app/static-out/public
 
 USER nextjs
 

@@ -7,6 +7,7 @@ import { HomeContent } from "@/components/stitch/home/HomeContent";
 import { Metadata } from "next";
 import { getClientProjectId } from "@/utils/project-resolver";
 import { CmsService } from "@/services/cms/cms.service";
+import { toPlainObject } from "@/utils/serialization";
 
 export const dynamic = 'force-dynamic';
 
@@ -20,15 +21,24 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-    const projectId = await getClientProjectId();
+    let projectId: string | null = null;
+    let cmsStrings: Record<string, string> = {};
+    let cmsBlocks: any[] = [];
+    let reviews: any[] = [];
 
-    // Fetch CMS content for the home page
-    const cmsStrings = await CmsService.getProjectStrings(projectId);
-    const cmsBlocks = await CmsService.getProjectBlocks(projectId);
+    try {
+        projectId = await getClientProjectId();
 
-    // Fetch only approved reviews for this project
-    const reviewResult = await CmsService.getApprovedReviews(projectId);
-    const reviews = reviewResult.success ? reviewResult.data : [];
+        // Fetch CMS content for the home page
+        cmsStrings = await CmsService.getProjectStrings(projectId);
+        cmsBlocks = await CmsService.getProjectBlocks(projectId);
+
+        // Fetch only approved reviews for this project
+        const reviewResult = await CmsService.getApprovedReviews(projectId);
+        reviews = reviewResult.success ? reviewResult.data : [];
+    } catch (e) {
+        console.error('[HomePage] Error fetching initial data:', e);
+    }
 
     return (
         <div className="min-h-screen bg-white flex flex-col selection:bg-blue-600/10 selection:text-blue-600 relative overflow-x-hidden">
@@ -36,7 +46,7 @@ export default async function HomePage() {
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120%] h-[800px] bg-[radial-gradient(ellipse_at_top,rgba(37,99,235,0.05)_0%,transparent_70%)] pointer-events-none" />
 
             <HomeContent 
-                initialReviews={JSON.parse(JSON.stringify(reviews))} 
+                initialReviews={toPlainObject(reviews)} 
                 projectId={projectId} 
                 cmsContent={cmsStrings}
                 cmsBlocks={cmsBlocks}

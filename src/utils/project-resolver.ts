@@ -29,7 +29,9 @@ export async function getProjectByHostname(): Promise<string | null> {
             });
             if (project) return project.id;
         }
-    } catch { /* ignore */ }
+    } catch (e) { 
+        console.error('[Project Resolver] Hostname resolution error:', e);
+    }
     return null;
 }
 
@@ -37,11 +39,16 @@ export async function getProjectByHostname(): Promise<string | null> {
  * Last fallback: default project
  */
 export async function getDefaultProjectId(): Promise<string | null> {
-    const defaultProject = await prisma.project.findFirst({
-        orderBy: { createdAt: 'asc' },
-        select: { id: true }
-    });
-    return defaultProject?.id || null;
+    try {
+        const defaultProject = await prisma.project.findFirst({
+            orderBy: { createdAt: 'asc' },
+            select: { id: true }
+        });
+        return defaultProject?.id || null;
+    } catch (e) {
+        console.error('[Project Resolver] Error fetching default project:', e);
+        return null;
+    }
 }
 
 /**

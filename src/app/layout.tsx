@@ -16,6 +16,8 @@ const jakarta = Plus_Jakarta_Sans({
   display: 'swap',
 });
 
+export const dynamic = 'force-dynamic';
+
 const siteConfig = {
   name: "Smmplan",
   description: "Профессиональная SMM-платформа №1 для мгновенного продвижения в Telegram, Instagram, VK и YouTube. Только качественные услуги с гарантией.",
