@@ -20,7 +20,7 @@ jest.setTimeout(60000);
 jest.mock('@/services/providers/provider.service');
 
 // Mock Bot (Must stay mocked)
-jest.mock('@/lib/bot', () => ({
+jest.mock('@/services/bot/bot-registry', () => ({
     bot: {
         telegram: { sendMessage: jest.fn().mockResolvedValue({}) }
     },
@@ -52,7 +52,7 @@ describe('E2E Full Cycle: Payment to Order Completion', () => {
 
         // 3. Seed Mock Data
         const projectId = 'e2e_p1';
-        await prisma.project.upsert({
+        const _project = await prisma.project.upsert({
             where: { id: projectId },
             update: {},
             create: { id: projectId, slug: 'e2e', name: 'E2E Project', domain: 'e2e.test' }
@@ -116,14 +116,15 @@ describe('E2E Full Cycle: Payment to Order Completion', () => {
         });
 
         // Mock Provider methods
-        const mockProvider = {
-            getBalance: jest.fn().mockResolvedValue({ balance: 1000, currency: 'USD' }),
+        jest.spyOn(ProviderService, 'getInstance').mockImplementation(async () => ({
             createOrder: jest.fn().mockResolvedValue({ success: true, externalId: 'ext_1', providerName: 'e2e_pv1' }),
-            getStatus: jest.fn().mockResolvedValue({ status: 'Completed', remains: 0 })
-        };
-        (ProviderService.getInstance as jest.Mock).mockResolvedValue(mockProvider);
+            getBalance: jest.fn().mockResolvedValue({ balance: 1000 }),
+            getServices: jest.fn().mockResolvedValue([]),
+            getStatus: jest.fn().mockResolvedValue({ status: 'COMPLETED', remains: 0 })
+        } as any));
+        jest.spyOn(ProviderService, 'getStatuses').mockResolvedValue({ 'ext_1': { status: 'COMPLETED', remains: 0 } as any });
         (ProviderService.createOrder as jest.Mock).mockResolvedValue({ success: true, externalId: 'ext_1', providerName: 'e2e_pv1' });
-        (ProviderService.getOrderStatus as jest.Mock).mockResolvedValue({ status: 'Completed', remains: 0 });
+        (ProviderService.getOrderStatus as jest.Mock).mockResolvedValue({ status: 'COMPLETED', remains: 0 });
     });
 
     afterAll(async () => {
@@ -132,7 +133,7 @@ describe('E2E Full Cycle: Payment to Order Completion', () => {
 
     test('Should process Payment -> Create Order -> Send to Provider -> Sync Status', async () => {
         // 1. Create PENDING Transaction
-        const tx = await prisma.transaction.create({
+        const _tx = await prisma.transaction.create({
             data: {
                 projectId: user.projectId,
                 userId: user.id,
@@ -180,3 +181,5 @@ describe('E2E Full Cycle: Payment to Order Completion', () => {
         expect(orderFinal!.status).toBe('COMPLETED');
     });
 });
+
+

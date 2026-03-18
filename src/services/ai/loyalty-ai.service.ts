@@ -221,3 +221,5 @@ export class LoyaltyAIService {
         return recommendations;
     }
 }
+
+

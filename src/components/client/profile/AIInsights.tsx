@@ -9,7 +9,7 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ArrowRight, Brain, Target, Star, AlertTriangle } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 
 interface Insight {
     type: 'SEGMENT' | 'NPS' | 'REFERRAL' | 'CHURN';
@@ -152,3 +152,5 @@ export const AIInsights: React.FC = () => {
         </div>
     );
 };
+
+

@@ -5,7 +5,7 @@
  */
 import axios from 'axios';
 import * as crypto from 'crypto';
-import { ConfigService } from '@/lib/config.service';
+import { ConfigService } from '@/services/core/config.service';
 import { PaymentResult, RefundResult } from '@/types/payment';
 
 const YOOKASSA_API_URL = 'https://api.yookassa.ru/v3/payments';
@@ -189,3 +189,5 @@ export class PaymentService {
     }
   }
 }
+
+

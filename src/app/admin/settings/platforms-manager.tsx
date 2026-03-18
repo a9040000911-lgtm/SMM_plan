@@ -17,7 +17,7 @@ import {
     deletePlatformAction,
     PlatformDTO
 } from './platform-actions';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface PlatformsManagerProps {
@@ -327,3 +327,5 @@ function PlatformModal({
         </AnimatePresence>
     );
 }
+
+

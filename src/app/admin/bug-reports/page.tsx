@@ -174,3 +174,5 @@ export default async function BugReportsPage({ searchParams }: PageProps) {
         </div>
     );
 }
+
+

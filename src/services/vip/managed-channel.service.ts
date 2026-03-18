@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
-import { bot } from '@/lib/bot';
+import { bot } from '@/services/bot/bot-registry';
 
 export class ManagedChannelService {
     /**
@@ -115,3 +115,5 @@ export class ManagedChannelService {
         return false;
     }
 }
+
+

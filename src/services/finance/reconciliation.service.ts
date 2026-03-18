@@ -6,8 +6,8 @@
 
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
-import { bot } from '@/lib/bot';
-import { ConfigService } from '@/lib/config.service';
+import { bot } from '@/services/bot/bot-registry';
+import { ConfigService } from '@/services/core/config.service';
 import { CurrencyService } from './currency.service';
 import { LedgerService } from './ledger.service';
 import { safeAdminExecute } from '../utils';
@@ -153,3 +153,5 @@ export class ReconciliationService {
     }
   }
 }
+
+

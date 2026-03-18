@@ -43,3 +43,5 @@ describe('analyzeLink', () => {
         expect(res?.platform).toBe('OTHER');
     });
 });
+
+

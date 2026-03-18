@@ -149,3 +149,5 @@ const SuggestedService = ({ icon, title, price, delay }: any) => (
         </div>
     </motion.div>
 );
+
+

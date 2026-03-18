@@ -7,7 +7,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { ShieldAlert, AlertCircle, CheckCircle2, XCircle, ExternalLink, RefreshCw } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { getStuckOrdersAction, resolveStuckOrderAction } from '@/app/admin/orders/actions';
 import { toast } from 'sonner';
 
@@ -131,3 +131,5 @@ export function StuckOrdersWidget() {
         </div>
     );
 }
+
+

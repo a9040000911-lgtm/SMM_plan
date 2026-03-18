@@ -17,3 +17,5 @@ export async function validateLinkFrontendAction(link: string, serviceId: string
 
     return { success: true, validation: result.data };
 }
+
+

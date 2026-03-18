@@ -29,3 +29,5 @@ export const CATEGORY_MAPPINGS: Record<string, CategoryMapping[]> = {
         { category: 'TRAFFIC_DIRECT', keywords: ['direct', 'traffic', 'hits'], triggers: ['bulk', 'cheap'] }
     ]
 };
+
+

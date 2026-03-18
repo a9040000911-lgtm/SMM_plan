@@ -10,7 +10,7 @@ import { Layers, History, User, Terminal, Cpu, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/providers/language-provider";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageToggle } from "./LanguageToggle";
 import { motion } from "framer-motion";
@@ -159,3 +159,5 @@ export const StoreLayout: React.FC<StoreLayoutProps> = ({ children }) => {
         </div>
     );
 };
+
+

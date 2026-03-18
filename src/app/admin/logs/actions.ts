@@ -23,3 +23,5 @@ export async function getAdminLogsAction(page: number = 1, filters: any = {}) {
     const result = await AdminDataService.getAdminLogsPaged(ctx, page, filters);
     return result;
 }
+
+

@@ -445,7 +445,7 @@ export class AdminDataService {
     /**
      * Gets markup statistics for the dashboard.
      */
-    static async getMarkupStats(ctx: AdminContext): Promise<AdminServiceResult<{
+    static async getMarkupStats(_ctx: AdminContext): Promise<AdminServiceResult<{
         averageMarkup: number;
         serviceCount: number;
         automatedCount: number;
@@ -639,11 +639,11 @@ export class AdminDataService {
     /**
      * Batch imports services from providers.
      */
-    static async importProviderServices(ctx: AdminContext, items: any[], settings: any, projectId?: string): Promise<AdminServiceResult<{ count: number }>> {
+    static async importProviderServices(ctx: AdminContext, items: any[], _settings: any, projectId?: string): Promise<AdminServiceResult<{ count: number }>> {
         try {
-            const { ServiceSyncService } = await import('@/services/providers/sync.service');
+            // ServiceSyncService imported but not used yet in the placeholder loop
             let count = 0;
-            for (const item of items) {
+            for (const _item of items) {
                 // Implementation of simplified import or calling SyncService
                 // For now, assume simplified creation or delegation
                 count++;
@@ -2116,7 +2116,7 @@ export class AdminDataService {
     /**
      * Gets services for inspection (Curator).
      */
-    static async getServicesForCurator(ctx: AdminContext): Promise<AdminServiceResult<any[]>> {
+    static async getServicesForCurator(_ctx: AdminContext): Promise<AdminServiceResult<any[]>> {
         try {
             const services = await prisma.internalService.findMany({
                 include: {
@@ -2422,7 +2422,7 @@ export class AdminDataService {
     /**
      * Gets stuck orders.
      */
-    static async getStuckOrders(ctx: AdminContext): Promise<AdminServiceResult<any[]>> {
+    static async getStuckOrders(_ctx: AdminContext): Promise<AdminServiceResult<any[]>> {
         try {
             const stuck = await prisma.order.findMany({
                 where: {
@@ -2543,7 +2543,7 @@ export class AdminDataService {
     /**
      * Gets all social platforms.
      */
-    static async getSocialPlatforms(ctx: AdminContext): Promise<AdminServiceResult<any[]>> {
+    static async getSocialPlatforms(_ctx: AdminContext): Promise<AdminServiceResult<any[]>> {
         try {
             const platforms = await prisma.socialPlatform.findMany({ orderBy: { name: 'asc' } });
             return { success: true, data: platforms };
@@ -2586,7 +2586,7 @@ export class AdminDataService {
     /**
      * Gets global settings.
      */
-    static async getGlobalSettings(ctx: AdminContext): Promise<AdminServiceResult<Record<string, string>>> {
+    static async getGlobalSettings(_ctx: AdminContext): Promise<AdminServiceResult<Record<string, string>>> {
         try {
             const settings = await prisma.globalSetting.findMany();
             const map: Record<string, string> = {};
@@ -2621,7 +2621,7 @@ export class AdminDataService {
     /**
      * Gets health stats for services in the last 24h.
      */
-    static async getServicesHealthStats(ctx: AdminContext): Promise<AdminServiceResult<any>> {
+    static async getServicesHealthStats(_ctx: AdminContext): Promise<AdminServiceResult<any>> {
         try {
             const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
             const orders = await prisma.order.findMany({
@@ -2842,7 +2842,7 @@ export class AdminDataService {
      * Updates user profile/data.
      */
     static async updateUser(ctx: AdminContext, userId: string, data: any): Promise<AdminServiceResult<any>> {
-        const { userCredentialsSchema } = await import('@/lib/validations');
+        const { userCredentialsSchema } = await import('@/services/core/validation');
         userCredentialsSchema.parse(data);
 
         try {
@@ -3305,7 +3305,7 @@ export class AdminDataService {
 
             let sentTo = 'None';
             if (user.tgId) {
-                const { bot } = await import('@/lib/bot');
+                const { bot } = await import('@/services/bot/bot-registry');
                 await bot.telegram.sendMessage(Number(user.tgId), `🔐 <b>КОД ПОДТВЕРЖДЕНИЯ НАСТРОЕК:</b> <code>${code}</code>\n\nДействителен 5 минут.`, { parse_mode: 'HTML' });
                 sentTo = 'Telegram';
             }
@@ -3426,7 +3426,7 @@ export class AdminDataService {
     /**
      * Maps a project service to a specific provider.
      */
-    static async mapProjectServiceToProvider(ctx: AdminContext, projectId: string, internalServiceId: string, providerId: string, providerServiceId: number): Promise<AdminServiceResult<any>> {
+    static async mapProjectServiceToProvider(_ctx: AdminContext, projectId: string, internalServiceId: string, providerId: string, providerServiceId: number): Promise<AdminServiceResult<any>> {
         try {
             await prisma.$transaction([
                 prisma.internalServiceMapping.updateMany({
@@ -3459,7 +3459,7 @@ export class AdminDataService {
                 })
             ]);
             return { success: true, data: {} };
-        } catch (error: any) {
+        } catch (_error: any) {
             // Upsert fallback if 'new-dummy-id' logic fails in transaction context
             try {
                 // Fallback direct find/create if transaction upsert is tricky
@@ -3477,8 +3477,8 @@ export class AdminDataService {
                     });
                 }
                 return { success: true, data: {} };
-            } catch (inner: any) {
-                return { success: false, error: { code: 'MAPPING_UPDATE_FAILED', message: inner.message } };
+            } catch (_inner: any) {
+                return { success: false, error: { code: 'MAPPING_UPDATE_FAILED', message: _inner.message } };
             }
         }
     }
@@ -3600,7 +3600,7 @@ export class AdminDataService {
             
             // Re-attempt with safe logic if upsert complained about null
             return { success: true, data: {} };
-        } catch (error: any) {
+        } catch (_error: any) {
             try {
                 // Safe fallback for null projectId settings
                 const upsertSetting = async (key: string, value: string) => {
@@ -3614,8 +3614,8 @@ export class AdminDataService {
                 await upsertSetting('LOYALTY_CONFIG_JSON', JSON.stringify(levels));
                 await upsertSetting('REWARD_RULES_JSON', JSON.stringify(rules));
                 return { success: true, data: {} };
-            } catch (inner: any) {
-                return { success: false, error: { code: 'LOYALTY_UPDATE_FAILED', message: inner.message } };
+            } catch (_inner: any) {
+                return { success: false, error: { code: 'LOYALTY_UPDATE_FAILED', message: _inner.message } };
             }
         }
     }
@@ -3972,7 +3972,7 @@ export class AdminDataService {
     /**
      * Gets users data for reporting.
      */
-    static async getUsersReportData(ctx: AdminContext): Promise<AdminServiceResult<any[]>> {
+    static async getUsersReportData(_ctx: AdminContext): Promise<AdminServiceResult<any[]>> {
         try {
             const users = await prisma.user.findMany({
                 include: { _count: { select: { orders: true } } }
@@ -4019,7 +4019,7 @@ export class AdminDataService {
     /**
      * Gets support templates.
      */
-    static async getSupportTemplates(ctx: AdminContext): Promise<AdminServiceResult<any[]>> {
+    static async getSupportTemplates(_ctx: AdminContext): Promise<AdminServiceResult<any[]>> {
         try {
             const templates = await prisma.supportTemplate.findMany({ orderBy: { title: 'asc' } });
             return { success: true, data: templates };
@@ -4168,8 +4168,8 @@ export class AdminDataService {
                         await prisma.supportTicket.update({ where: { id: ticketId }, data: { status: 'CLOSED' } });
                         results.push('Ticket closed');
                     }
-                } catch (e: any) {
-                    results.push(`Error in ${action.type}: ${e.message}`);
+                } catch (_e: any) {
+                    results.push(`Error in ${action.type}: ${_e.message}`);
                 }
             }
 
@@ -4201,7 +4201,7 @@ export class AdminDataService {
     /**
      * Gets staff presence in a ticket.
      */
-    static async getSupportPresence(ctx: AdminContext, ticketId: string, currentAdminName: string): Promise<AdminServiceResult<string | null>> {
+    static async getSupportPresence(_ctx: AdminContext, ticketId: string, currentAdminName: string): Promise<AdminServiceResult<string | null>> {
         try {
             const presenceKey = `SUPPORT_PRESENCE_${ticketId}`;
             const record = await prisma.settings.findUnique({
@@ -4484,7 +4484,7 @@ export class AdminDataService {
     /**
      * Gets combined templates and macros for support view.
      */
-    static async getSupportTemplatesAndMacros(ctx: AdminContext): Promise<AdminServiceResult<any>> {
+    static async getSupportTemplatesAndMacros(_ctx: AdminContext): Promise<AdminServiceResult<any>> {
         try {
             const [templates, macros] = await Promise.all([
                 prisma.supportTemplate.findMany({ orderBy: { updatedAt: 'desc' }, take: 20 }),
@@ -4671,4 +4671,6 @@ export class AdminDataService {
     }
 
 }
+
+
 

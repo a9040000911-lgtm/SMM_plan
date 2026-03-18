@@ -155,3 +155,5 @@ export function ProjectFinancesTab({ stats, recentTransactions, recentExpenses }
         </div>
     );
 }
+
+

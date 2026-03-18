@@ -13,3 +13,5 @@ export async function logoutAction() {
   cookieStore.delete('admin_session');
   redirect('/admin/login');
 }
+
+

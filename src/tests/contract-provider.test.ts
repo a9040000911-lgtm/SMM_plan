@@ -16,7 +16,7 @@ import { ProviderService } from '@/services/providers/provider.service';
 jest.mock('@/services/providers/provider.service');
 
 // Mock bot to prevent side effects
-jest.mock('@/lib/bot', () => ({
+jest.mock('@/services/bot/bot-registry', () => ({
     bot: { telegram: { sendMessage: jest.fn().mockResolvedValue({}) } }
 }));
 
@@ -216,3 +216,5 @@ describe('Contract Tests: Provider API', () => {
         });
     });
 });
+
+

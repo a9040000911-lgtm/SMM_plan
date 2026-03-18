@@ -18,10 +18,10 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { DeleteNewsButton } from '@/components/admin/news/delete-news-button';
-import { dictionaries, Locale } from '@/i18n/dictionaries';
+
 import { getAdminSession, getActiveProjectId } from '@/utils/admin-session';
 import { AdminHeader } from '@/components/admin/core/admin-header';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -48,7 +48,6 @@ export default async function AdminNewsPage() {
   const projectId = await getActiveProjectId();
   const news = await getNewsData(projectId || 'all');
   
-  const lang: Locale = 'ru'; 
 
   const projects = await prisma.project.findMany({
     select: { id: true, name: true, brandColor: true }
@@ -176,3 +175,5 @@ export default async function AdminNewsPage() {
     </div>
   );
 }
+
+

@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { Decimal } from 'decimal.js';
 
 import { ProviderService } from '@/services/providers/provider.service';
 import { MLForecasterService, MLPrediction } from './ml-forecaster.service';
@@ -94,17 +95,19 @@ export class PredictionService {
       select: { totalPrice: true, createdAt: true }
     });
 
-    const totalCurrentRevenue = orders.reduce((acc, o) => acc + o.totalPrice.toNumber(), 0);
+    const totalCurrentRevenue = orders.reduce((acc, o) => acc.plus(o.totalPrice), new Decimal(0));
     const dayOfMonth = today.getDate();
     const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
 
     // Линейный прогноз: (Среднее в день) * Кол-во дней в месяце
-    const projectedRevenue = (totalCurrentRevenue / dayOfMonth) * daysInMonth;
+    const projectedRevenue = totalCurrentRevenue.div(dayOfMonth).mul(daysInMonth);
 
     return {
-      current: totalCurrentRevenue,
-      projected: Math.round(projectedRevenue),
-      growth: ((projectedRevenue / totalCurrentRevenue) - 1) * 100
+      current: totalCurrentRevenue.toNumber(),
+      projected: Math.round(projectedRevenue.toNumber()),
+      growth: projectedRevenue.div(totalCurrentRevenue).minus(1).mul(100).toNumber()
     };
   }
 }
+
+

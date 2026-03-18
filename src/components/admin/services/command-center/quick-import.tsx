@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { SmartAnalyzerLogic as SmartAnalyzerService, PLATFORM_LABELS } from '@/services/providers/smart-analyzer.logic';
 
 interface QuickImportDrawerProps {
@@ -611,3 +611,5 @@ function ComparisonModal({ isOpen, onClose, services }: { isOpen: boolean, onClo
         </div>
     );
 }
+
+

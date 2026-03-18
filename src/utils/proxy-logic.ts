@@ -6,8 +6,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { MAINTENANCE_TEMPLATE } from '@/templates/maintenance';
-import { getRealIp, checkRateLimit } from '@/lib/rate-limiter';
-import { verifyAdminSession } from '@/lib/jwt';
+import { getRealIp, checkRateLimit } from '@/services/core/rate-limiter';
+import { verifyAdminSession } from '@/services/core/jwt';
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -192,3 +192,5 @@ export const config = {
     '/((?!api/internal|_next/static|_next/image|favicon.ico).*)',
   ],
 };
+
+

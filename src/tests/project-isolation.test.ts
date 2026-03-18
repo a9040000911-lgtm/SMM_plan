@@ -9,7 +9,7 @@
  */
 import { getActiveProjectId, validateProjectAccess } from '@/utils/admin-session';
 import { cookies } from 'next/headers';
-import { verifyAdminSession } from '@/lib/jwt';
+import { verifyAdminSession } from '@/services/core/jwt';
 
 // Mock dependencies
 jest.mock('@/lib/prisma', () => ({
@@ -27,7 +27,7 @@ jest.mock('@/lib/prisma', () => ({
     }
 }));
 
-jest.mock('@/lib/jwt', () => ({
+jest.mock('@/services/core/jwt', () => ({
     verifyAdminSession: jest.fn(),
 }));
 
@@ -108,3 +108,5 @@ describe('Multi-Project Data Isolation', () => {
         });
     });
 });
+
+

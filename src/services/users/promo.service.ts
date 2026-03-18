@@ -4,6 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
+import { Decimal } from 'decimal.js';
 
 export class PromoService {
   /**
@@ -32,7 +33,7 @@ export class PromoService {
         }
       });
 
-      const { BotRegistry } = await import('@/lib/bot');
+      const { BotRegistry } = await import('@/services/bot/bot-registry');
       await BotRegistry.get(projectId).telegram.sendMessage(
         tgId,
         `🎁 <b>Вам начислен промокод на скидку ${percent}%!</b>\n\n` +
@@ -96,16 +97,17 @@ export class PromoService {
   /**
    * Триггер: Траты 10000+ (10%)
    */
-  static async checkLoyaltySpend(userId: string, tgId: number, totalSpent: number, tx?: any) {
+  static async checkLoyaltySpend(userId: string, tgId: number, totalSpent: Decimal | number, tx?: any) {
     // Deprecated for automation rules
-    await this.processAutomationRules('SPEND_GTE', { userId, tgId, value: totalSpent }, tx);
+    await this.processAutomationRules('SPEND_GTE', { userId, tgId, value: new Decimal(totalSpent) as any }, tx);
   }
 
   /**
    * Process dynamic automation rules for rewards
    */
-  static async processAutomationRules(trigger: string, context: { userId: string, tgId?: number, value: number, projectId?: string }, tx?: any) {
+  static async processAutomationRules(trigger: string, context: { userId: string, tgId?: number, value: Decimal | number, projectId?: string }, tx?: any) {
     const db = tx || prisma;
+    const value = new Decimal(context.value);
     const rules = await db.settings.findFirst({
       where: { key: 'REWARD_RULES_JSON', projectId: context.projectId || null }
     });
@@ -123,7 +125,7 @@ export class PromoService {
 
       for (const rule of parsedRules) {
         if (rule.trigger !== trigger) continue;
-        if (context.value < rule.conditionValue) continue;
+        if (value.lt(rule.conditionValue)) continue;
 
         // Idempotency Check using LoyaltyLog
         const logId = `${trigger}:${rule.conditionValue}`;
@@ -140,7 +142,7 @@ export class PromoService {
           if (promoCode) {
             await this.createLoyaltyLog(context.userId, context.projectId, logId, `PROMO:${promoCode}`, rule.rewardValue, db); // Using rewardValue as approximation of value, though for promo it's %
             if (context.tgId) {
-              const { BotRegistry } = await import('@/lib/bot');
+              const { BotRegistry } = await import('@/services/bot/bot-registry');
               await BotRegistry.get(context.projectId).telegram.sendMessage(context.tgId, `🎁 <b>Бонус!</b>\nВы получили промокод за достижение: ${rule.description}`, { parse_mode: 'HTML' }).catch(() => { });
             }
           }
@@ -154,7 +156,7 @@ export class PromoService {
           await this.createLoyaltyLog(context.userId, context.projectId, logId, `BALANCE:+${rule.rewardValue}`, rule.rewardValue, db);
 
           if (context.tgId) {
-            const { BotRegistry } = await import('@/lib/bot');
+            const { BotRegistry } = await import('@/services/bot/bot-registry');
             await BotRegistry.get(context.projectId).telegram.sendMessage(context.tgId, `🎉 <b>Бонус!</b>\nВы получили +${rule.rewardValue}₽ на баланс за достижение: ${rule.description}`, { parse_mode: 'HTML' }).catch(() => { });
           }
         }
@@ -181,3 +183,5 @@ export class PromoService {
     }
   }
 }
+
+

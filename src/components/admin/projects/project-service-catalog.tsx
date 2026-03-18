@@ -19,7 +19,7 @@ import { useTransition } from 'react';
 import Link from 'next/link';
 import { ProjectAlternativesDrawer } from '@/components/admin/projects/project-alternatives-drawer';
 import { usePriceDisplay } from '@/components/admin/services/price-display-context';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CATEGORY_LABELS } from '@/services/providers/smart-analyzer.logic';
 
@@ -603,3 +603,5 @@ export function ProjectServiceCatalog({ projectId, services, overrides, categori
         </div>
     );
 }
+
+

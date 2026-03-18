@@ -14,7 +14,7 @@ jest.setTimeout(30000);
 
 // Mock ProviderService and Bot to avoid real API calls and background tasks
 jest.mock('@/services/providers');
-jest.mock('@/lib/bot', () => ({
+jest.mock('@/services/bot/bot-registry', () => ({
   bot: {
     telegram: {
       sendMessage: jest.fn().mockResolvedValue({})
@@ -281,3 +281,5 @@ describe('Comprehensive Business Logic Simulation', () => {
   });
 
 });
+
+

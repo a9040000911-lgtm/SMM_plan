@@ -55,7 +55,7 @@ jest.mock('@/lib/prisma', () => ({
     },
 }));
 
-jest.mock('@/lib/bot', () => ({
+jest.mock('@/services/bot/bot-registry', () => ({
     bot: { telegram: { sendMessage: jest.fn().mockResolvedValue({}) } }
 }));
 
@@ -216,3 +216,5 @@ describe('Security: Server Action RBAC', () => {
         });
     });
 });
+
+

@@ -53,3 +53,5 @@ export function getIcon(name: string | undefined | null) {
     const Icon = name && SERVICE_ICONS[name] ? SERVICE_ICONS[name] : Users; // Default
     return <Icon size={18} />;
 }
+
+

@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
-import { bot } from '@/lib/bot';
+import { bot } from '@/services/bot/bot-registry';
 import { Markup } from 'telegraf';
 import { Decimal } from 'decimal.js';
 
@@ -340,3 +340,5 @@ export class AdvocacyService {
         return true;
     }
 }
+
+

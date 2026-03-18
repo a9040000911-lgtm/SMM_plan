@@ -76,3 +76,5 @@ export interface ProviderStatusResult {
     error?: string;
     cost?: number; // Optional actual cost if provider returns it
 }
+
+

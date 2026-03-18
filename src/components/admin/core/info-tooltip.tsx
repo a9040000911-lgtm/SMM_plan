@@ -42,3 +42,5 @@ export function InfoTooltip({ text, position = 'top' }: InfoTooltipProps) {
     </div>
   );
 }
+
+

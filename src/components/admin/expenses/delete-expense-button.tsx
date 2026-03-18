@@ -36,3 +36,5 @@ export function DeleteExpenseButton({ expenseId }: { expenseId: string }) {
         </button>
     );
 }
+
+

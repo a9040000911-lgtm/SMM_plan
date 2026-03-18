@@ -9,7 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { History, Clock, ArrowRight, CornerDownRight, Loader2 } from 'lucide-react';
 import { getServiceHistoryAction } from '@/app/admin/services/actions';
 import { formatAmount } from '@/utils/formatter';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 interface ServiceHistoryProps {
     serviceId: string;
@@ -121,3 +121,5 @@ export function ServiceHistory({ serviceId }: ServiceHistoryProps) {
         </div>
     );
 }
+
+

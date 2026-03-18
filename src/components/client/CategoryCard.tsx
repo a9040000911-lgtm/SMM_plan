@@ -8,7 +8,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, Users, Heart, Eye, MessageCircle, Zap, Rocket, Activity, Box } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 
 interface CategoryCardProps {
     category: string;
@@ -158,3 +158,5 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
         </motion.button>
     );
 };
+
+

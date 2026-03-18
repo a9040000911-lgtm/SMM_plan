@@ -125,3 +125,5 @@ export const Footer = ({ cmsContent = {} }: { cmsContent?: Record<string, string
         </footer>
     );
 };
+
+

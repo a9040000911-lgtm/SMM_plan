@@ -8,7 +8,7 @@
 import React, { useState } from "react";
 import { X, Bug, Upload, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 
 interface BugReportModalProps {
     isOpen: boolean;
@@ -283,3 +283,5 @@ export const BugReportModal: React.FC<BugReportModalProps> = ({ isOpen, onClose 
         </AnimatePresence>
     );
 };
+
+

@@ -32,3 +32,5 @@ export const CreateSupportMacroContract = z.object({
 export type UpdateSupportNotesInput = z.infer<typeof UpdateSupportNotesContract>;
 export type CreateSupportTemplateInput = z.infer<typeof CreateSupportTemplateContract>;
 export type CreateSupportMacroInput = z.infer<typeof CreateSupportMacroContract>;
+
+

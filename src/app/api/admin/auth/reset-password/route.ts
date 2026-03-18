@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma';
 import redis from '@/lib/redis';
 import bcrypt from 'bcryptjs';
 import { sendPasswordResetEmail } from '@/services/mail.service';
-import { bot } from '@/lib/bot';
+import { bot } from '@/services/bot/bot-registry';
 
 export async function POST(req: NextRequest) {
   try {
@@ -96,3 +96,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
   }
 }
+
+

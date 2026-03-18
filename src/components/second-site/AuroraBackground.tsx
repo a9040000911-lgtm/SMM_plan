@@ -4,7 +4,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 import React, { ReactNode } from "react";
 
 interface AuroraBackgroundProps extends React.HTMLProps<HTMLDivElement> {
@@ -51,3 +51,5 @@ export const AuroraBackground = ({
         </div>
     );
 };
+
+

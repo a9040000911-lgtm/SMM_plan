@@ -68,3 +68,5 @@ export function SidebarNav({ navGroups, isGlobalAdmin, allowedTabs = [] }: Sideb
         </nav>
     );
 }
+
+

@@ -25,3 +25,5 @@ export async function globalSearchAction(query: string) {
 
   return result.data;
 }
+
+

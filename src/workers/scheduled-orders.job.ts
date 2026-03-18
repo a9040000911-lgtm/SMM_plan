@@ -5,7 +5,7 @@
  */
 import { Worker, Job } from 'bullmq';
 import { ScheduledOrderService } from '@/services/orders/scheduled-order.service';
-import { getRedisConfig } from '@/lib/queues';
+import { getRedisConfig } from '@/services/core/queues';
 
 const connection = getRedisConfig();
 
@@ -25,3 +25,5 @@ scheduledOrderWorker.on('failed', (job, err) => {
 scheduledOrderWorker.on('completed', (_job) => {
     // Silent success
 });
+
+

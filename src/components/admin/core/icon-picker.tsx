@@ -8,7 +8,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { Search, Check, ChevronDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 // Список популярных иконок для SMM-сервисов
 export const ICON_GALLERY = [
@@ -158,3 +158,5 @@ export function IconPicker({ value, onChange, className }: IconPickerProps) {
         </div>
     );
 }
+
+

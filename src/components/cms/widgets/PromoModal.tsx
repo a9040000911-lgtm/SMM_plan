@@ -78,3 +78,5 @@ export function PromoModal({ data }: { data: PromoModalData }) {
         </AnimatePresence>
     );
 }
+
+

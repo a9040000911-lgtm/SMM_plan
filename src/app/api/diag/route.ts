@@ -5,7 +5,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { signAdminSession } from '@/lib/jwt';
+import { signAdminSession } from '@/services/core/jwt';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,3 +46,5 @@ export async function GET(_req: NextRequest) {
 
     return NextResponse.json(results);
 }
+
+

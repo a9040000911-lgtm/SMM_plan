@@ -84,7 +84,7 @@ export function registerCallbackHandlers(bot: any) {
 
         if (!user) return ctx.answerCbQuery('❌ Пользователь не найден');
 
-        const { signMagicToken } = await import('@/lib/magic-auth');
+        const { signMagicToken } = await import('@/services/core/magic-auth');
         const token = await signMagicToken({
             userId: user.id,
             tgId: userId.toString(),
@@ -191,3 +191,5 @@ export function registerCallbackHandlers(bot: any) {
         await ctx.editMessageText(ctx.callbackQuery.message.text + '\n\n❌ <b>ОТКЛОНЕНО:</b> Админ проигнорировал отток.', { parse_mode: 'HTML' }).catch(() => { });
     });
 }
+
+

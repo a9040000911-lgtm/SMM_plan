@@ -86,7 +86,7 @@ export function analyzeLink(link: string): AnalysisResult | null {
       possibleCategories: ['TRAFFIC', 'OTHER', 'REVIEWS'] as Category[],
       objectType: 'WEB_SITE' as any,
     };
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 }
@@ -167,3 +167,5 @@ export function mapObjectTypeToTargetType(objectType: string | undefined): 'CHAN
 
   return (typeMap[objectType] as any) || 'POST';
 }
+
+

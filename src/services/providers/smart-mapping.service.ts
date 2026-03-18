@@ -123,3 +123,5 @@ export class SmartMappingService {
         return 'Низкая уверенность';
     }
 }
+
+

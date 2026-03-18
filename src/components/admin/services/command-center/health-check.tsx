@@ -8,7 +8,7 @@
 import React, { useMemo } from 'react';
 import { TrendingDown, Unlink, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useServiceDashboard } from './manager-context';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 export function HealthCheckWidget() {
     const { services, overrides, isGlobal } = useServiceDashboard();
@@ -140,3 +140,5 @@ function ActivityIcon({ className }: { className?: string }) {
         </svg>
     );
 }
+
+

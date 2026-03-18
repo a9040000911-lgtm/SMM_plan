@@ -30,7 +30,7 @@ export function SupportAIAnalysis({ ticketId }: { ticketId: string }) {
             } else {
                 toast.error(data.error || 'Ошибка анализа');
             }
-        } catch (e) {
+        } catch (_e) {
             toast.error('Сетевая ошибка при анализе');
         } finally {
             setLoading(false);
@@ -119,3 +119,5 @@ export function SupportAIAnalysis({ ticketId }: { ticketId: string }) {
         </div>
     );
 }
+
+

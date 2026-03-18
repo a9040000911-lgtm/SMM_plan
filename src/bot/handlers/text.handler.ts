@@ -17,7 +17,7 @@ import { triggerOrderPreview } from './order.handler';
 import { handleMassOrderInput } from '../commands/mass.command';
 import { Decimal } from 'decimal.js';
 import { Markup } from 'telegraf';
-import { ConfigService } from '@/lib/config.service';
+import { ConfigService } from '@/services/core/config.service';
 import { escapeHtml } from '../utils/formatter';
 
 export async function handleText(ctx: any) {
@@ -160,3 +160,5 @@ export async function handleText(ctx: any) {
     if (normalizedText.startsWith('http')) return ctx.reply('⚠️ Платформа не поддерживается.', getProjectMenu(ctx.project));
     return ctx.reply('⚠️ Ссылка не распознана. Используйте меню или отправьте ссылку на пост.', getProjectMenu(ctx.project));
 }
+
+

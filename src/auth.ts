@@ -6,7 +6,7 @@
 
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { authorizeUser } from "@/lib/auth";
+import { authorizeUser } from "@/services/core/auth";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     session: {
@@ -47,3 +47,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
     }
 });
+
+

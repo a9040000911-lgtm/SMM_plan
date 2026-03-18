@@ -6,22 +6,16 @@
 
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { checkRateLimit } from "@/lib/rate-limiter";
-import { headers } from "next/headers";
+import { checkRateLimit } from "@/services/core/rate-limiter";
 
-function getIpFromHeaders() {
-  const h = headers();
-  // We can't use getRealIp here easily because authorizeUser gets credentials, not req.
-  // But authorizeUser is called from auth.ts which has access to context.
-  // NextAuth authorize usually has headers available.
-  return ""; 
-}
+
+
 
 export async function authorizeUser(credentials: any) {
   // --- MAGIC TOKEN AUTH ---
   if (credentials?.magicToken) {
     console.log("[Auth] Attempting MagicToken login...");
-    const { verifyMagicToken } = await import("@/lib/magic-auth");
+    const { verifyMagicToken } = await import("@/services/core/magic-auth");
     const payload = await verifyMagicToken(credentials.magicToken);
     console.log("[Auth] MagicToken payload:", payload);
 
@@ -133,3 +127,5 @@ export async function authorizeUser(credentials: any) {
     isGlobalAdmin: user.isGlobalAdmin
   };
 }
+
+

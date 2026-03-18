@@ -96,3 +96,5 @@ export function autoDetectTargetType(link: string): { platform: string, targetTy
     }
     return null;
 }
+
+

@@ -26,3 +26,5 @@ export async function getUserReferralData(userId: string) {
   if (!result.success) throw new Error(result.error.message);
   return result.data;
 }
+
+

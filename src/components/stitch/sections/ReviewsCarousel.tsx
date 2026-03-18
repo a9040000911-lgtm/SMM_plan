@@ -8,7 +8,7 @@
 import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 interface Review {
     id: string;
@@ -189,3 +189,5 @@ export const ReviewsCarousel = memo(({ reviews }: ReviewsCarouselProps) => {
 });
 
 ReviewsCarousel.displayName = 'ReviewsCarousel';
+
+

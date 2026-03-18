@@ -6,7 +6,7 @@
 import { Scenes, Markup } from 'telegraf';
 import { prisma } from '@/lib/prisma';
 import { BroadcastService, TicketVerificationService } from '@/services/support';
-import { bot } from '@/lib/bot';
+import { bot } from '@/services/bot/bot-registry';
 import { SessionService, UserState } from '@/services/core';
 import { escapeHtml } from '../utils/formatter';
 import { createLogger } from '@/lib/logger';
@@ -185,3 +185,5 @@ supportWizard.hears(['🚀 Заказать', '📱 Магазин', '💼 Ба�
     await ctx.scene.leave();
     return bot.handleUpdate(ctx.update);
 });
+
+

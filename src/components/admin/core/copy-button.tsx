@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { toast } from 'sonner';
 
 interface CopyButtonProps {
@@ -50,3 +50,5 @@ export function CopyButton({ value, className, iconSize = 12, label }: CopyButto
         </button>
     );
 }
+
+

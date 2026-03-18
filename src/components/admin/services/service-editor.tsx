@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react';
 import { Save, Loader2, Sparkles, Trash2, Power, PowerOff, LayoutGrid, AlertTriangle, Database, History, Settings } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { updateService, deleteService, enhanceDescriptionAction } from '@/app/admin/services/actions';
 import { SerializedService } from '@/types/admin';
 import { ActionButton, StatusBadge } from '@/components/admin/ui';
@@ -557,3 +557,5 @@ export function ServiceEditor({
     </div>
   );
 }
+
+

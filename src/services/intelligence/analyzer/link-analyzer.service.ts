@@ -34,7 +34,7 @@ export class IntelligenceLinkAnalyzer {
             
             keysToDelete.forEach(k => searchParams.delete(k));
             return urlObj.toString();
-        } catch (e) {
+        } catch (_e) {
             return url.trim();
         }
     }
@@ -79,3 +79,5 @@ export class IntelligenceLinkAnalyzer {
         };
     }
 }
+
+

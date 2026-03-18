@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { LayoutDashboard, Package, User, Sparkles, Plus } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 const navItems = [
     { name: 'Главная', href: '/', icon: Sparkles },
@@ -94,3 +94,5 @@ export function MobileAppNav() {
         </div>
     );
 }
+
+

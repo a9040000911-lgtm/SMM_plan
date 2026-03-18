@@ -8,7 +8,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, AlertTriangle, ShieldAlert, Skull, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { getMarkupStatsAction } from '@/app/admin/services/actions';
 import Link from 'next/link';
 
@@ -119,3 +119,5 @@ export function MarkupAnalyticsWidget() {
         </motion.div>
     );
 }
+
+

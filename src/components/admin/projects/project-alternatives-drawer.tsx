@@ -10,7 +10,7 @@ import {
     Search, Repeat2, X, Loader2, Database, Info, Check, Link as LinkIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { mapProjectServiceToProviderAction } from '@/app/admin/projects/[id]/actions';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -272,3 +272,5 @@ export function ProjectAlternativesDrawer({
         </AnimatePresence>
     );
 }
+
+

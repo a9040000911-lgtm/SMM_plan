@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { Decimal } from 'decimal.js';
 
 export interface MLPrediction {
   dailyBurnRate: number;
@@ -40,14 +41,14 @@ export class MLForecasterService {
     }
 
     // 2. Извлекаем "Чистые траты" (игнорируем пополнения)
-    const expenditures: { delta: number; interval: number }[] = [];
+    const expenditures: { delta: Decimal; interval: number }[] = [];
     for (let i = 1; i < logs.length; i++) {
       const prev = logs[i - 1];
       const curr = logs[i];
-      const delta = prev.balance.toNumber() - curr.balance.toNumber();
+      const delta = prev.balance.minus(curr.balance);
 
       // Если дельта положительная — это расход. Отрицательная — пополнение.
-      if (delta > 0) {
+      if (delta.gt(0)) {
         const timeDiff = curr.createdAt.getTime() - prev.createdAt.getTime();
         expenditures.push({ delta, interval: timeDiff });
       }
@@ -67,26 +68,26 @@ export class MLForecasterService {
 
     // 3. Линейная регрессия: находим средний расход в миллисекунду
     // y = mx (где y - расход, x - время)
-    const totalDelta = expenditures.reduce((acc, e) => acc + e.delta, 0);
+    const totalDelta = expenditures.reduce((acc, e) => acc.plus(e.delta), new Decimal(0));
     const totalInterval = expenditures.reduce((acc, e) => acc + e.interval, 0);
 
-    const msBurnRate = totalDelta / totalInterval;
-    const dailyBurnRate = msBurnRate * (1000 * 60 * 60 * 24);
+    const msBurnRate = totalDelta.div(totalInterval);
+    const dailyBurnRate = msBurnRate.mul(1000 * 60 * 60 * 24);
 
     // 4. Оценка уверенности (Confidence)
     // Считаем стандартное отклонение трат. Если траты стабильны - уверенность выше.
-    const avgDelta = totalDelta / expenditures.length;
-    const variance = expenditures.reduce((acc, e) => acc + Math.pow(e.delta - avgDelta, 2), 0) / expenditures.length;
+    const avgDelta = totalDelta.div(expenditures.length);
+    const variance = expenditures.reduce((acc, e) => acc + Math.pow(e.delta.minus(avgDelta).toNumber(), 2), 0) / expenditures.length;
     const stdDev = Math.sqrt(variance);
-    const confidence = Math.max(0, Math.min(100, 100 - (stdDev / avgDelta) * 100));
+    const confidence = Math.max(0, Math.min(100, 100 - (stdDev / avgDelta.toNumber()) * 100));
 
     // 5. Прогноз даты обнуления
-    const currentBalance = logs[logs.length - 1].balance.toNumber();
-    const msToLive = currentBalance / msBurnRate;
+    const currentBalance = logs[logs.length - 1].balance;
+    const msToLive = currentBalance.div(msBurnRate).toNumber();
     const projectedDepletionDate = new Date(Date.now() + msToLive);
 
     return {
-      dailyBurnRate,
+      dailyBurnRate: dailyBurnRate.toNumber(),
       confidence: Math.round(confidence),
       projectedDepletionDate,
       isLearning: false,
@@ -144,3 +145,5 @@ export class MLForecasterService {
     };
   }
 }
+
+

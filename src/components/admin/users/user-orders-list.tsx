@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { formatAmount } from '@/utils/formatter';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 interface Order {
     id: number;
@@ -146,3 +146,5 @@ export function UserOrdersList({ orders }: UserOrdersListProps) {
         </div>
     );
 }
+
+

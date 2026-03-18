@@ -34,3 +34,5 @@ export function detectServiceDetails(name: string, description: string = '', cat
         suggestedName: result.suggestedName
     };
 }
+
+

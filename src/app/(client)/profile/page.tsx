@@ -10,7 +10,7 @@ import { Shield, Wallet, Award, Settings, LogOut, Loader2, Box, Activity, Cpu, T
 import { motion } from "framer-motion";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 import { OverviewTab } from "@/components/client/profile/OverviewTab";
 import { OrdersTab } from "@/components/client/profile/OrdersTab";
 import { FinanceTab } from "@/components/client/profile/FinanceTab";
@@ -232,3 +232,5 @@ export default function ProfilePage() {
         </div>
     );
 }
+
+

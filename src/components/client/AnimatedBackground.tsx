@@ -67,3 +67,5 @@ export const AnimatedBackground: React.FC = () => {
         </div>
     );
 };
+
+

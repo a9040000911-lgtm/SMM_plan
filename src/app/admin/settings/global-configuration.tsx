@@ -397,3 +397,5 @@ export function GlobalConfiguration({ project, settingsMap }: { project: any, se
         </div>
     );
 }
+
+

@@ -33,3 +33,5 @@ export async function GET(_req: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+
+

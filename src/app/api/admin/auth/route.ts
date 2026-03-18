@@ -10,7 +10,7 @@ import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 
-import { bot } from '@/lib/bot';
+import { bot } from '@/services/bot/bot-registry';
 
 export async function POST(req: NextRequest) {
   try {
@@ -320,7 +320,7 @@ export async function POST(req: NextRequest) {
 async function createSession(user: any) {
   console.log(`[SessionCreate] Starting for user: ${user.id}`);
   const cookieStore = await cookies();
-  const { signAdminSession } = await import('@/lib/jwt');
+  const { signAdminSession } = await import('@/services/core/jwt');
 
   // Получаем только ID разрешенных проектов
   const allowedProjects = user.accessibleProjects?.map((p: any) => p.id) || [];
@@ -352,3 +352,5 @@ async function createSession(user: any) {
     return NextResponse.json({ error: 'Session creation failed' }, { status: 500 });
   }
 }
+
+

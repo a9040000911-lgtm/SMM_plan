@@ -7,7 +7,7 @@
 import { Scenes, Markup } from 'telegraf';
 import { prisma } from '@/lib/prisma';
 import { formatAmount } from '../../utils/formatter';
-import { bot } from '@/lib/bot';
+import { bot } from '@/services/bot/bot-registry';
 import { LoyaltyService } from '@/services/users';
 
 export const REFERRAL_WIZARD = 'referral-wizard';
@@ -108,3 +108,5 @@ referralWizard.hears(['🚀 Заказать', '📱 Магазин', '💼 Ба
   await ctx.scene.leave();
   return bot.handleUpdate(ctx.update);
 });
+
+

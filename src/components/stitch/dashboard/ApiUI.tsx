@@ -11,7 +11,7 @@ import {
     Eye, EyeOff, Copy, RotateCcw, Check, ShieldCheck,
     Zap, Download, ArrowRight, Database, Terminal, Braces
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 import { generateApiKey, revokeApiKey } from "@/app/_actions/user/apiKeyActions";
 
 const API_METHODS = [
@@ -327,3 +327,5 @@ function Badge({ label, icon, color }: { label: string, icon: any, color: 'emera
 }
 
 import { Loader2 } from "lucide-react";
+
+

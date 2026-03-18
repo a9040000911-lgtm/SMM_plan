@@ -162,3 +162,5 @@ export function Pagination({ totalPages }: PaginationProps) {
     </div>
   );
 }
+
+

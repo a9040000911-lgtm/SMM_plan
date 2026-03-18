@@ -12,7 +12,7 @@ import { Headphones, Clock, Loader2, MessageSquare,
     Plus, ChevronDown, ShieldCheck, Mail, ArrowRight,
     AlertCircle, CheckCircle2, ArrowUpRight
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 interface Ticket {
     id: string;
@@ -304,3 +304,5 @@ function TicketItem({ ticket, idx, isActive, onToggle }: { ticket: Ticket, idx: 
         </motion.div>
     );
 }
+
+

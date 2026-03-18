@@ -7,7 +7,7 @@
 
 import React, { useState } from "react";
 import { X, Wallet, CreditCard, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface DepositModalProps {
@@ -197,3 +197,5 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose, cur
         </AnimatePresence>
     );
 };
+
+

@@ -21,12 +21,12 @@ const mockBotRegistryGet = jest.fn().mockReturnValue({
     telegram: { sendMessage: mockSendMessage }
 });
 
-jest.mock('@/lib/bot', () => ({
+jest.mock('@/services/bot/bot-registry', () => ({
     bot: { telegram: { sendMessage: mockSendMessage } },
     BotRegistry: { get: mockBotRegistryGet },
 }));
 
-jest.mock('@/lib/bot', () => ({
+jest.mock('@/services/bot/bot-registry', () => ({
     bot: { telegram: { sendMessage: mockSendMessage } },
     BotRegistry: { get: mockBotRegistryGet },
 }));
@@ -113,7 +113,7 @@ jest.mock('axios', () => ({
     default: { get: jest.fn().mockResolvedValue({ data: '' }) }
 }));
 
-jest.mock('@/lib/queues', () => ({
+jest.mock('@/services/core/queues', () => ({
     autoMonitoringQueue: { add: jest.fn().mockResolvedValue({}) },
     scheduledOrderQueue: { add: jest.fn().mockResolvedValue({}) },
 }));
@@ -327,3 +327,5 @@ describe('GAP 3: AutoMonitoring delayMinutes — saved to database', () => {
         }
     });
 });
+
+

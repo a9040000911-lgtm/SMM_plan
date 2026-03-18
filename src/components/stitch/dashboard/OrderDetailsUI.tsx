@@ -14,7 +14,7 @@ import {
     TrendingUp, Zap, ShieldCheck,
     Calendar, ArrowRight
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { BrandIcon } from '@/components/stitch/ui/BrandIcon';
 
 interface Order {
@@ -284,3 +284,5 @@ function TimelineEvent({ label, date, active, error, isLast }: { label: string, 
         </div>
     );
 }
+
+

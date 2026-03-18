@@ -75,3 +75,5 @@ export class CurrencyService {
     return (formatters[currency] || formatters.RUB).format(val);
   }
 }
+
+

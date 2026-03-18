@@ -100,3 +100,5 @@ export function AchievementBadges({ achievements, onClaim }: Props) {
         </div>
     );
 }
+
+

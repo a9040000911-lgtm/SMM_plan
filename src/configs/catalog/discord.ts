@@ -47,3 +47,5 @@ export const DiscordCatalog: CatalogService[] = [
     providers: [{ providerName: 'vexboost', providerServiceId: 2695, priority: 1 }] 
   }
 ];
+
+

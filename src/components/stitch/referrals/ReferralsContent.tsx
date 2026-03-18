@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { Trophy, Copy, Check, Target } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 interface LeaderboardEntry {
     rank: number;
@@ -109,3 +109,5 @@ export function ReferralsContent() {
         </div>
     );
 }
+
+

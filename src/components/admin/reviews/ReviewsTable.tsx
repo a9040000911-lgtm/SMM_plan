@@ -10,7 +10,7 @@ import { Star, CheckCircle2, XCircle, Trash2, Edit3, User, Globe, MessageSquare 
 import { updateReviewStatus, deleteReview } from '@/app/admin/reviews/actions';
 import { toast } from 'sonner';
 import { ReviewModal } from './ReviewModal';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 interface ReviewsTableProps {
     initialReviews: any[];
@@ -220,3 +220,5 @@ export function ReviewsTable({ initialReviews, projects, t }: ReviewsTableProps)
         </div>
     );
 }
+
+

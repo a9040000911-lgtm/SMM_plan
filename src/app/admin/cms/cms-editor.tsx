@@ -10,7 +10,7 @@ import {
     Plus, 
     Trash2
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { EditorToolbar } from './components/EditorToolbar';
 import { PropertyDrawer } from './components/PropertyDrawer';
 import { useCmsEditor } from './hooks/useCmsEditor';
@@ -174,3 +174,5 @@ export default function CmsAdmin({ project, initialStrings, initialBlocks }: { p
         </div>
     );
 }
+
+

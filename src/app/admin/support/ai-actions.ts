@@ -6,7 +6,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { ConfigService } from '@/lib/config.service';
+import { ConfigService } from '@/services/core/config.service';
 import { getAdminSession } from '@/utils/admin-session';
 import { AdminDataService } from '@/services/admin/admin-data.service';
 import { AdminContext } from '@/services/types';
@@ -74,3 +74,5 @@ ${ticketRaw.messages.reverse().map((m: any) => `[${m.sender}] ${m.text}`).join('
         return { success: false, error: e.message };
     }
 }
+
+

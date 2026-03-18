@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateProjectTMAData } from '@/utils/tma-auth';
 import { SafetyService } from '@/services/users';
-import { bot } from '@/lib/bot';
+import { bot } from '@/services/bot/bot-registry';
 import { formatAmount } from '@/utils/formatter';
 import { Decimal } from 'decimal.js';
 import { LedgerService } from '@/services/finance';
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
 
     // 6. УВЕДОМЛЕНИЕ
     try {
-      const { BotRegistry } = await import('@/lib/bot');
+      const { BotRegistry } = await import('@/services/bot/bot-registry');
       const projectBot = BotRegistry.get(auth.project?.id || user.projectId);
       const targetBot = projectBot || bot;
 
@@ -150,3 +150,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error', message: error.message }, { status: 500 });
   }
 }
+
+

@@ -53,7 +53,7 @@ export default async function ProjectIdentityPage({ params, searchParams }: Page
     const activeTab = tab || 'overview';
     const cookieStore = await cookies();
     const sessionData = cookieStore.get('admin_session');
-    const { verifyAdminSession } = await import('@/lib/jwt');
+    const { verifyAdminSession } = await import('@/services/core/jwt');
     const session = sessionData ? await verifyAdminSession(sessionData.value) : null;
 
     if (!session) return null;

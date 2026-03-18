@@ -5,7 +5,7 @@
  */
 import { prisma } from '@/lib/prisma';
 import { ProviderService } from '@/services/providers';
-import { dripFeedQueue } from '@/lib/queues';
+import { dripFeedQueue } from '@/services/core/queues';
 import { Order } from '@/generated/client';
 import { createLogger } from '@/lib/logger';
 
@@ -159,3 +159,5 @@ export class DripFeedService {
         }
     }
 }
+
+

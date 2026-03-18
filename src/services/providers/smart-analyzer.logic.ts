@@ -505,3 +505,5 @@ export class SmartAnalyzerLogic {
         return this.detectSync(name, '', category).category;
     }
 }
+
+

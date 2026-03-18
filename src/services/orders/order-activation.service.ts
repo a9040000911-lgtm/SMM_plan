@@ -4,11 +4,11 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
-import { BotRegistry, bot } from '@/lib/bot';
+import { BotRegistry, bot } from '@/services/bot/bot-registry';
 import { Prisma } from '@/generated/client';
 import { Decimal } from 'decimal.js';
 import { formatAmount } from '@/utils/formatter';
-import { ConfigService } from '@/lib/config.service';
+import { ConfigService } from '@/services/core/config.service';
 import { ManagedChannelService } from '@/services/vip/managed-channel.service';
 import { NotificationTemplates } from '@/bot/utils/notification-templates';
 import { PromoService } from '@/services/users/promo.service';
@@ -79,10 +79,10 @@ export class OrderActivationService {
                 } catch (err) {
                     console.error('Failed to send order start notification:', err);
                 }
-                await PromoService.checkLoyaltySpend(data.userId, data.tgId, updatedUser.spent.toNumber(), txPrisma);
+                await PromoService.checkLoyaltySpend(data.userId, data.tgId, updatedUser.spent, txPrisma);
             }
 
-            const telegramConfig = await ConfigService.getTelegramConfig(data.projectId || undefined);
+            const telegramConfig = await ConfigService.getTelegramConfig(data.projectId || undefined, txPrisma);
             if (telegramConfig.adminId) {
                 await bot.telegram.sendMessage(telegramConfig.adminId,
                     NotificationTemplates.ORDER.CREATED_ADMIN(
@@ -107,3 +107,5 @@ export class OrderActivationService {
         return tx ? execute(tx) : await prisma.$transaction(execute);
     }
 }
+
+

@@ -22,3 +22,5 @@ export const InstagramParser: PlatformParser = {
     return { platform: 'INSTAGRAM' as Platform, possibleCategories: ['SUBSCRIBERS' as Category], objectType: 'IG_PROFILE' };
   }
 };
+
+

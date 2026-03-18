@@ -47,3 +47,5 @@ export async function deleteTemplateAction(id: string) {
   revalidatePath('/admin/support/templates');
   return { success: true };
 }
+
+

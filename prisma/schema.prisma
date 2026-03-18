@@ -391,6 +391,8 @@ model Order {
   @@index([userId])
   @@index([projectId, status])
   @@index([externalId])
+  @@index([createdAt])
+  @@index([batchOrderId])
   @@map("Order")
 }
 
@@ -518,6 +520,7 @@ model InternalServiceMapping {
   providerService   ProviderService @relation(fields: [providerServiceId], references: [id])
 
   @@unique([projectId, internalServiceId, providerId])
+  @@index([providerServiceId])
   @@map("InternalServiceMapping")
 }
 
@@ -595,6 +598,8 @@ model Transaction {
 
   @@index([projectId])
   @@index([userId])
+  @@index([status])
+  @@index([createdAt])
   @@map("Transaction")
 }
 

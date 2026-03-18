@@ -34,3 +34,5 @@ describe('Promo Service', () => {
     expect(res.error).toBe('Уже использован');
   });
 });
+
+

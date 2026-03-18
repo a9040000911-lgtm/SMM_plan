@@ -6,6 +6,8 @@
 
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
+import { BotRegistry } from '@/services/bot/bot-registry';
+import { ConfigService } from '@/services/core/config.service';
 
 export interface ProviderSlippageReport {
     providerId: string;
@@ -23,6 +25,18 @@ export interface ProviderSlippageReport {
 }
 
 export class FinancialSecurityService {
+    private static async sendTelegramAlert(message: string, projectId?: string) {
+        try {
+            const config = await ConfigService.getTelegramConfig(projectId);
+            if (!config.adminId) return;
+
+            const bot = BotRegistry.get(projectId);
+            await bot.telegram.sendMessage(config.adminId, message, { parse_mode: 'HTML' });
+        } catch (_e) {
+            console.error('[FinancialSecurity] Failed to send TG alert:', _e);
+        }
+    }
+
     /**
      * Calculates the "Slippage" - the difference between actual provider balance decrease
      * and the theoretical cost of orders sent to that provider.
@@ -126,6 +140,18 @@ export class FinancialSecurityService {
             status = 'CRITICAL';
         }
 
+        if (status !== 'OK') {
+            await this.sendTelegramAlert(
+                `<b>⚠️ FINANCIAL ALERT: Provider Slippage</b>\n\n` +
+                `Provider: <code>${provider.name}</code>\n` +
+                `Status: <b>${status}</b>\n` +
+                `Period: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}\n` +
+                `Slippage: <b>${slippage.toFixed(2)} ${currency}</b> (${slippagePercent.toFixed(2)}%)\n\n` +
+                `Actual Spend: ${actualSpend.toFixed(2)}\n` +
+                `Expected Spend: ${expectedSpend.toFixed(2)}`
+            );
+        }
+
         return {
             providerId,
             providerName: provider.name,
@@ -163,6 +189,17 @@ export class FinancialSecurityService {
             const analysis = this.analyzeUserLTV(user, user.transactions);
             if (analysis.riskScore > 0) {
                 risks.push(analysis);
+
+                if (analysis.riskLabel === 'CRITICAL' || analysis.riskLabel === 'WARNING') {
+                    await this.sendTelegramAlert(
+                        `<b>🚨 SECURITY ALERT: User LTV Risk</b>\n\n` +
+                        `User: <code>${user.username || user.email || user.id}</code> (ID: ${user.id})\n` +
+                        `Risk Level: <b>${analysis.riskLabel}</b>\n` +
+                        `Gap: <b>${analysis.gap.toFixed(2)} RUB</b>\n\n` +
+                        `Balance: ${analysis.currentBalance.toFixed(2)}\n` +
+                        `Expected: ${analysis.expectedBalance.toFixed(2)}`
+                    );
+                }
             }
         }
 
@@ -241,3 +278,5 @@ export class FinancialSecurityService {
         };
     }
 }
+
+

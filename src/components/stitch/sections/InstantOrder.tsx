@@ -13,7 +13,7 @@ import {
     CheckCircle2, Flame, ShieldCheck, TrendingUp, Sparkles, Clock3, Users, X, Mail
 } from "lucide-react";
 import { BrandIcon } from "../ui/BrandIcon";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 import { useSession } from "next-auth/react";
 
 import { formatAmount } from "@/utils/formatter";
@@ -1001,3 +1001,5 @@ export const InstantOrder = () => {
         </div>
     );
 };
+
+

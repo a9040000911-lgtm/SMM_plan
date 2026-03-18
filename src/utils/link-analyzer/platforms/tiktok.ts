@@ -16,3 +16,5 @@ export const TiktokParser: PlatformParser = {
         return { platform: 'TIKTOK' as Platform, possibleCategories: ['SUBSCRIBERS' as Category], objectType: 'TT_PROFILE' };
     }
 };
+
+

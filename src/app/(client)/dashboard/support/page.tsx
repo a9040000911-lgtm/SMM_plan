@@ -31,3 +31,5 @@ export default async function SupportPage() {
         <SupportUI initialTickets={result.data as any} />
     );
 }
+
+

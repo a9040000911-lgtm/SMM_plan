@@ -5,7 +5,7 @@
  */
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { DescriptionSanitizer } from '@/utils/description-sanitizer';
-import { ConfigService } from '@/lib/config.service';
+import { ConfigService } from '@/services/core/config.service';
 
 export class DescriptionGeneratorService {
     /**
@@ -54,7 +54,7 @@ ${currentDescription || 'Нет данных'}
                     const { ProxyAgent } = await import('undici');
                     const dispatcher = new ProxyAgent(config.proxy.startsWith('http') ? config.proxy : `http://${config.proxy}`);
                     requestOptions.fetchFn = (url: string, options: any) => fetch(url, { ...options, dispatcher } as any);
-                } catch (e) {
+                } catch (_e) {
                     console.warn('[Gemini] ProxyAgent not available, using default fetch');
                 }
             }
@@ -62,9 +62,11 @@ ${currentDescription || 'Нет данных'}
             const model = genAI.getGenerativeModel({ model: config.model }, requestOptions);
             const result = await model.generateContent(prompt);
             return result.response.text().trim();
-        } catch (e) {
-            console.error('[Gemini] Error enhancing description:', e);
+        } catch (_e) {
+            console.error('[Gemini] Error enhancing description:', _e);
             return currentDescription;
         }
     }
 }
+
+

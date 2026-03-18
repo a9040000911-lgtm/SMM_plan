@@ -5,10 +5,9 @@
  */
 
 import { Telegraf } from 'telegraf';
-import { ConfigService } from './config.service';
+import { ConfigService } from '@/services/core/config.service';
 
 const TOKEN = ConfigService.getSystemConfig().defaultBotToken;
-const shouldSkip = process.env.SKIP_BOT === 'true';
 
 // Создаем инстанс бота один раз (Singleton)
 const globalForBot = global as unknown as {
@@ -43,3 +42,5 @@ export const BotRegistry = {
 if (process.env.NODE_ENV !== 'production') globalForBot.bot = bot;
 
 export default bot;
+
+

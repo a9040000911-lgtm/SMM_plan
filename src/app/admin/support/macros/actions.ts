@@ -50,3 +50,5 @@ export async function deleteMacroAction(id: string) {
   revalidatePath('/admin/support/macros');
   return { success: true };
 }
+
+

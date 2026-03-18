@@ -21,7 +21,7 @@ if (process.env.NODE_ENV === 'production') {
     console.warn('Detected outdated Prisma Client. Force re-initializing Phase 3 models...');
     try {
       (globalWithPrisma.prisma as any).$disconnect();
-    } catch(e) {}
+    } catch(_e) {}
     delete (globalWithPrisma as any).prisma;
   }
 
@@ -48,3 +48,5 @@ if (!(prisma as any).cmsString) {
 
 export default prisma;
 export { prisma };
+
+

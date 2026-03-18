@@ -8,24 +8,21 @@ import { prisma } from '@/lib/prisma';
 import { User } from '@/generated/client';
 import { ServiceResult } from '../types';
 import crypto from 'crypto';
+import { UserRepository } from '../repositories/user.repository';
 
 export class UserService {
     /**
      * Gets user by email and project isolation
      */
     static async getUserByEmail(email: string, projectId: string | null): Promise<User | null> {
-        return await prisma.user.findFirst({
-            where: { email, projectId }
-        });
+        return await UserRepository.findByEmail(email, projectId);
     }
 
     /**
      * Gets user by ID
      */
     static async getById(userId: string): Promise<User | null> {
-        return await prisma.user.findUnique({
-            where: { id: userId }
-        });
+        return await UserRepository.findById(userId);
     }
 
     /**
@@ -35,10 +32,7 @@ export class UserService {
         try {
             const newKey = `smm_${crypto.randomBytes(24).toString('hex')}`;
             
-            await prisma.user.update({
-                where: { id: userId },
-                data: { apiKey: newKey }
-            });
+            await UserRepository.update(userId, { apiKey: newKey });
 
             return { success: true, data: newKey };
         } catch (error: any) {
@@ -54,10 +48,7 @@ export class UserService {
      */
     static async revokeApiKey(userId: string): Promise<ServiceResult<void>> {
         try {
-            await prisma.user.update({
-                where: { id: userId },
-                data: { apiKey: null }
-            });
+            await UserRepository.update(userId, { apiKey: null });
 
             return { success: true, data: undefined };
         } catch (error: any) {
@@ -127,3 +118,5 @@ export class UserService {
         }
     }
 }
+
+

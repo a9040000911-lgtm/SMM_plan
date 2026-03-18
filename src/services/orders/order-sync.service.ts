@@ -137,7 +137,7 @@ export class OrderSyncService {
     static async tryAutoRefill(orderId: number): Promise<boolean> {
         // We reuse ProviderService and other logic here.
         // Importing what we need...
-        const { ConfigService } = await import('@/lib/config.service');
+        const { ConfigService } = await import('@/services/core/config.service');
         const { NotificationTemplates } = await import('@/bot/utils/notification-templates');
 
         const order = await prisma.order.findUnique({
@@ -220,7 +220,7 @@ export class OrderSyncService {
 
                     const telegramConfig = await ConfigService.getTelegramConfig(order.projectId || undefined);
                     const adminId = telegramConfig.adminId;
-                    const { bot } = await import('@/lib/bot');
+                    const { bot } = await import('@/services/bot/bot-registry');
 
                     if (adminId) {
                         const loss = costPer1000.minus(userPaidPer1000).mul(order.quantity).div(1000);
@@ -242,3 +242,5 @@ export class OrderSyncService {
         return false;
     }
 }
+
+

@@ -7,8 +7,8 @@
 import { prisma } from '@/lib/prisma';
 import { ProviderService } from '@/services/providers/provider.service';
 import { Decimal } from 'decimal.js';
-import { bot } from '@/lib/bot';
-import { ConfigService } from '@/lib/config.service';
+import { bot } from '@/services/bot/bot-registry';
+import { ConfigService } from '@/services/core/config.service';
 import { SettingsService } from '@/services/core/settings.service';
 import { Markup } from 'telegraf';
 
@@ -198,3 +198,5 @@ export class AutoRefillService {
         return success;
     }
 }
+
+

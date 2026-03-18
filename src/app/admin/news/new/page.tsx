@@ -15,7 +15,7 @@ import { prisma } from '@/lib/prisma';
 export default async function NewNewsPage() {
   const cookieStore = await cookies();
   const sessionData = cookieStore.get('admin_session');
-  const { verifyAdminSession } = await import('@/lib/jwt');
+  const { verifyAdminSession } = await import('@/services/core/jwt');
   const session = sessionData ? await verifyAdminSession(sessionData.value) : null;
 
   if (!session) return <div>Access Denied</div>;
@@ -117,3 +117,5 @@ export default async function NewNewsPage() {
     </div>
   );
 }
+
+

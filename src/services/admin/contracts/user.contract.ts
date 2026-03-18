@@ -59,3 +59,5 @@ export type UpdateUserLoyaltyInput = z.infer<typeof UpdateUserLoyaltyContract>;
 export type UserReferralInput = z.infer<typeof UserReferralContract>;
 export type CreateEmployeeInput = z.infer<typeof CreateEmployeeContract>;
 export type UpdateUserInput = z.infer<typeof UpdateUserContract>;
+
+

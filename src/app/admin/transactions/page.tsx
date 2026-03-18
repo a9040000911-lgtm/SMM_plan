@@ -51,7 +51,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
   let allProjects: any[] = []; // Added: Initialize allProjects
 
   if (sessionData) {
-    const { verifyAdminSession } = await import('@/lib/jwt');
+    const { verifyAdminSession } = await import('@/services/core/jwt');
     const session = await verifyAdminSession(sessionData.value);
 
     if (session) {
@@ -256,3 +256,5 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
     </div>
   );
 }
+
+

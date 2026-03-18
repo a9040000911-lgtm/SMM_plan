@@ -134,7 +134,7 @@ export class ServiceGuardian {
                 select: { tgId: true }
             });
 
-            const { bot } = await import('@/lib/bot');
+            const { bot } = await import('@/services/bot/bot-registry');
             for (const emp of employees) {
                 if (emp.tgId) {
                     await bot.telegram.sendMessage(Number(emp.tgId), msg, { parse_mode: 'HTML' }).catch(() => { });
@@ -150,7 +150,7 @@ export class ServiceGuardian {
      */
     static async disableService(internalServiceId: string, reason: string) {
         try {
-            const { bot } = await import('@/lib/bot');
+            const { bot } = await import('@/services/bot/bot-registry');
             const service = await prisma.internalService.update({
                 where: { id: internalServiceId },
                 data: { isActive: false },
@@ -196,3 +196,5 @@ export class ServiceGuardian {
         }
     }
 }
+
+

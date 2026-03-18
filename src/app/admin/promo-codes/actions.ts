@@ -67,3 +67,5 @@ export async function deletePromoCodeAction(promoId: string) {
     revalidatePath('/admin/promo-codes');
     return { success: true, message: result.data.deleted ? undefined : 'Промокод деактивирован, так как он уже использовался' };
 }
+
+

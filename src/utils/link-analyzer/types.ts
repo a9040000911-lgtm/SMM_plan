@@ -50,3 +50,5 @@ export interface PlatformParser {
   domains: string[];
   parse(url: string): AnalysisResult | null;
 }
+
+

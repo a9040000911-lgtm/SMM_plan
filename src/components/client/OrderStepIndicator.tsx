@@ -8,7 +8,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Check, Link2, LayoutGrid, Zap, CreditCard } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 
 interface OrderStepIndicatorProps {
     currentStep: "IDLE" | "SELECT_CATEGORY" | "SELECT_SERVICE" | "CHECKOUT";
@@ -69,3 +69,5 @@ export const OrderStepIndicator: React.FC<OrderStepIndicatorProps> = ({ currentS
         </div>
     );
 };
+
+

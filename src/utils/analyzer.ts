@@ -14,3 +14,5 @@ export { type TargetType, type AnalysisResult } from './link-analyzer/types';
 export function analyzeLink(link: string): ModularAnalysisResult | null {
   return modularAnalyzeLink(link);
 }
+
+

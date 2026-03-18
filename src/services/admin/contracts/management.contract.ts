@@ -65,3 +65,5 @@ export type UpdateCmsStringsInput = z.infer<typeof UpdateCmsStringsContract>;
 export type UpdateCmsBlocksInput = z.infer<typeof UpdateCmsBlocksContract>;
 export type CreateNewsInput = z.infer<typeof CreateNewsContract>;
 export type UpdateGlobalSettingsInput = z.infer<typeof UpdateGlobalSettingsContract>;
+
+

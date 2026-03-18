@@ -160,3 +160,5 @@ export function ProjectAppearanceEditor({ projectId, initialConfig }: ProjectApp
         </div>
     );
 }
+
+

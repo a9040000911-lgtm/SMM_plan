@@ -6,7 +6,7 @@
 import express from 'express';
 import { PaymentConfirmationService } from '@/services/orders/payment-confirmation.service';
 import { PaymentService } from '@/services/finance/payment.service';
-import { ConfigService } from '@/lib/config.service';
+import { ConfigService } from '@/services/core/config.service';
 
 const app = express();
 app.use(express.json());
@@ -61,3 +61,5 @@ export function startWebhookServer() {
     }
   });
 }
+
+

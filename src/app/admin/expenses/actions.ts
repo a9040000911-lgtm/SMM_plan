@@ -76,3 +76,5 @@ export async function getExpensesTotal(startDate: string, endDate: string) {
 
   return result.data;
 }
+
+

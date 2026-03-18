@@ -9,7 +9,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Filter, Cpu, Layers, Activity } from "lucide-react";
 import { CategoryCard } from "./CategoryCard";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 import { translateCategory, translatePlatform } from "@/utils/translations";
 
 interface Service {
@@ -221,3 +221,5 @@ export const ServiceSelector: React.FC<ServiceSelectorProps> = ({ catalog, onSel
         </div>
     );
 };
+
+

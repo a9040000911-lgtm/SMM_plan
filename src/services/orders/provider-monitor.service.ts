@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
-import { bot } from '@/lib/bot';
+import { bot } from '@/services/bot/bot-registry';
 import { SettingsService } from '@/services/core/settings.service';
 import { PredictionService } from '@/services/users/prediction.service';
 import { NotificationTemplates } from '@/bot/utils/notification-templates';
@@ -43,3 +43,5 @@ export class ProviderMonitorService {
         return forecasts;
     }
 }
+
+

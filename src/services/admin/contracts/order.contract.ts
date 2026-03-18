@@ -21,3 +21,5 @@ export const BatchCancelOrdersContract = z.object({
 
 export type UpdateOrderStatusInput = z.infer<typeof UpdateOrderStatusContract>;
 export type BatchCancelOrdersInput = z.infer<typeof BatchCancelOrdersContract>;
+
+

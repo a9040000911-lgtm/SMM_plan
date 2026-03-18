@@ -4,8 +4,8 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { bot } from '@/lib/bot';
-import { ConfigService } from '@/lib/config.service';
+import { bot } from '@/services/bot/bot-registry';
+import { ConfigService } from '@/services/core/config.service';
 import { prisma } from '@/lib/prisma';
 
 export class BroadcastService {
@@ -86,7 +86,7 @@ export class BroadcastService {
     if (!tgId) return;
 
     try {
-      const { BotRegistry } = await import('@/lib/bot');
+      const { BotRegistry } = await import('@/services/bot/bot-registry');
       const botInstance = BotRegistry.get(projectId);
 
       if (!botInstance?.telegram) return;
@@ -98,3 +98,5 @@ export class BroadcastService {
     }
   }
 }
+
+

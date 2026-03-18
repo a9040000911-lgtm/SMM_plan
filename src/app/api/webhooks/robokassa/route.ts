@@ -143,3 +143,5 @@ export async function GET(req: NextRequest) {
     // Redirect to success page
     return NextResponse.redirect(new URL(`/payment/success?txId=${invId}`, req.url));
 }
+
+

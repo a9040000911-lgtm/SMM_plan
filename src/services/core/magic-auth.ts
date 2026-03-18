@@ -42,3 +42,5 @@ export async function verifyMagicToken(token: string): Promise<MagicTokenPayload
         return null;
     }
 }
+
+

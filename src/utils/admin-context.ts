@@ -22,3 +22,5 @@ export async function getAdminContext(): Promise<AdminContext> {
         isGlobalAdmin: session.isGlobalAdmin
     };
 }
+
+

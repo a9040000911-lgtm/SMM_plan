@@ -9,6 +9,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface Slide {
     title: string;
@@ -76,10 +77,11 @@ export function PromoCarousel({ data }: { data: { slides: Slide[] } }) {
 
                     {activeSlide.image && (
                         <div className="absolute right-0 top-0 h-full w-1/2 overflow-hidden pointer-events-none">
-                            <img 
+                            <Image 
                                 src={activeSlide.image} 
                                 alt={activeSlide.title}
-                                className="w-full h-full object-cover opacity-50 mask-fade-left"
+                                fill
+                                className="object-cover opacity-50 mask-fade-left"
                             />
                         </div>
                     )}
@@ -113,3 +115,5 @@ export function PromoCarousel({ data }: { data: { slides: Slide[] } }) {
         </div>
     );
 }
+
+

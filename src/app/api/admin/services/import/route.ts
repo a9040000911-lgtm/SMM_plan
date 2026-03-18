@@ -11,7 +11,7 @@ import { SmartAnalyzerService, SmartMappingService } from '@/services/providers'
 import { PricingService } from '@/services/finance/pricing.service';
 import { Decimal } from 'decimal.js';
 import { GuaranteeParser } from '@/utils/guarantee-parser';
-import { checkRateLimit, getRealIp } from '@/lib/rate-limiter';
+import { checkRateLimit, getRealIp } from '@/services/core/rate-limiter';
 
 export async function GET(req: NextRequest) {
   try {
@@ -312,3 +312,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+

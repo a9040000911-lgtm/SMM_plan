@@ -33,3 +33,5 @@ export interface PaymentSettings {
     allowedProviders?: string[];
     minDeposit?: number;
 }
+
+

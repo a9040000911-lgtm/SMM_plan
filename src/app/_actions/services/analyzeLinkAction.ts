@@ -29,3 +29,5 @@ export async function analyzeLinkAction(link: string) {
         return { success: false, error: "An error occurred during link analysis" };
     }
 }
+
+

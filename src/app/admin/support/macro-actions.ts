@@ -33,3 +33,5 @@ export async function executeMacroAction(ticketId: string, macroId: string) {
         return { success: false, error: result.error.message };
     }
 }
+
+

@@ -8,7 +8,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Package, CreditCard, Headphones, Settings, Sparkles, LogOut, Key, Users, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { signOut } from 'next-auth/react';
 import { motion } from 'framer-motion';
 
@@ -182,3 +182,5 @@ function MobileBottomNav() {
         </nav>
     );
 }
+
+

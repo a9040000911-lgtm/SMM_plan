@@ -106,3 +106,5 @@ export function DashboardCharts({ data }: { data: any }) {
     </div>
   );
 }
+
+

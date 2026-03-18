@@ -10,7 +10,7 @@ import { useLanguage } from "@/providers/language-provider";
 import React, { useState } from "react";
 import { ChevronDown, HelpCircle, MessageCircle, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 import Link from "next/link";
 
 interface HelpSectionProps {
@@ -242,3 +242,5 @@ export const HelpSection: React.FC<HelpSectionProps> = ({ className }) => {
         </div>
     );
 };
+
+

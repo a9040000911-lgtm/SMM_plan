@@ -72,3 +72,5 @@ export async function updateLoyaltySettingsAction(formData: FormData) {
         return { success: false, error: error.message };
     }
 }
+
+

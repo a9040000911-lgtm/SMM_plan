@@ -11,7 +11,7 @@ import {
   ProviderBalanceSchema,
   ProviderServicesResponseSchema,
   ProviderOrderResponseSchema
-} from '@/lib/schemas';
+} from '@/services/core/schemas';
 import { validateSafeUrl } from '@/utils/url-validator';
 
 export class UniversalProvider implements IProvider {
@@ -221,3 +221,5 @@ export class UniversalProvider implements IProvider {
     }
   }
 }
+
+

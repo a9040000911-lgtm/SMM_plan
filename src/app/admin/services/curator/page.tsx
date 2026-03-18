@@ -19,7 +19,7 @@ import {
     Zap
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 import { getServicesForCurator, updateService } from "../actions";
 import { CategoryCard } from "@/components/client/CategoryCard";
 import Link from "next/link";
@@ -386,3 +386,5 @@ export default function CuratorPage() {
         </div>
     );
 }
+
+

@@ -159,3 +159,5 @@ catalogWizard.action('back_to_platforms', async (ctx: any) => {
     // Handled in step 3 but for safety:
     return ctx.wizard.selectStep(0);
 });
+
+

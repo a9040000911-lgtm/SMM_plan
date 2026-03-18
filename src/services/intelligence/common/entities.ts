@@ -27,3 +27,5 @@ export interface AnalyzedIntelligenceLink {
     targetId?: string;
     metadata?: Record<string, any>;
 }
+
+

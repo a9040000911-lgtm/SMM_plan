@@ -302,7 +302,7 @@ export class AdminManagementService extends BaseAdminService {
     /**
      * Gets global settings.
      */
-    async getGlobalSettings(ctx: AdminContext): Promise<AdminServiceResult<Record<string, string>>> {
+    async getGlobalSettings(_ctx: AdminContext): Promise<AdminServiceResult<Record<string, string>>> {
         try {
             const settings = await prisma.globalSetting.findMany();
             const map: Record<string, string> = {};
@@ -353,3 +353,5 @@ export class AdminManagementService extends BaseAdminService {
         }
     }
 }
+
+

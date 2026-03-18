@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import Redis from 'ioredis';
-import { ConfigService } from './config.service';
+import { ConfigService } from '@/services/core/config.service';
 
 const redisUrl = ConfigService.getSystemConfig().redisUrl;
 
@@ -64,3 +64,5 @@ if (!isEdge && !isBuild) {
 
 export { redis };
 export default redis;
+
+

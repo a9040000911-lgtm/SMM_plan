@@ -126,3 +126,5 @@ export function LegalContentManager({ projectId, initialDocuments }: Props) {
         </div>
     );
 }
+
+

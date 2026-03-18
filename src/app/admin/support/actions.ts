@@ -5,7 +5,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { BotRegistry } from '@/lib/bot';
+import { BotRegistry } from '@/services/bot/bot-registry';
 import { revalidatePath } from 'next/cache';
 import { TicketService } from '@/services/support';
 import { getAdminSession } from '@/utils/admin-session';
@@ -96,10 +96,12 @@ export async function getStuckOrders() {
 }
 
 export async function addInternalNoteAction(ticketId: string, text: string) {
-  const ctx = await requireSupportOrAdmin();
+  const _ctx = await requireSupportOrAdmin();
   await TicketService.sendInternalNote(ticketId, text, 'Staff');
 
   revalidatePath(`/admin/support/${ticketId}`);
   revalidatePath('/admin/support');
   return { success: true };
 }
+
+

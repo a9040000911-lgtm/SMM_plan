@@ -99,7 +99,7 @@ export async function Sidebar() {
 
   if (sessionCookie?.value) {
     try {
-      const { verifyAdminSession } = await import('@/lib/jwt');
+      const { verifyAdminSession } = await import('@/services/core/jwt');
       const sessionUser = await verifyAdminSession(sessionCookie.value);
 
       if (sessionUser) {
@@ -188,3 +188,5 @@ export async function Sidebar() {
     </aside>
   );
 }
+
+

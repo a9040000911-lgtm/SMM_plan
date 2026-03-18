@@ -11,7 +11,7 @@ import {
     FaTwitch, FaTwitter,
     FaDiscord, FaReddit, FaWhatsapp, FaSpotify, FaOdnoklassniki, FaSoundcloud, FaLinkedin, FaPinterest, FaSnapchatGhost
 } from "react-icons/fa";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 import { BrandIcon } from '../ui/BrandIcon';
 import { SerializedServiceV2 } from "@/types/catalog";
 import { translatePlatform } from "@/utils/translations";
@@ -345,3 +345,5 @@ export function CompactCatalog({ groupedServices, isLoggedIn }: CompactCatalogPr
         </div>
     );
 };
+
+

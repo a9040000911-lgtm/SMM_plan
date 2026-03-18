@@ -81,3 +81,5 @@ export function priceToWords(amount: number | string | Decimal, currency: string
 
   return `${value.toLocaleString('ru-RU')} ${label}`;
 }
+
+

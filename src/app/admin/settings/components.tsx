@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { Globe, CreditCard, Bot, ShieldAlert, FileText, Save, Server } from 'lucide-react';
 
 interface SettingsTabsProps {
@@ -95,3 +95,5 @@ export function ProjectSelector({ allProjects, currentProjectId }: { allProjects
         </form>
     );
 }
+
+

@@ -12,7 +12,7 @@ import {
     Globe, X, CheckCircle2,
     ChevronDown, Search, PackagePlus, Database, MoreVertical
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import {
     deleteService
 } from '@/app/admin/services/actions';
@@ -611,4 +611,6 @@ export function ManualServiceConstructor({
         </div>
     );
 }
+
+
 

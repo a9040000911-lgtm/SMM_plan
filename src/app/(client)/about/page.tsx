@@ -8,7 +8,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Rocket, ShieldCheck, Zap, Users, Globe, Award, Heart, CheckCircle2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 const stats = [
     { label: 'Заказов выполнено', value: '10M+', icon: Zap },
@@ -173,3 +173,5 @@ function SparkleIcon() {
         </svg>
     );
 }
+
+

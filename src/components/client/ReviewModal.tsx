@@ -8,7 +8,7 @@
 import React, { useState } from "react";
 import { X, Star, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 
 interface ReviewModalProps {
     isOpen: boolean;
@@ -248,3 +248,5 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, order
         </AnimatePresence>
     );
 };
+
+

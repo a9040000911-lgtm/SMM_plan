@@ -194,13 +194,13 @@ export class ProviderService {
           }
           this.logger.warn(`[Failover] Provider ${mapping.providerId} failed: ${result.error}. Trying next...`);
         }
-      } catch (e: any) {
-        if (e.message.includes('PROVIDER_NETWORK_ERROR')) throw e;
-        lastError = e.message;
-        this.logger.error(`[Failover] Error with provider ${mapping.providerId}:`, e.message);
+      } catch (_e: any) {
+        if (_e.message.includes('PROVIDER_NETWORK_ERROR')) throw _e;
+        lastError = _e.message;
+        this.logger.error(`[Failover] Error with provider ${mapping.providerId}:`, _e.message);
 
         // Если это была ошибка от Гвардиана - не пробуем другие маппинги, так как проблема в самой услуге
-        if (e.message.includes('[Guardian]')) break;
+        if (_e.message.includes('[Guardian]')) break;
       }
     }
 
@@ -339,7 +339,7 @@ export class ProviderService {
       if (!instance) return { success: false, latency: 0 };
       await instance.getBalance();
       return { success: true, latency: Date.now() - start };
-    } catch (e) {
+    } catch (_e) {
       return { success: false, latency: Date.now() - start };
     }
   }
@@ -369,5 +369,7 @@ export class ProviderService {
     }
   }
 }
+
+
 
 

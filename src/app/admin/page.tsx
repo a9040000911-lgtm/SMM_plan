@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { formatAmount } from '@/utils/formatter';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { AdminHeader } from '@/components/admin/core/admin-header';
 import { CopyButton } from '@/components/admin/core/copy-button';
 
@@ -291,3 +291,5 @@ function Info({ size, className }: { size: number, className?: string }) {
     </svg>
   );
 }
+
+

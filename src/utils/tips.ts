@@ -86,3 +86,5 @@ export function getWebSmartHint(platform: string | undefined): string {
       return "Убедитесь, что ваш аккаунт/публикация открыты для всех пользователей.";
   }
 }
+
+

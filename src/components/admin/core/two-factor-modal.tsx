@@ -66,3 +66,5 @@ export function TwoFactorModal({ isOpen, onClose, onSubmit, isPending }: TwoFact
         </div>
     );
 }
+
+

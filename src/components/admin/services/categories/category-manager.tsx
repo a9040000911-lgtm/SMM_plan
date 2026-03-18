@@ -19,7 +19,7 @@ import {
 } from '@/app/admin/services/actions';
 import { CATEGORY_DISPLAY_NAMES, CATEGORY_ICONS as CATEGORY_ICON_NAMES } from '@/utils/category-metadata';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { Platform, Category } from '@/generated/client';
 
 interface CategoryManagerProps {
@@ -490,4 +490,6 @@ export function CategoryManager({
         </div>
     );
 }
+
+
 

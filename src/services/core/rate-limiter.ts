@@ -5,7 +5,7 @@
  */
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
-import { prisma } from "./prisma";
+import { prisma } from "@/lib/prisma";
 import type { NextRequest } from "next/server";
 
 // Cache for dynamic limits from DB
@@ -30,7 +30,7 @@ export async function getDynamicLimit(key: string, defaultValue: number): Promis
         
         limitCache.set(key, { value: result, expiresAt: Date.now() + CACHE_TTL });
         return result;
-    } catch (e) {
+    } catch (_e) {
         return defaultValue;
     }
 }
@@ -81,7 +81,7 @@ export async function checkRateLimit(type: 'auth' | 'api' | 'public', ip: string
     // 3. Fallback: Simple in-memory limit for Dev/Local (Mock)
     // In production, redis should ALWAYS be present.
     const now = Date.now();
-    const mockKey = `mock:${type}:${ip}`;
+    const _mockKey = `mock:${type}:${ip}`;
     const mockReset = now + 60000;
     
     return {
@@ -91,3 +91,5 @@ export async function checkRateLimit(type: 'auth' | 'api' | 'public', ip: string
         reset: mockReset
     };
 }
+
+

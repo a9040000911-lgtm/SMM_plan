@@ -9,7 +9,7 @@ dotenv.config();
 import { Scenes, session, Telegraf } from 'telegraf';
 import { prisma } from '@/lib/prisma';
 import { startWebhookServer, SessionService } from '@/services/core';
-import { bot } from '@/lib/bot';
+import { bot, BotRegistry } from '@/services/bot/bot-registry';
 import { CryptoService } from '@/services/core';
 import { createLogger } from '@/lib/logger';
 import fs from 'fs';
@@ -70,7 +70,7 @@ bot.use(session());
 bot.use(stage.middleware() as any);
 
 // --- QUEUES ---
-import { orderQueue, syncQueue, auditQueue, balanceQueue, failoverQueue, scheduledOrderQueue } from '@/lib/queues';
+import { orderQueue, syncQueue, auditQueue, balanceQueue, failoverQueue, scheduledOrderQueue } from '@/services/core/queues';
 import '../workers';
 
 export const startBackgroundTasks = async () => {
@@ -166,6 +166,9 @@ async function startBotInstance(project: any) {
     const instance = new Telegraf(decryptedToken);
     instance.catch(errorHandler);
 
+    // FIX: Register instance in registry so BotRegistry.get(projectId) works
+    BotRegistry.register(project.id, instance);
+
     await instance.telegram.setMyCommands(botCommands).catch(() => { });
     instance.use((ctx: any, next) => { ctx.project = project; return next(); });
     instance.use(bot.middleware());
@@ -250,3 +253,5 @@ if (process.env.NODE_ENV !== 'test' && !process.env.NEXT_PHASE && process.env.SK
     startWebhookServer();
   });
 }
+
+

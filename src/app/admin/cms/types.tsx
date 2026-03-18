@@ -84,3 +84,5 @@ export const SLOTS = [
     { id: 'BOTTOM_ZONE', label: 'Нижняя зона' },
     { id: 'SIDEBAR', label: 'Боковая панель' },
 ];
+
+

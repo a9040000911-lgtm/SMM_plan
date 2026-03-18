@@ -6,8 +6,8 @@
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
 import { ProviderService } from '@/services/providers/provider.service';
-import { bot } from '@/lib/bot';
-import { ConfigService } from '@/lib/config.service';
+import { bot } from '@/services/bot/bot-registry';
+import { ConfigService } from '@/services/core/config.service';
 
 import { PricingService } from '@/services/finance/pricing.service';
 
@@ -206,3 +206,5 @@ export class SafetyService {
     };
   }
 }
+
+

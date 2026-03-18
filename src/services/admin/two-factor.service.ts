@@ -5,7 +5,7 @@
  */
 
 import { redis } from '@/lib/redis';
-import { bot } from '@/lib/bot';
+import { bot } from '@/services/bot/bot-registry';
 import { prisma } from '@/lib/prisma';
 
 export class TwoFactorService {
@@ -56,3 +56,5 @@ export class TwoFactorService {
         return false;
     }
 }
+
+

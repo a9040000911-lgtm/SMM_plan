@@ -58,7 +58,7 @@ export class ReferralService {
         );
 
         try {
-            const { BotRegistry } = await import('@/lib/bot');
+            const { BotRegistry } = await import('@/services/bot/bot-registry');
             const { NotificationTemplates } = await import('@/bot/utils/notification-templates');
             const botInstance = BotRegistry.get(user.projectId);
             const tierBadge = tier === 3 ? '🏆' : tier === 2 ? '⭐' : '💫';
@@ -151,3 +151,5 @@ export class ReferralService {
         }
     }
 }
+
+

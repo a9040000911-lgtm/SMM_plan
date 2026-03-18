@@ -11,3 +11,5 @@ export async function handleShop(ctx: any) {
     if (webAppUrl.startsWith('http://') && !webAppUrl.includes('localhost') && !webAppUrl.includes('.local')) webAppUrl = webAppUrl.replace('http://', 'https://');
     await ctx.reply('🛍 Открыть магазин:', { ...getProjectMenu(ctx.project), ...Markup.inlineKeyboard([[Markup.button.webApp('🚀 Вперед!', webAppUrl)]]) });
 }
+
+

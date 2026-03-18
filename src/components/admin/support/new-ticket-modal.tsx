@@ -96,3 +96,5 @@ export function NewTicketModal({ userId, isOpen, onClose, onSuccess }: NewTicket
         </div>
     );
 }
+
+

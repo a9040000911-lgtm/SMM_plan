@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { LogoutButton } from '@/components/admin/core/logout-button';
 import {
     LayoutDashboard, ShoppingCart, Users, Briefcase,
@@ -289,3 +289,5 @@ export function LayoutWrapper({
         </AdminProvider>
     );
 }
+
+

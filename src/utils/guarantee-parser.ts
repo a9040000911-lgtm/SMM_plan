@@ -44,3 +44,5 @@ export class GuaranteeParser {
         return 0; // Default: No guarantee detected
     }
 }
+
+

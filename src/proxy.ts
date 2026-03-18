@@ -37,3 +37,5 @@ export const config = {
         '/((?!api/internal|_next/static|_next/image|favicon.ico|.*\\.).*)',
     ],
 };
+
+

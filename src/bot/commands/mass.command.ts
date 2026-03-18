@@ -139,3 +139,5 @@ export async function handleConfirmMassOrder(ctx: any) {
         await ctx.reply(`❌ <b>Ошибка:</b> ${error.message}`, { parse_mode: 'HTML' });
     }
 }
+
+

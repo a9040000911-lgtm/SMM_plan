@@ -11,7 +11,7 @@ import {
     ShieldCheck, ToggleLeft, ToggleRight, Send as SendIcon,
     Smartphone, Bell, User, Key, ExternalLink
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 interface SettingsUIProps {
     userData: any;
@@ -365,3 +365,5 @@ export function SettingsUI({ userData: initialUserData }: SettingsUIProps) {
         </div>
     );
 }
+
+

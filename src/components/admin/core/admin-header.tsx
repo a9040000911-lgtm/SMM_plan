@@ -9,7 +9,7 @@ import React from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight, Home, Globe, Briefcase } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { useAdmin } from '@/components/admin/core/admin-context';
 import { ProjectSelector } from './project-selector';
 
@@ -164,3 +164,5 @@ export function AdminHeader({ title, subtitle, projectId: propProjectId, project
         </div>
     );
 }
+
+

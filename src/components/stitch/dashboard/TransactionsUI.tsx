@@ -12,7 +12,7 @@ import {
     Receipt, DownloadCloud, ChevronLeft, ChevronRight,
     ArrowRight, Clock, ShieldCheck, Banknote
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { formatAmount } from '@/utils/formatter';
 
 interface Transaction {
@@ -376,5 +376,7 @@ function TxRow({ tx, idx }: { tx: Transaction, idx: number }) {
         </motion.div>
     );
 }
+
+
 
 

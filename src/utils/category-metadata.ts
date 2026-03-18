@@ -55,3 +55,5 @@ export const CATEGORY_ICONS: Record<string, string> = {
     'STARS': 'sparkles',
     'OTHER': 'layers'
 };
+
+

@@ -5,12 +5,12 @@
  */
 import { prisma } from '@/lib/prisma';
 import { LedgerService } from '@/services/finance/ledger.service';
-import { BotRegistry, bot } from '@/lib/bot';
+import { BotRegistry, bot } from '@/services/bot/bot-registry';
 import { formatAmount } from '@/utils/formatter';
 import { PromoService } from '@/services/users/promo.service';
 import { ReferralService } from '@/services/users/referral.service';
 import { PaymentService } from '@/services/finance/payment.service';
-import { ConfigService } from '@/lib/config.service';
+import { ConfigService } from '@/services/core/config.service';
 import { NotificationTemplates } from '@/bot/utils/notification-templates';
 import { Prisma } from '@/generated/client';
 import { createLogger } from '@/lib/logger';
@@ -53,16 +53,15 @@ export class PaymentConfirmationService {
 
             await ReferralService.processReferralBonus(txPrisma, tx.userId, tx.amount, tx.id);
 
-            // 2. ЭМИССИЯ СОБЫТИЯ
-            // Слушатели в ServiceRegistry перехватят это и запустят активацию заказов
+        }).then(async () => {
+            // 2. ЭМИССИЯ СОБЫТИЯ (После фиксации транзакции в БД)
             eventBus.emit('PAYMENT_CONFIRMED', {
                 txId: tx.id,
                 userId: tx.userId,
                 amount: tx.amount.toNumber(),
                 orderMetadata: tx.metadata
             });
-            
-        }, { timeout: 30000 }).catch(async (err) => {
+        }).catch(async (err) => {
             this.logger.error('[confirmPayment Error]', err);
             const telegramConfig = await ConfigService.getTelegramConfig();
             if (telegramConfig.adminId) {
@@ -95,3 +94,5 @@ export class PaymentConfirmationService {
         }
     }
 }
+
+

@@ -12,7 +12,7 @@ import {
     Globe,
     Briefcase
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { formatAmount } from '@/utils/formatter';
 import { motion } from 'framer-motion';
 
@@ -120,3 +120,5 @@ export function ProviderHub({ providers, onTopUp, onSync, syncingId }: ProviderH
         </div>
     );
 }
+
+

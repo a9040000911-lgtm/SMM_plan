@@ -38,3 +38,5 @@ export function DeleteNewsButton({ id, title }: { id: string; title: string }) {
         </button>
     );
 }
+
+

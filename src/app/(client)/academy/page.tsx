@@ -13,7 +13,7 @@ import {
     ArrowRight
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 
 const platforms = [
     {
@@ -189,3 +189,5 @@ export default function AcademyPage() {
         </div>
     );
 }
+
+

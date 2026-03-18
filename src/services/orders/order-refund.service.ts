@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { Prisma, OrderStatus } from '@/generated/client';
 import { Decimal } from 'decimal.js';
 import { LedgerService } from '@/services/finance/ledger.service';
-import { bot } from '@/lib/bot';
+import { bot } from '@/services/bot/bot-registry';
 import { NotificationTemplates } from '@/bot/utils/notification-templates';
 import { formatAmount } from '@/utils/formatter';
 import { OrderWithRelations } from '@/types/orders';
@@ -193,3 +193,5 @@ export class OrderRefundService {
         return totalToReturn;
     }
 }
+
+

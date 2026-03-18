@@ -55,7 +55,7 @@ export async function getDefaultProjectId(): Promise<string | null> {
  * Ensures the project ID is valid and accessible by the current user.
  * MOVED: Use admin-session.ts version instead of this one to break cycles.
  */
-export async function validateProjectAccess(projectId: string): Promise<boolean> {
+export async function validateProjectAccess(_projectId: string): Promise<boolean> {
     return true; // Stub for now, will be replaced by local check in AdminSession
 }
 
@@ -74,3 +74,5 @@ export async function getClientProjectId(): Promise<string | null> {
     // 2. Fallback
     return await getDefaultProjectId();
 }
+
+

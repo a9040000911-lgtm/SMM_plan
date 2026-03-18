@@ -37,3 +37,5 @@ export async function getGlobalSettingsAction() {
         return { success: false, error: e.message };
     }
 }
+
+

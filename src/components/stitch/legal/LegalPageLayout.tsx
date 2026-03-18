@@ -41,3 +41,5 @@ export const LegalPageLayout = ({ title, lastUpdated, children }: LegalPageLayou
         </div>
     );
 };
+
+

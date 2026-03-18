@@ -53,3 +53,5 @@ export const TelegramCatalog: CatalogService[] = [
   { id: '9001', slug: 'tg-stars-profile', name: 'Звезды на профиль / канал ⭐️', category: Category.OTHER, targetType: 'TG_CHANNEL', fixedPricePer1000: 10100.00, providers: [{ providerName: 'vexboost', providerServiceId: 2107, priority: 1 }] },
   { id: '9002', slug: 'tg-stars-post', name: 'Звезды на пост ⭐️', category: Category.OTHER, targetType: 'TG_POST', fixedPricePer1000: 10700.00, providers: [{ providerName: 'vexboost', providerServiceId: 2281, priority: 1 }] }
 ];
+
+

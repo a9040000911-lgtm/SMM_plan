@@ -21,7 +21,7 @@ import { CategoryEditor } from './category-editor';
 import { ServiceEditorModal } from './service-editor-modal';
 import { toggleServiceStatus, updateService, enhanceCategoryDescriptionsAction } from '@/app/admin/services/actions';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 import { ServiceLibraryModal } from './service-library-modal';
 
@@ -571,3 +571,5 @@ function getPlatformColor(platform: string) {
         default: return 'bg-slate-400';
     }
 }
+
+

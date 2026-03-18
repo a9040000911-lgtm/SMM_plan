@@ -20,3 +20,5 @@ describe('Formatter Utility', () => {
     expect(priceToWords(10.50)).toBe('10,5 руб.');
   });
 });
+
+

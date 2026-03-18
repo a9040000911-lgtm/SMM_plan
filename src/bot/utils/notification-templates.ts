@@ -100,3 +100,5 @@ export const NotificationTemplates = {
         SUPPORT_ORDER_BUTTON: (orderId: number) => `🆘 Поддержка по заказу #${orderId}`
     }
 };
+
+

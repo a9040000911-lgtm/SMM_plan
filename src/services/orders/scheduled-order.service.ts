@@ -6,7 +6,7 @@
 import { prisma } from '@/lib/prisma';
 import { OrderActivationService } from './order-activation.service';
 import { Decimal } from 'decimal.js';
-import { BotRegistry } from '@/lib/bot';
+import { BotRegistry } from '@/services/bot/bot-registry';
 
 export class ScheduledOrderService {
     /**
@@ -154,3 +154,5 @@ export class ScheduledOrderService {
         return this.executeScheduledOrder(id);
     }
 }
+
+

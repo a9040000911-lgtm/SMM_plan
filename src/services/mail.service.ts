@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import nodemailer from 'nodemailer';
-import { ConfigService } from '@/lib/config.service';
+import { ConfigService } from '@/services/core/config.service';
 
 let transporter: nodemailer.Transporter | null = null;
 
@@ -204,3 +204,5 @@ export async function sendPasswordResetEmail(to: string, code: string) {
     return { success: false, error };
   }
 }
+
+

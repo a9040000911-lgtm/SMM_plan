@@ -105,7 +105,7 @@ export class BalanceMonitorService {
 
         const rates = await import('@/services/finance/currency.service').then(m => m.CurrencyService.getRates());
         const providers = await prisma.provider.findMany({ where: { isEnabled: true } });
-        const { bot } = await import('@/lib/bot');
+        const { bot } = await import('@/services/bot/bot-registry');
         const { Markup } = await import('telegraf');
         const { redis } = await import('@/lib/redis');
 
@@ -210,3 +210,5 @@ export class BalanceMonitorService {
         }
     }
 }
+
+

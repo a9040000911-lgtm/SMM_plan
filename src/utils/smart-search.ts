@@ -45,3 +45,5 @@ export function smartSearch(query: string, text: string): boolean {
         return false;
     });
 }
+
+

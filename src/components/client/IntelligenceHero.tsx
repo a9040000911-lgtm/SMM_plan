@@ -9,7 +9,7 @@ import { useLanguage } from "@/providers/language-provider";
 import React, { useState } from "react";
 import { Loader2, Sparkles, CheckCircle2, AlertCircle, Terminal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 
 interface IntelligenceHeroProps {
     onAnalyze: (link: string) => Promise<void>;
@@ -194,3 +194,5 @@ export const IntelligenceHero: React.FC<IntelligenceHeroProps> = ({
         </div>
     );
 };
+
+

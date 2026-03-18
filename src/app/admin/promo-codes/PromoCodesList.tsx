@@ -10,7 +10,7 @@ import { AdminCard, Button, StatusBadge, ActionButton } from '@/components/admin
 import { togglePromoCodeAction, deletePromoCodeAction, createPromoCodeAction } from './actions';
 import { Copy, Trash2, Power, Plus, Tag, Percent, FileText, Loader2, X, Globe, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 interface PromoCodesListProps {
     initialCodes: any[];
@@ -307,3 +307,5 @@ export function PromoCodesList({ initialCodes, projects, activeProjectId = null 
         </div>
     );
 }
+
+

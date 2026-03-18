@@ -5,6 +5,7 @@
  */
 import { prisma } from '@/lib/prisma';
 import { SettingsService } from '@/services/core/settings.service';
+import { Decimal } from 'decimal.js';
 
 export interface LoyaltyLevel {
     name: string;
@@ -47,7 +48,8 @@ export class LoyaltyService {
         return basePercent;
     }
 
-    static async getLoyaltyInfo(userId: string, spentAmount: number, projectId?: string | null): Promise<LoyaltyInfo> {
+    static async getLoyaltyInfo(userId: string, spentAmount: Decimal | number, projectId?: string | null): Promise<LoyaltyInfo> {
+        const spentDecimal = new Decimal(spentAmount);
         const user = await prisma.user.findUnique({ where: { id: userId } });
         const project = projectId ? await prisma.project.findUnique({ where: { id: projectId } }) : null;
         const config = project?.config as any || {};
@@ -84,14 +86,14 @@ export class LoyaltyService {
         let baseLoyalty: { level: LoyaltyLevel, nextLevel?: LoyaltyLevel, discount: number };
         switch (scheme) {
             case 'GAMIFIED':
-                baseLoyalty = this.calculateGamifiedLoyalty(spentAmount);
+                baseLoyalty = this.calculateGamifiedLoyalty(spentDecimal.toNumber());
                 break;
             case 'VIP':
-                baseLoyalty = this.calculateVipLoyalty(spentAmount);
+                baseLoyalty = this.calculateVipLoyalty(spentDecimal.toNumber());
                 break;
             case 'CLASSIC':
             default:
-                baseLoyalty = await this.calculateClassicLoyalty(spentAmount, projectId);
+                baseLoyalty = await this.calculateClassicLoyalty(spentDecimal.toNumber(), projectId);
                 break;
         }
 
@@ -183,3 +185,5 @@ export class LoyaltyService {
         }
     }
 }
+
+

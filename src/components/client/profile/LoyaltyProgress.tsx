@@ -8,7 +8,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Award, TrendingUp, Lock, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 
 interface LoyaltyProgressProps {
     currentTier: {
@@ -169,3 +169,5 @@ export const LoyaltyProgress: React.FC<LoyaltyProgressProps> = ({
         </div>
     );
 };
+
+

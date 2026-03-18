@@ -46,3 +46,5 @@ export function validateLink(link: string, platform: Platform, targetType: strin
 
   return { isValid: true };
 }
+
+

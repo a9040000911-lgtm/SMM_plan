@@ -109,3 +109,5 @@ depositWizard.command('start', (ctx: any) => ctx.scene.leave().then(() => ctx.re
 depositWizard.hears(['🚀 Заказать', '📱 Магазин', '💼 Баланс', '📦 Мои заказы', '🆕 Новости', '👥 Рефералы', '📑 Каталог', 'ℹ️ Инфо', '🆘 Поддержка'], async (ctx: any) => {
     return ctx.scene.leave();
 });
+
+

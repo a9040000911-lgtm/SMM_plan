@@ -66,3 +66,5 @@ export const globalSettingsSchema = z.object({
   MAX_WARNINGS: z.string().regex(/^\d+$/, 'Must be a number').transform(Number).pipe(z.number().min(1).max(10)).default('3'),
   AUTO_BAN_HOURS: z.string().regex(/^\d+$/, 'Must be a number').transform(Number).pipe(z.number().min(1).max(1000)).default('24'),
 });
+
+

@@ -328,3 +328,5 @@ export function UserDetailsForm({ user, currentGlobalAdmin }: UserDetailsFormPro
         </div>
     );
 }
+
+

@@ -27,3 +27,5 @@ export function getUserLoyalty(spent: number, isPioneer: boolean = false) {
         totalDiscount: level.discount + (isPioneer ? 20 : 0)
     };
 }
+
+

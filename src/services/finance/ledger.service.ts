@@ -5,9 +5,10 @@
  */
 
 import { Decimal } from 'decimal.js';
-import { LedgerEntryType, Currency } from '@/generated/client';
+import { LedgerEntryType, Currency, Prisma } from '@/generated/client';
 import { prisma } from '@/lib/prisma';
 import { ServiceResult } from '../types';
+import { UserRepository } from '../repositories/user.repository';
 
 export class LedgerService {
   /**
@@ -29,7 +30,7 @@ export class LedgerService {
    * Должна вызываться внутри Prisma Transaction.
    */
   static async record(
-    tx: any,
+    tx: Prisma.TransactionClient,
     userId: string,
     amount: Decimal,
     type: LedgerEntryType,
@@ -37,10 +38,7 @@ export class LedgerService {
     description?: string,
     currencyOverride?: Currency
   ) {
-    const user = await tx.user.findUnique({
-      where: { id: userId },
-      select: { projectId: true, balance: true, currency: true }
-    });
+    const user = await UserRepository.findById(userId, tx);
 
     if (!user) throw new Error('User not found for ledger record');
 
@@ -72,10 +70,7 @@ export class LedgerService {
    */
   static async getUserBalance(userId: string): Promise<ServiceResult<number>> {
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { balance: true }
-      });
+      const user = await UserRepository.findById(userId);
       if (!user) throw new Error('Пользователь не найден');
       return { success: true, data: user.balance.toNumber() };
     } catch (error: any) {
@@ -115,3 +110,5 @@ export class LedgerService {
     }
   }
 }
+
+

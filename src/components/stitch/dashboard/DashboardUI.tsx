@@ -13,7 +13,7 @@ import {
     TrendingUp, Wallet, ShieldCheck, Clock
 } from 'lucide-react';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { BrandIcon } from '@/components/stitch/ui/BrandIcon';
 import { formatAmount } from '@/utils/formatter';
 
@@ -375,3 +375,5 @@ function ActionCard({ icon, title, desc, href, color }: { icon: any, title: stri
         </Link>
     );
 }
+
+

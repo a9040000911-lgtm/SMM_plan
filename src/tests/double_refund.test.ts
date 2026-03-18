@@ -118,3 +118,5 @@ describe('Financial Safety: Double Refund Protection', () => {
     expect(Number(user?.balance)).toBe(1500); // 1200 + 300
   });
 });
+
+

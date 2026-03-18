@@ -60,3 +60,5 @@ export default async function LegalAdminPage(props: { searchParams: Promise<any>
         </div>
     );
 }
+
+

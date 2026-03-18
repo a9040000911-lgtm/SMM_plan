@@ -54,3 +54,5 @@ export const FinanceTab: React.FC<FinanceTabProps> = ({ currentBalance }) => {
         </>
     );
 };
+
+

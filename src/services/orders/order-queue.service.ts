@@ -6,10 +6,10 @@
 import { prisma } from '@/lib/prisma';
 import { ProviderService } from '@/services/providers/provider.service';
 import { Decimal } from 'decimal.js';
-import { BotRegistry } from '@/lib/bot';
+import { BotRegistry } from '@/services/bot/bot-registry';
 import { Markup } from 'telegraf';
 import { DripFeedService } from '@/services/orders/drip-feed.service';
-import { ConfigService } from '@/lib/config.service';
+import { ConfigService } from '@/services/core/config.service';
 import { NotificationTemplates } from '@/bot/utils/notification-templates';
 import { ProviderOrderResult, OrderWithRelations } from '@/types/orders';
 import { OrderRefundService } from './order-refund.service';
@@ -83,8 +83,13 @@ export class OrderQueueService {
                     });
                     if (!providerSvc) continue;
 
-                    const userPaidPer1000 = o.totalPrice.mul(1000).div(o.quantity);
-                    if (providerSvc.rawPrice.gte(userPaidPer1000)) continue;
+                    const rawPrice = new Decimal(providerSvc.rawPrice as any);
+                    const userPaidPer1000 = new Decimal(o.totalPrice as any).mul(1000).div(o.quantity);
+
+                    if (rawPrice.gte(userPaidPer1000)) {
+                        this.logger.warn(`[Queue] Skipping ${providerName}: provider price (${rawPrice}) >= user price (${userPaidPer1000})`);
+                        continue;
+                    }
 
                     let qtyToOrder = o.quantity;
                     let useNativeDrip = false;
@@ -191,7 +196,7 @@ export class OrderQueueService {
                     const telegramConfig = await ConfigService.getTelegramConfig(o.projectId || undefined);
                     if (telegramConfig.adminId) {
                         try {
-                            const { bot } = await import('@/lib/bot');
+                            const { bot } = await import('@/services/bot/bot-registry');
                             await bot.telegram.sendMessage(telegramConfig.adminId,
                                 `⚠️ <b>КРИТИЧЕСКИЙ ТАЙМАУТ</b>\n\nЗаказ #${o.id} завис при создании. API провайдера не ответило вовремя.\n\n<b>ВНИМАНИЕ:</b> Не делайте возврат вручную, пока не убедитесь, что заказа нет у провайдера!`,
                                 { parse_mode: 'HTML' }
@@ -215,3 +220,5 @@ export class OrderQueueService {
     }
 
 }
+
+

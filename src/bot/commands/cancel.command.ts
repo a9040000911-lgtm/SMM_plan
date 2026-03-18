@@ -10,3 +10,5 @@ export async function handleCancel(ctx: any) {
     await SessionService.delete(ctx.from.id, ctx.project.id).catch(() => { });
     await ctx.reply('✅ Действие отменено.', getProjectMenu(ctx.project));
 }
+
+

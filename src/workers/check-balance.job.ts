@@ -6,7 +6,7 @@
 import { Worker, Job } from 'bullmq';
 import { ProviderService } from '@/services/providers';
 
-import { getRedisConfig } from '@/lib/queues';
+import { getRedisConfig } from '@/services/core/queues';
 
 const connection = getRedisConfig();
 
@@ -18,3 +18,5 @@ export const balanceWorker = new Worker('balance-checks', async (job: Job) => {
 balanceWorker.on('failed', (job, err) => {
     console.error(`[Worker] Balance Job ${job?.id} failed:`, err);
 });
+
+

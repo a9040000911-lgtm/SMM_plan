@@ -38,3 +38,5 @@ export const TransactionFilterContract = z.object({
 export type CreateExpenseInput = z.infer<typeof CreateExpenseContract>;
 export type CreatePromoCodeInput = z.infer<typeof CreatePromoCodeContract>;
 export type TransactionFilterInput = z.infer<typeof TransactionFilterContract>;
+
+

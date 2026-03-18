@@ -3,7 +3,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 import React from "react";
 
 export const BentoGrid = ({
@@ -84,3 +84,5 @@ export const BentoItem = ({
 
     return cardContent;
 };
+
+

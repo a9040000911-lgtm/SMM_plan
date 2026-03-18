@@ -1,9 +1,5 @@
-/**
- * (c) 2024-2026 Smmplan. All rights reserved.
- * Created by Artem (http://artmspektr.ru)
- * Unauthorized copying of this file is strictly prohibited.
- */
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { CryptoService } from '@/services/core/crypto.service';
 
 export class ConfigService {
@@ -12,11 +8,12 @@ export class ConfigService {
      * Retrieves Payment Configuration (YooKassa etc.)
      * Priority: Project DB Settings > Env Vars
      */
-    static async getPaymentConfig(projectId?: string) {
+    static async getPaymentConfig(projectId?: string, tx?: Prisma.TransactionClient) {
         let dbConfig: any = {};
+        const db = tx || prisma;
 
         if (projectId) {
-            const project = await prisma.project.findUnique({
+            const project = await db.project.findUnique({
                 where: { id: projectId },
                 select: { paymentSettings: true }
             });
@@ -48,15 +45,16 @@ export class ConfigService {
      * Retrieves Telegram Bot Configuration
      * Priority: Project DB Settings > Env Vars
      */
-    static async getTelegramConfig(projectId?: string) {
+    static async getTelegramConfig(projectId?: string, tx?: Prisma.TransactionClient) {
         // If we have a project ID, we try to get the specific bot token for that project
         // Multi-tenancy support for the future
         let token = process.env.TELEGRAM_BOT_TOKEN;
         let username = process.env.BOT_USERNAME || 'smmplan_bot';
         const adminId = process.env.ADMIN_TG_ID;
+        const db = tx || prisma;
 
         if (projectId) {
-            const project = await prisma.project.findUnique({
+            const project = await db.project.findUnique({
                 where: { id: projectId },
                 select: { botToken: true, botUsername: true, config: true }
             });
@@ -93,9 +91,10 @@ export class ConfigService {
     /**
      * Retrieves AI (Gemini) Configuration
      */
-    static async getAiConfig() {
+    static async getAiConfig(tx?: Prisma.TransactionClient) {
         // Fetch from GlobalSetting table
-        const settings = await prisma.globalSetting.findMany({
+        const db = tx || prisma;
+        const settings = await db.globalSetting.findMany({
             where: {
                 key: { in: ['AI_SELECTED_MODEL', 'AI_MODEL_LIST', 'AI_PROXY'] }
             }
@@ -125,3 +124,5 @@ export class ConfigService {
         };
     }
 }
+
+

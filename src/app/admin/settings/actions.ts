@@ -35,7 +35,7 @@ export async function updateSettingsAction(formData: FormData): Promise<{ succes
   const criticalCheck = await AdminDataService.checkCriticalProjectChanges(ctx, projectId, rawEntries);
   if (!criticalCheck.success) throw new Error(criticalCheck.error.message);
 
-  const { isCritical, criticalFields } = criticalCheck.data;
+  const { isCritical, criticalFields: _criticalFields } = criticalCheck.data;
 
   if (isCritical) {
     const verifiedResult = await AdminDataService.verify2FACode(ctx, ctx.userId, verificationCode);
@@ -108,3 +108,5 @@ export async function updateSettingsAction(formData: FormData): Promise<{ succes
   revalidatePath('/admin/settings');
   return { success: true };
 }
+
+

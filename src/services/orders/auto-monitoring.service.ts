@@ -6,13 +6,13 @@
 
 import { prisma } from '@/lib/prisma';
 import { PricingService } from '@/services/finance';
-import { bot } from '@/lib/bot';
+import { bot } from '@/services/bot/bot-registry';
 import axios from 'axios';
-import { autoMonitoringQueue } from '@/lib/queues';
+import { autoMonitoringQueue } from '@/services/core/queues';
 import { createLogger } from '@/lib/logger';
 import { OrderActivationService } from './order-activation.service';
 import { NotificationTemplates } from '@/bot/utils/notification-templates';
-import { BotRegistry } from '@/lib/bot';
+import { BotRegistry } from '@/services/bot/bot-registry';
 
 export class AutoMonitoringService {
   private static logger = createLogger('AutoMonitoringService');
@@ -150,3 +150,5 @@ export class AutoMonitoringService {
     ).catch(() => { });
   }
 }
+
+

@@ -31,7 +31,7 @@ jest.mock('@/lib/prisma', () => ({
 
 jest.mock('@/services/providers/provider.service');
 jest.mock('@/services/finance/currency.service');
-jest.mock('@/lib/bot', () => ({
+jest.mock('@/services/bot/bot-registry', () => ({
     bot: {
         telegram: {
             sendMessage: jest.fn().mockResolvedValue({}),
@@ -98,7 +98,7 @@ describe('ServiceGuardian', () => {
 
         // Test the notification method separately or check if it's called if integrated
         await ServiceGuardian.notifyMinorPriceChange('int-1', 15, new Decimal(100), new Decimal(115));
-        const { bot } = await import('@/lib/bot');
+        const { bot } = await import('@/services/bot/bot-registry');
         expect(bot.telegram.sendMessage).toHaveBeenCalledWith(123, expect.stringContaining('+15.0%'), expect.any(Object));
     });
 
@@ -169,3 +169,5 @@ describe('ServiceGuardian', () => {
         expect(result.priceDeltaPercent).toBe(50);
     });
 });
+
+

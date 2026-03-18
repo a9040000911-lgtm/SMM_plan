@@ -171,7 +171,12 @@ const mockPrismaClient = {
             for (const [id, user] of mockDb.user) {
                 let match = true;
                 if (where.id && user.id !== where.id) match = false;
-                if (where.balance && where.balance.gte && user.balance.lt(where.balance.gte)) match = false;
+                if (where.balance && where.balance.gte) {
+                    if (user.balance.lt(where.balance.gte)) {
+                        console.log(`[MockUpdateMany] Match failed for ${user.id}: balance ${user.balance} < gte ${where.balance.gte}`);
+                        match = false;
+                    }
+                }
                 if (match) {
                     const updated = { ...user, ...data };
                     if (data.balance?.increment) updated.balance = user.balance.add(data.balance.increment);
@@ -339,7 +344,27 @@ const mockPrismaClient = {
         delete: jest.fn(async ({ where }) => { mockDb.transaction.delete(toKey(where.id)); return {}; }),
         findUnique: jest.fn(async ({ where }) => wrapDecimal(mockDb.transaction.get(toKey(where.id)) || { id: where.id, status: 'PENDING', amount: new Decimal(0) })),
         findFirst: jest.fn(async ({ where }) => {
-            const found = Array.from(mockDb.transaction.values()).find(t => t.externalId === where.externalId);
+            const all = Array.from(mockDb.transaction.values());
+            const found = all.find(t => {
+                // Handle OR
+                if (where.OR) {
+                    const orMatch = where.OR.some(cond => {
+                        if (cond.id && t.id === cond.id) return true;
+                        if (cond.externalId && t.externalId === cond.externalId) return true;
+                        return false;
+                    });
+                    if (!orMatch) return false;
+                } else {
+                    if (where.id && t.id !== where.id) return false;
+                    if (where.externalId && t.externalId !== where.externalId) return false;
+                }
+                
+                // Handle other fields
+                if (where.userId && t.userId !== where.userId) return false;
+                if (where.status && t.status !== where.status) return false;
+                return true;
+            });
+
             if (found) {
                 const user = wrapDecimal(mockDb.user.get(toKey(found.userId))) || { id: found.userId, tgId: 100n, balance: new Decimal(0) };
                 return { ...wrapDecimal(found), user };
@@ -408,6 +433,13 @@ const mockPrismaClient = {
             const existing = mockDb.project.get(id);
             const record = existing ? { ...existing, ...update } : { id, ...create };
             mockDb.project.set(id, record);
+            if (record.slug) mockDb.project.set(toKey(record.slug), record);
+            return record;
+        }),
+        create: jest.fn(async ({ data }) => {
+            const id = data.id || 'p-' + Date.now();
+            const record = { id, slug: data.slug || 'p' + Date.now(), ...data };
+            mockDb.project.set(toKey(id), record);
             if (record.slug) mockDb.project.set(toKey(record.slug), record);
             return record;
         }),
@@ -566,7 +598,7 @@ jest.mock('next-auth', () => ({
     })
 }));
 
-jest.mock('@/lib/bot', () => ({
+jest.mock('@/services/bot/bot-registry', () => ({
     BotRegistry: {
         get: jest.fn(() => ({
             telegram: {

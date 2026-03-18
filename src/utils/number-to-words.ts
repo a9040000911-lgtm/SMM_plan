@@ -81,3 +81,5 @@ function getKopeckWord(num: number): string {
     if (n1 === 1) return 'копейка';
     return 'копеек';
 }
+
+

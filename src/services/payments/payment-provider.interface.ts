@@ -29,3 +29,5 @@ export interface IPaymentProvider {
 }
 
 export type PaymentProviderType = 'YOOKASSA' | 'ROBOKASSA';
+
+

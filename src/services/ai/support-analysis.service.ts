@@ -4,7 +4,7 @@
  */
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prisma } from '@/lib/prisma';
-import { ConfigService } from '@/lib/config.service';
+import { ConfigService } from '@/services/core/config.service';
 
 class KeyManager {
     private keys: string[];
@@ -127,3 +127,5 @@ ${history.substring(0, 4000)}`;
         throw lastError || new Error('Analysis failed after all attempts');
     }
 }
+
+

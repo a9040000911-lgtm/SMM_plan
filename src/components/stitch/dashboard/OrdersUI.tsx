@@ -13,7 +13,7 @@ import {
     Hash, AlignLeft,
     ArrowUpRight, Clock, RotateCcw, Headphones
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { BrandIcon } from '@/components/stitch/ui/BrandIcon';
 import { formatAmount } from '@/utils/formatter';
 
@@ -278,3 +278,5 @@ function OrderCard({ order, idx }: { order: Order, idx: number }) {
 }
 
 import { Plus } from 'lucide-react';
+
+

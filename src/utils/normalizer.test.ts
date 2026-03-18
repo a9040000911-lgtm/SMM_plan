@@ -44,3 +44,5 @@ describe('Normalizer Utility', () => {
     expect(normalizeLink('https://youtu.be/dQw4w9WgXcQ?si=1234')).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
   });
 });
+
+

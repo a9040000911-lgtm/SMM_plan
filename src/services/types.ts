@@ -34,12 +34,12 @@ export type AdminServiceResult<T> = ServiceResult<T>;
  */
 export interface ServiceEvents {
   'TRANSACTION_PENDING': { txId: string; userId: string; amount: number };
-  'PAYMENT_CONFIRMED': { txId: string; userId: string; amount: number; orderMetadata?: any };
+  'PAYMENT_CONFIRMED': { txId: string; userId: string; amount: number; orderMetadata?: any; provider?: string };
   'ORDER_CREATED': { orderId: number; externalId?: string; providerId: string };
   'ORDER_COMPLETED': { orderId: number; cost?: number };
-  'ORDER_FAILED': { orderId: number; reason: string };
+  'ORDER_FAILED': { orderId: number; reason: string; canRetry?: boolean };
   'SERVICE_UPDATED': { serviceId: string; changes: string[] };
-  'SYSTEM_ALERT': { level: 'INFO' | 'WARN' | 'ERROR'; message: string; details?: any };
+  'SYSTEM_ALERT': { level: 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL'; message: string; details?: any };
 }
 
 export interface MarkupRule {
@@ -84,3 +84,5 @@ export interface CatalogServiceItem {
  * for service-layer types and prevent importing generated client in leafs.
  */
 export { Platform, Category, OrderStatus, TransactionStatus };
+
+

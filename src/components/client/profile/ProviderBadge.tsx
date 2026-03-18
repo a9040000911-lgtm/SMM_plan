@@ -7,7 +7,7 @@
 
 import React from "react";
 import { Server, Zap, Shield, Globe } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 
 interface ProviderBadgeProps {
     providerName?: string;
@@ -37,3 +37,5 @@ export const ProviderBadge: React.FC<ProviderBadgeProps> = ({ providerName, clas
         </div>
     );
 };
+
+

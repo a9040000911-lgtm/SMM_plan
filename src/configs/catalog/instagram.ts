@@ -78,3 +78,5 @@ export const InstagramCatalog: CatalogService[] = [
     providers: [{ providerName: 'vexboost', providerServiceId: 991, priority: 1 }]
   }
 ];
+
+

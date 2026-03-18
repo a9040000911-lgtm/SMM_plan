@@ -29,7 +29,7 @@ jest.mock('@/lib/prisma', () => ({
     }
 }));
 
-jest.mock('@/lib/bot', () => ({
+jest.mock('@/services/bot/bot-registry', () => ({
     bot: { telegram: { sendMessage: jest.fn().mockResolvedValue({}) } }
 }));
 
@@ -183,3 +183,5 @@ describe('Property-Based Tests: Financial Invariants', () => {
         });
     });
 });
+
+

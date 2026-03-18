@@ -235,3 +235,5 @@ export function LoyaltyForm({ initialLevels, initialRules }: LoyaltyFormProps) {
         </form>
     );
 }
+
+

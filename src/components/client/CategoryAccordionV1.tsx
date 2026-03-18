@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ExternalLink } from 'lucide-react';
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 import { translateCategory } from '@/utils/translations';
 import { CatalogService } from '@/types/catalog';
 
@@ -97,3 +97,5 @@ export const CategoryAccordionV1: React.FC<CategoryAccordionV1Props> = ({ catego
         </div>
     );
 };
+
+

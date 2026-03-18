@@ -37,7 +37,7 @@ export class IntelligenceEngine {
                         urlObj.pathname = '/boost' + (urlObj.pathname.startsWith('/') ? '' : '/') + urlObj.pathname;
                     }
                     formatted = urlObj.toString();
-                } catch (e) {}
+                } catch (_e) {}
             }
         }
 
@@ -50,7 +50,7 @@ export class IntelligenceEngine {
                 }
                 urlObj.searchParams.set('boost', '');
                 formatted = urlObj.toString().replace('boost=', 'boost');
-            } catch (e) {}
+            } catch (_e) {}
         }
 
         return formatted;
@@ -81,3 +81,5 @@ export class IntelligenceEngine {
         return { requiresBot: false };
     }
 }
+
+

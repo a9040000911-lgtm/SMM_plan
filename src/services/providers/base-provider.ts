@@ -42,3 +42,5 @@ export interface IProvider {
   // Метод для докрутки (восстановления) заказа
   refillOrder?(externalId: string): Promise<{ success: boolean; error?: string }>;
 }
+
+

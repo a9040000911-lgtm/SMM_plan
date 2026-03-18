@@ -26,7 +26,7 @@ const mockAdminLog = {
     create: jest.fn(),
 };
 
-const mockLogServiceChange = jest.fn();
+
 
 jest.mock('@/lib/prisma', () => ({
     prisma: {
@@ -174,3 +174,5 @@ describe('AdminDataService', () => {
         });
     });
 });
+
+

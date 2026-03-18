@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, Globe, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 interface Project {
     id: string;
@@ -126,3 +126,5 @@ export function ProjectSelector({
         </div>
     );
 }
+
+

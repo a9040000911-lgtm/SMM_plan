@@ -8,7 +8,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getAdminSession } from '@/utils/admin-session';
-import { bot } from '@/lib/bot';
+import { bot } from '@/services/bot/bot-registry';
 import { AdminServices } from '@/services/admin/registry';
 import { AdminContext } from '@/services/types';
 
@@ -93,3 +93,5 @@ export async function broadcastNewsAction(newsId: string) {
     return { success: false, error: error.message };
   }
 }
+
+

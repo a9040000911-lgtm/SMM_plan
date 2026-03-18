@@ -6,7 +6,7 @@
 
 import { cookies } from 'next/headers';
 import { cache } from 'react';
-import { verifyAdminSession } from '@/lib/jwt';
+import { verifyAdminSession } from '@/services/core/jwt';
 import { prisma } from '@/lib/prisma';
 // auth will be imported dynamically
 
@@ -101,3 +101,5 @@ export async function validateProjectAccess(projectId: string): Promise<boolean>
     if (session.isGlobalAdmin) return true;
     return session.allowedProjects.includes(projectId);
 }
+
+

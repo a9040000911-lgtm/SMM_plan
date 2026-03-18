@@ -170,3 +170,5 @@ async function syncCatalog() {
 }
 
 syncCatalog().catch(console.error).finally(() => prisma.$disconnect());
+
+

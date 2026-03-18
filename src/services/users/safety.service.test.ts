@@ -39,7 +39,7 @@ jest.mock('@/lib/prisma', () => ({
 jest.mock('@/services/providers');
 
 // Mock bot to prevent side effects
-jest.mock('@/lib/bot', () => ({
+jest.mock('@/services/bot/bot-registry', () => ({
   bot: {
     telegram: {
       sendMessage: jest.fn().mockResolvedValue({})
@@ -123,3 +123,5 @@ describe('Safety Service', () => {
     expect(res.valid).toBe(true);
   });
 });
+
+

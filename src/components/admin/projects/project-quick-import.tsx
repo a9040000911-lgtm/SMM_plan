@@ -11,7 +11,7 @@ import {
     Info, ChevronDown, ChevronUp, Repeat2, SearchCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { SmartAnalyzerLogic, PLATFORM_LABELS } from '@/services/providers/smart-analyzer.logic';
 
 interface ProjectQuickImportProps {
@@ -454,3 +454,5 @@ export function ProjectQuickImport({ projectId, providers }: ProjectQuickImportP
         </div>
     );
 }
+
+

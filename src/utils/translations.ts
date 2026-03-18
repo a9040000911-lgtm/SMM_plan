@@ -60,3 +60,5 @@ export function translateCategory(category: string): string {
 export function translatePlatform(platform: string): string {
     return PLATFORM_TRANSLATIONS[platform.toUpperCase()] || platform;
 }
+
+

@@ -40,3 +40,5 @@ export async function getTicketPresence(ticketId: string) {
   if (!result.success) throw new Error(result.error.message);
   return result.data;
 }
+
+

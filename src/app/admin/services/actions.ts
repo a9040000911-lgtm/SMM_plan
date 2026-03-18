@@ -364,7 +364,7 @@ export async function importProviderServicesAction(items: any[], settings: any) 
  */
 export async function smartImportProviderServicesAction(items: any[], settings: any) {
   try {
-    const ctx = await getAdminContext();
+    const _ctx = await getAdminContext();
     const activeProjectId = await getActiveProjectId();
     const projectId = activeProjectId === 'all' ? null : activeProjectId;
 
@@ -478,3 +478,5 @@ export async function bulkDeleteServicesAction(ids: string[]) {
     return { success: false, error: err.message };
   }
 }
+
+

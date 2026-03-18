@@ -48,3 +48,5 @@ export async function validateProjectTMAData(req: NextRequest): Promise<{ isVali
         return { isValid: false, error: 'Token decryption failed: ' + e.message };
     }
 }
+
+

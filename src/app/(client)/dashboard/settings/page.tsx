@@ -31,3 +31,5 @@ export default async function SettingsPage() {
         <SettingsUI userData={JSON.parse(JSON.stringify(result.data))} />
     );
 }
+
+

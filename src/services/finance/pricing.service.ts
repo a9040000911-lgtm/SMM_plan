@@ -106,12 +106,12 @@ export class PricingService {
         }
 
         // 4. Психологическое округление вверх
-        const numPrice = price.toNumber();
-        if (numPrice > 1000) {
-            return new Decimal(Math.ceil(numPrice)).toDecimalPlaces(2, Decimal.ROUND_CEIL);
+        if (price.gt(1000)) {
+            return price.toDecimalPlaces(0, Decimal.ROUND_CEIL);
         }
 
-        return new Decimal(Math.ceil(numPrice * 10) / 10).toDecimalPlaces(2, Decimal.ROUND_CEIL);
+        // Округляем до 0.1 вверх
+        return price.mul(10).toDecimalPlaces(0, Decimal.ROUND_CEIL).div(10);
     }
 
     /**
@@ -121,7 +121,7 @@ export class PricingService {
         const cost = new Decimal(providerCost);
         // Формула: (Закуп + 100% маржи) * 1.03 (шлюз)
         const safetyPrice = cost.mul(1 + this.MIN_PROFIT_MARGIN).mul(1 + this.PAYMENT_GATEWAY_FEE);
-        return new Decimal(Math.ceil(safetyPrice.toNumber() * 10) / 10).toDecimalPlaces(2, Decimal.ROUND_CEIL);
+        return safetyPrice.mul(10).toDecimalPlaces(0, Decimal.ROUND_CEIL).div(10);
     }
 
     /**
@@ -326,7 +326,7 @@ export class PricingService {
         const currentPricePer1000 = await this.getServicePrice(serviceId, projectId || undefined);
         const basePrice = currentPricePer1000.mul(quantity).div(1000);
 
-        const loyalty = await LoyaltyService.getLoyaltyInfo(userId, user.spent.toNumber(), projectId || undefined);
+        const loyalty = await LoyaltyService.getLoyaltyInfo(userId, user.spent, projectId || undefined);
         const discountPercent = loyalty.totalDiscount;
 
         const discountAmount = basePrice.mul(discountPercent).div(100).toDecimalPlaces(2);
@@ -376,3 +376,5 @@ export class PricingService {
         return { stats, extremeServices: extremeServices.sort((a, b) => b.markup - a.markup).slice(0, 10) };
     }
 }
+
+

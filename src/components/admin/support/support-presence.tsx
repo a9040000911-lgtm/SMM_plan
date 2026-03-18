@@ -41,3 +41,5 @@ export function SupportPresence({ ticketId }: { ticketId: string }) {
     </div>
   );
 }
+
+

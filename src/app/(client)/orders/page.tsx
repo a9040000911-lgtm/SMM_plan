@@ -10,7 +10,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import { Loader2, ExternalLink, Database, Activity, Box } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 
 export const dynamic = 'force-dynamic';
 
@@ -213,3 +213,5 @@ const BadgeStatus = ({ status }: { status: string }) => {
         </span>
     );
 };
+
+

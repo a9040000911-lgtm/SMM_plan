@@ -61,3 +61,5 @@ export const TwitchCatalog: CatalogService[] = [
     providers: [{ providerName: 'vexboost', providerServiceId: 2092, priority: 1 }] 
   }
 ];
+
+

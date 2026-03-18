@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateProjectTMAData } from '@/utils/tma-auth';
-import { bot } from '@/lib/bot';
+import { bot } from '@/services/bot/bot-registry';
 import { formatAmount } from '@/utils/formatter';
 import { MassOrderService } from '@/services/orders';
 import { OrderQueueService } from '@/services/orders/order-queue.service';
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
         // Notification
         try {
-            const { BotRegistry } = await import('@/lib/bot');
+            const { BotRegistry } = await import('@/services/bot/bot-registry');
             const projectBot = BotRegistry.get(auth.project?.id || user.projectId);
             const targetBot = projectBot || bot;
 
@@ -68,3 +68,5 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }
+
+

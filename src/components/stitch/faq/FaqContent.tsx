@@ -13,7 +13,7 @@ import {
     CreditCard, Zap, ShieldCheck, ArrowRight,
     HeadphonesIcon
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 const faqCategories = [
     {
@@ -198,3 +198,5 @@ export const FAQ_JSON_LD = faqCategories.flatMap(cat => cat.questions.map(q => (
         "text": q.a
     }
 })));
+
+

@@ -60,3 +60,5 @@ export const VkParser: PlatformParser = {
     return { platform: 'VK' as Platform, possibleCategories: ['GROUPS' as Category, 'SUBSCRIBERS' as Category, 'OTHER' as Category], objectType: 'VK_GROUP' };
   }
 };
+
+

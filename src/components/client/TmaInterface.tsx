@@ -21,7 +21,7 @@ import {
     Info
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 import { validateTargetLink } from "@/lib/services/link-validator";
 import { getWebSmartHint } from "@/utils/tips";
 
@@ -415,3 +415,5 @@ export function TmaInterface() {
         </div>
     );
 }
+
+

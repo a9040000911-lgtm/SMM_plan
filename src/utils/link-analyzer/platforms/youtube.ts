@@ -26,3 +26,5 @@ export const YoutubeParser: PlatformParser = {
         return { platform: 'YOUTUBE' as Platform, possibleCategories: ['SUBSCRIBERS' as Category], objectType: 'YT_CHANNEL' };
     }
 };
+
+

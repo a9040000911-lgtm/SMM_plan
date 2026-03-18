@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
 export default async function ProjectsPage() {
   const cookieStore = await cookies();
   const sessionData = cookieStore.get('admin_session');
-  const { verifyAdminSession } = await import('@/lib/jwt');
+  const { verifyAdminSession } = await import('@/services/core/jwt');
   const session = sessionData ? await verifyAdminSession(sessionData.value) : null;
 
   if (!session) return null;
@@ -139,3 +139,5 @@ export default async function ProjectsPage() {
     </div >
   );
 }
+
+

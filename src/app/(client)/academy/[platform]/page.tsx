@@ -10,7 +10,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, AlertTriangle, Lightbulb, ShieldAlert, Cpu, BarChart3, Clock, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/ui";
 
 export const dynamic = 'force-dynamic';
 

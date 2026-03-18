@@ -48,3 +48,5 @@ export interface CatalogCategory {
 }
 
 export type CatalogData = Record<string, Record<string, CatalogCategory>>;
+
+

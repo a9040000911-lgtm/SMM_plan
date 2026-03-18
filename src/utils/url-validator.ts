@@ -41,7 +41,7 @@ export function isSafeUrl(urlStr: string): boolean {
         // But for this panel, blocking direct IP/localhost provides significant protection.
 
         return true;
-    } catch (e) {
+    } catch (_e) {
         return false;
     }
 }
@@ -54,3 +54,5 @@ export function validateSafeUrl(url: string, context: string = 'Request'): void 
         throw new Error(`[Security] Potential SSRF detected: ${context} to unsafe URL "${url}" is blocked.`);
     }
 }
+
+

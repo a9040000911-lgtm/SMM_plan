@@ -6,3 +6,5 @@
 export * from './LegalDocumentForm';
 export * from './DeleteDocumentButton';
 export * from './LegalContentManager';
+
+

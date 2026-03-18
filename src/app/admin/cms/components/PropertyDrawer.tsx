@@ -7,7 +7,7 @@ import {
     Layout, 
     Sparkles
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 interface PropertyDrawerProps {
     selectedKey: string | null;
@@ -95,3 +95,5 @@ export function PropertyDrawer({
         </div>
     );
 }
+
+

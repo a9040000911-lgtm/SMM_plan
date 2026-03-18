@@ -45,3 +45,5 @@ export function DeleteDocumentButton({ id }: Props) {
         </button>
     );
 }
+
+

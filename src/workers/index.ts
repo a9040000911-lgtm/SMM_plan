@@ -13,7 +13,7 @@ import { SmartSyncService } from '@/services/providers/smart-sync.service';
 import { SelfHealingService } from '@/services/core';
 import { AutoMonitoringService } from '@/services/orders';
 
-import { getRedisConfig } from '@/lib/queues';
+import { getRedisConfig } from '@/services/core/queues';
 
 const connection = getRedisConfig();
 
@@ -120,3 +120,5 @@ export * from './check-balance.job';
 export * from './scheduled-orders.job';
 
 console.log('--- BULLMQ WORKERS READY ---');
+
+

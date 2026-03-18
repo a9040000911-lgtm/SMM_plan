@@ -12,7 +12,7 @@ import {
     Activity, Search, X, Edit, Trash2,
     Globe, Zap, ChevronLeft, ChevronRight
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 import { useServiceDashboard } from './manager-context';
 import { ProviderHub } from './provider-hub';
 import { HealthCheckWidget } from './health-check';
@@ -622,3 +622,5 @@ export function MaintenanceWidget() {
         </div>
     );
 }
+
+

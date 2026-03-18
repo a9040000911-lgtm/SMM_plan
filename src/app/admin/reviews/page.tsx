@@ -28,7 +28,7 @@ export default async function ReviewsPage({ searchParams }: PageProps) {
     const sessionData = cookieStore.get('admin_session');
     if (!sessionData) return notFound();
 
-    const { verifyAdminSession } = await import('@/lib/jwt');
+    const { verifyAdminSession } = await import('@/services/core/jwt');
     const session = await verifyAdminSession(sessionData.value);
     if (!session) return notFound();
 
@@ -118,3 +118,5 @@ export default async function ReviewsPage({ searchParams }: PageProps) {
 
 // Add necessary import
 import { ReviewsTable } from '@/components/admin/reviews/ReviewsTable';
+
+

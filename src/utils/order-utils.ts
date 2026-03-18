@@ -122,3 +122,5 @@ export function translateProviderError(rawError: string | undefined | null): str
     // Fallback: возвращаем оригинал, если неизвестная ошибка
     return rawError;
 }
+
+

@@ -12,7 +12,7 @@ import {
     Target, Crown, Star, Sparkles,
     ChevronRight, Wallet, BadgePercent
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils/ui';
 
 interface LeaderboardEntry {
     rank: number;
@@ -230,3 +230,5 @@ function StatBox({ label, value, icon, color = 'slate' }: { label: string, value
         </div>
     );
 }
+
+
