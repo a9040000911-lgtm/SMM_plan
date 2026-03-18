@@ -3,18 +3,17 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { ProviderService } from '@/services/providers';
+import { ProviderService } from '@/services/providers/provider.service';
 import { prisma } from '@/lib/prisma';
 import axios from 'axios';
 
-jest.mock('@/lib/prisma', () => ({
-  prisma: {
-    provider: {
-      findUnique: jest.fn(),
-    },
-    internalServiceMapping: {
+jest.mock('axios');
+const mockedAxios = axios as jest.Mocked<typeof axios>;
+
+describe('ProviderService', () => {
+  beforeEach(() => {
     jest.clearAllMocks();
-    mockedAxios.create.mockReturnValue(mockedAxios);
+    (mockedAxios.create as jest.Mock).mockReturnValue(mockedAxios);
   });
 
   test('should throw error if no mapping found for service', async () => {
@@ -28,7 +27,7 @@ jest.mock('@/lib/prisma', () => ({
   test('should successfully create order at provider', async () => {
     const mockMapping = {
       providerId: 'test-uuid-vex',
-      providerServiceId: 123
+      providerServiceId: '123'
     };
     const mockProvider = {
       id: 'test-uuid-vex',
@@ -60,7 +59,7 @@ jest.mock('@/lib/prisma', () => ({
   });
 
   test('should handle provider errors gracefully', async () => {
-    const mockMapping = { providerId: 'fail-uuid', providerServiceId: 1 };
+    const mockMapping = { providerId: 'fail-uuid', providerServiceId: '1' };
     (prisma.provider.findUnique as jest.Mock).mockResolvedValue({
       id: 'fail-uuid',
       name: 'fail',

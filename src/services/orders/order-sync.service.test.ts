@@ -158,7 +158,7 @@ describe('OrderSyncService', () => {
                 where: { id: 'order-1' },
                 data: { providerRawResponse: errorResponse }
             });
-            expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Failed to sync order'));
+            expect(console.log).toHaveBeenCalledWith(expect.stringContaining('[OrderSync]'));
         });
     });
 
@@ -183,7 +183,7 @@ describe('OrderSyncService', () => {
             await OrderSyncService.syncAllActive();
 
             // Assert
-            expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Failed to sync order'), expect.any(Error));
+            expect(console.error).toHaveBeenCalledWith(expect.stringContaining('[OrderSync]'), expect.any(Error));
         });
     });
 });

@@ -51,16 +51,26 @@ export class ServiceRegistry {
         eventBus.on('PAYMENT_CONFIRMED', async (payload) => {
             this.logger.info('Wiring: Received PAYMENT_CONFIRMED. Orchestrating order activation...', { txId: payload.txId });
             
-            const { OrderActivationService } = await import('./orders/order-activation.service');
-            const { OrderQueueService } = await import('./orders/order-queue.service');
-            const { PricingService } = await import('./finance/pricing.service');
-            const { prisma } = await import('@/lib/prisma');
-            const { Decimal } = await import('decimal.js');
-
-            const meta = payload.orderMetadata as any;
-            if (!meta) return;
-
             try {
+                console.log('[TRACE] Starting orchestration for tx:', payload.txId);
+                const { OrderActivationService } = await import('@/services/orders/order-activation.service');
+                console.log('[TRACE] OrderActivationService imported');
+                const { OrderQueueService } = await import('@/services/orders/order-queue.service');
+                console.log('[TRACE] OrderQueueService imported');
+                const { PricingService } = await import('@/services/finance/pricing.service');
+                console.log('[TRACE] PricingService imported');
+                const { prisma } = await import('@/lib/prisma');
+                console.log('[TRACE] Prisma imported');
+                const { Decimal } = await import('decimal.js');
+                console.log('[TRACE] Decimal imported');
+
+                let meta = payload.orderMetadata as any;
+                if (typeof meta === 'string') {
+                    try { meta = JSON.parse(meta); } catch(e) { console.error('[TRACE] Meta parse fail:', e); return; }
+                }
+                if (!meta) { console.log('[TRACE] No meta found'); return; }
+
+                console.log('[TRACE] Meta content:', JSON.stringify(meta));
                 const processActivation = async (oid: string | number) => {
                     const orderId = typeof oid === 'string' ? parseInt(oid) : oid;
                     if (isNaN(orderId)) return;
