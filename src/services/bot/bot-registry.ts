@@ -36,6 +36,9 @@ export const BotRegistry = {
     get(projectId?: string | null): Telegraf {
         if (!projectId) return bot;
         return globalForBot.botRegistry.get(projectId) || bot;
+    },
+    getAll(): Map<string, Telegraf> {
+        return globalForBot.botRegistry;
     }
 };
 

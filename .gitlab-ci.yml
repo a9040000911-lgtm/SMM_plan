@@ -1,6 +1,28 @@
 stages:
+  - test
   - deploy
 
+variables:
+  BUILDKIT_PROGRESS: plain
+
+# Проверка качества кода и типизации
+lint-and-typecheck:
+  stage: test
+  image: node:18-alpine
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+  script:
+    - npm ci
+    - npm run lint
+    - npx tsc --noEmit
+  only:
+    - merge_requests
+    - main
+  interruptible: true
+
+# Автоматический деплой на сервер
 deploy-production:
   stage: deploy
   tags:
@@ -8,9 +30,10 @@ deploy-production:
   only:
     - main
   script:
-    - echo "Deploying to production server..."
+    - echo "🚀 [$(date)] Starting automated deployment to production..."
     - chmod +x scripts/migrate-server.sh
     - ./scripts/migrate-server.sh
   environment:
     name: production
-    url: http://$SERVER_IP
+    url: https://smmplan.ru
+  when: on_success

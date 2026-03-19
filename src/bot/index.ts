@@ -254,4 +254,41 @@ if (process.env.NODE_ENV !== 'test' && !process.env.NEXT_PHASE && process.env.SK
   });
 }
 
+/**
+ * --- GRACEFUL SHUTDOWN ---
+ * Обработка сигналов завершения от ОС (Docker/PM2)
+ */
+import { stopAllWorkers } from '@/workers';
+
+async function handleShutdown(signal: string) {
+  logger.info(`--- СИГНАЛ ${signal} ПОЛУЧЕН. ПЛАВНАЯ ОСТАНОВКА ---`);
+  
+  try {
+    // 1. Останавливаем все воркеры BullMQ
+    await stopAllWorkers();
+    
+    // 2. Останавливаем основной бот
+    if (bot) {
+      logger.info('Остановка основного бота...');
+      await bot.stop(signal);
+    }
+    
+    // 3. Останавливаем все проектные боты из реестра
+    const registry = BotRegistry.getAll();
+    for (const [projectId, instance] of registry) {
+      logger.info(`Остановка бота для проекта ${projectId}...`);
+      await instance.stop(signal);
+    }
+    
+    logger.info('--- ВСЕ ПРОЦЕССЫ УСПЕШНО ОСТАНОВЛЕНЫ. ВЫХОД. ---');
+    process.exit(0);
+  } catch (err) {
+    logger.error('Ошибка при плавной остановке:', err);
+    process.exit(1);
+  }
+}
+
+process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+process.on('SIGINT', () => handleShutdown('SIGINT'));
+
 

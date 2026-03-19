@@ -103,10 +103,10 @@ export function NewOrderUI({ initialService, serviceId }: NewOrderUIProps) {
 
                 {/* Order Form Side */}
                 <div className="lg:col-span-12">
-                    <div className="bg-white border border-slate-100 rounded-[3rem] shadow-2xl shadow-blue-900/5 relative overflow-hidden">
+                    <div className="glass border border-white/60 rounded-[3rem] shadow-premium relative overflow-hidden">
 
                         {/* Status Bar / Service Name */}
-                        <div className="p-8 lg:p-12 bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="p-8 lg:p-12 border-b border-white/40 flex flex-col md:flex-row md:items-center justify-between gap-6">
                             <div className="flex items-center gap-5">
                                 <div className="w-16 h-16 bg-blue-600 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl shadow-blue-600/20">
                                     <BrandIcon name={initialService.platform.toLowerCase() as any} size={28} />
@@ -117,7 +117,7 @@ export function NewOrderUI({ initialService, serviceId }: NewOrderUIProps) {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                            <div className="flex items-center gap-2 px-6 py-3 glass border border-white/40 rounded-2xl shadow-sm">
                                 <Zap className="text-amber-500" size={16} fill="currentColor" />
                                 <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Мгновенный запуск</span>
                             </div>
@@ -160,7 +160,7 @@ export function NewOrderUI({ initialService, serviceId }: NewOrderUIProps) {
                                             value={link}
                                             onChange={(e) => setLink(e.target.value)}
                                             placeholder="https://t.me/your_channel..."
-                                            className="w-full bg-slate-50 border-2 border-slate-50 rounded-2.5xl py-6 pl-16 pr-8 text-sm font-bold text-slate-950 outline-none focus:bg-white focus:border-blue-500/20 transition-all placeholder:text-slate-200"
+                                            className="w-full glass border border-white/40 rounded-[2.5rem] py-6 pl-16 pr-8 text-sm font-bold text-slate-950 outline-none focus:border-blue-500/40 transition-all placeholder:text-slate-400 shadow-inner"
                                         />
                                     </div>
                                     <div className="flex items-center gap-2 ml-4 text-slate-400">
@@ -189,14 +189,14 @@ export function NewOrderUI({ initialService, serviceId }: NewOrderUIProps) {
                                             max={initialService.maxQty}
                                             value={quantity}
                                             onChange={(e) => setQuantity(e.target.value === '' ? '' : parseInt(e.target.value))}
-                                            className="w-full bg-slate-50 border-2 border-slate-50 rounded-2.5xl py-6 pl-16 pr-8 text-sm font-black text-slate-950 outline-none focus:bg-white focus:border-blue-500/20 transition-all"
+                                            className="w-full glass border border-white/40 rounded-[2.5rem] py-6 pl-16 pr-8 text-sm font-black text-slate-950 outline-none focus:border-blue-500/40 transition-all shadow-inner"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-4">Итого к оплате</label>
-                                    <div className="w-full h-[76px] bg-slate-950 rounded-2.5xl px-8 flex items-center justify-between shadow-2xl shadow-blue-900/20 border border-white/5 group relative overflow-hidden">
+                                    <div className="w-full h-[76px] glass-dark rounded-[2.5rem] px-8 flex items-center justify-between shadow-2xl shadow-blue-900/20 border border-white/10 group relative overflow-hidden">
                                         <div className="absolute top-0 right-0 w-32 h-full bg-blue-600/10 skew-x-[30deg] translate-x-10" />
                                         <span className="text-3xl font-black text-white tracking-tighter tabular-nums relative z-10">{priceVal.toFixed(2)} <span className="text-blue-500 text-xl italic uppercase ml-1">₽</span></span>
                                         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-xl border border-white/5 relative z-10" title={numberToWordsRu(priceVal)}>
@@ -269,7 +269,7 @@ export function NewOrderUI({ initialService, serviceId }: NewOrderUIProps) {
                                 <button
                                     type="submit"
                                     disabled={submitting || !link || !quantity}
-                                    className="w-full sm:w-auto h-20 px-12 bg-blue-600 text-white rounded-2.5xl font-black text-xs uppercase tracking-[0.2em] hover:bg-slate-950 active:scale-95 transition-all shadow-2xl shadow-blue-600/20 flex items-center justify-center gap-4 group"
+                                    className="w-full sm:w-auto h-20 px-12 bg-blue-600 text-white rounded-[2.5rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-slate-950 active:scale-95 transition-all shadow-2xl shadow-blue-600/20 flex items-center justify-center gap-4 group"
                                 >
                                     {submitting ? <Loader2 size={24} className="animate-spin" /> : (
                                         <>

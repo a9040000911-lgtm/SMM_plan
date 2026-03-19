@@ -14,6 +14,8 @@ import { SelfHealingService } from '@/services/core';
 import { AutoMonitoringService } from '@/services/orders';
 
 import { getRedisConfig } from '@/services/core/queues';
+import { balanceWorker } from './check-balance.job';
+import { scheduledOrderWorker } from './scheduled-orders.job';
 
 const connection = getRedisConfig();
 
@@ -61,15 +63,6 @@ export const auditWorker = new Worker('fin-audit', async (job: Job) => {
   await ReconciliationService.auditAllUsers();
 }, { connection });
 
-// Обработка ошибок воркеров
-orderWorker.on('failed', (job, err) => {
-  console.error(`[Worker] Order Job ${job?.id} failed:`, err);
-});
-
-syncWorker.on('failed', (job, err) => {
-  console.error(`[Worker] Sync Job ${job?.id} failed:`, err);
-});
-
 /**
  * Воркер для капельной подачи
  */
@@ -80,14 +73,6 @@ export const dripFeedWorker = new Worker('drip-feed', async (job: Job) => {
   await processDripFeedRun(orderId);
 }, { connection });
 
-auditWorker.on('failed', (job, err) => {
-  console.error(`[Worker] Audit Job ${job?.id} failed:`, err);
-});
-
-dripFeedWorker.on('failed', (job, err) => {
-  console.error(`[Worker] Drip-feed Job ${job?.id} for order ${job?.data.orderId} failed:`, err);
-});
-
 /**
  * Воркер для переключения зависших заказов
  */
@@ -96,10 +81,6 @@ export const failoverWorker = new Worker('order-failover', async (job: Job) => {
   const { FailoverService } = await import('@/services/providers/failover.service');
   await FailoverService.processStuckOrders();
 }, { connection });
-
-failoverWorker.on('failed', (job, err) => {
-  console.error(`[Worker] Failover Job ${job?.id} failed:`, err);
-});
 
 /**
  * Воркер для отложенной обработки авто-мониторинга (Smart Pacing)
@@ -112,13 +93,35 @@ export const autoMonitoringWorker = new Worker('auto-monitoring', async (job: Jo
   await AutoMonitoringService.processNewPost(taskId, postUrl);
 }, { connection });
 
-autoMonitoringWorker.on('failed', (job, err) => {
-  console.error(`[Worker] Auto-Monitor Job ${job?.id} for task ${job?.data.taskId} failed:`, err);
+// Собираем все воркеры в массив для управления
+export const allWorkers = [
+  orderWorker,
+  syncWorker,
+  auditWorker,
+  dripFeedWorker,
+  failoverWorker,
+  autoMonitoringWorker,
+  balanceWorker,
+  scheduledOrderWorker
+];
+
+// Обработка ошибок воркеров
+allWorkers.forEach(worker => {
+  worker.on('failed', (job, err) => {
+    console.error(`[Worker] ${worker.name} Job ${job?.id} failed:`, err);
+  });
 });
+
+/**
+ * Функция для корректного завершения всех воркеров (Graceful Shutdown)
+ */
+export async function stopAllWorkers() {
+  console.log('[Worker] Graceful shutdown initiated. Stopping all workers...');
+  await Promise.all(allWorkers.map(worker => worker.close()));
+  console.log('[Worker] All BullMQ workers stopped successfully.');
+}
 
 export * from './check-balance.job';
 export * from './scheduled-orders.job';
 
 console.log('--- BULLMQ WORKERS READY ---');
-
-

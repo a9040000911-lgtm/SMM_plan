@@ -1,52 +1,66 @@
-const securityHeaders = require('./src/configs/security-headers.config');
+/* eslint-disable @typescript-eslint/no-var-requires */
+/**
+ * (c) 2024-2026 Smmplan. All rights reserved.
+ * Created by Artem (http://artmspektr.ru)
+ */
+const { withSentryConfig } = require("@sentry/nextjs");
+const securityHeaders = require("./src/configs/security-headers.config");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  distDir: ".next",
   async headers() {
     return [
       {
-        source: '/(.*)',
+        source: "/(.*)",
         headers: securityHeaders,
       },
     ];
   },
-  output: 'standalone',
+  output: "standalone",
   images: {
-    unoptimized: false,
-    remotePatterns: [
-      { protocol: 'https', hostname: 'plus.unsplash.com' },
-      { protocol: 'https', hostname: 'images.unsplash.com' }
-    ]
+    unoptimized: true,
   },
   env: {
-    PRISMA_CLIENT_ENGINE_TYPE: 'library',
+    PRISMA_CLIENT_ENGINE_TYPE: "library",
   },
-  turbopack: {},
   experimental: {
     webpackMemoryOptimizations: true,
     webpackBuildWorker: true,
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
   },
-  productionBrowserSourceMaps: false,
-  webpack: (config, { dev, isServer }) => {
-    // Включаем polling только в режиме разработки
+  webpack: (config, { dev }) => {
     if (dev) {
       config.watchOptions = {
-        poll: 800, // проверять файлы каждые 800мс
-        aggregateTimeout: 300, // задержка перед пересборкой
+        poll: 800,
+        aggregateTimeout: 300,
       };
     }
-
-    // Подавляем предупреждение BullMQ о критической зависимости (из-за динамических require)
+    // Suppress BullMQ critical dependency warning
     config.ignoreWarnings = [
       { module: /node_modules\/bullmq\/dist\/esm\/classes\/child-processor\.js/ },
     ];
-
     return config;
   },
 };
 
-module.exports = nextConfig;
+module.exports = withSentryConfig(
+  nextConfig,
+  {
+    // For all available options, see:
+    // https://github.com/getsentry/sentry-javascript/blob/master/nextjs/README.md#finer-control-over-the-source-maps-uploaded-to-sentry
+    silent: true,
+    org: "smmplan",
+    project: "javascript-nextjs",
+  },
+  {
+    // For all available options, see:
+    // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+    widenClientFileUpload: true,
+    transpileClientSDK: true,
+    tunnelRoute: "/monitoring",
+    hideSourceMaps: true,
+    disableLogger: true,
+    automaticVercelMonitors: true,
+  }
+);

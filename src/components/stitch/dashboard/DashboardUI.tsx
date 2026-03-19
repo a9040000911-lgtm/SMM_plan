@@ -71,7 +71,7 @@ export function DashboardUI({ user, stats, recentOrders }: DashboardUIProps) {
                 <motion.div
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="lg:col-span-12 xl:col-span-7 relative group p-8 bg-slate-950 rounded-[2rem] overflow-hidden shadow-xl shadow-blue-900/5 flex flex-col md:flex-row gap-8 items-center"
+                    className="lg:col-span-12 xl:col-span-7 relative group p-8 glass-dark rounded-[2rem] overflow-hidden shadow-premium flex flex-col md:flex-row gap-8 items-center border border-white/10"
                 >
                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
 
@@ -105,7 +105,7 @@ export function DashboardUI({ user, stats, recentOrders }: DashboardUIProps) {
                     </div>
 
                     {/* Quick Order Inline Widget */}
-                    <div className="relative z-10 w-full md:w-80 p-6 bg-white/5 backdrop-blur-md rounded-2.5xl border border-white/10 flex flex-col gap-4">
+                    <div className="relative z-10 w-full md:w-80 p-6 glass-dark rounded-[2.5rem] border border-white/10 flex flex-col gap-4 shadow-sm">
                         <div className="text-[9px] font-black text-blue-300 uppercase tracking-widest flex items-center gap-2">
                             <Zap size={12} /> Мгновенный заказ
                         </div>
@@ -155,7 +155,7 @@ export function DashboardUI({ user, stats, recentOrders }: DashboardUIProps) {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="lg:col-span-6 xl:col-span-3 p-6 bg-white border border-slate-100 rounded-[2rem] shadow-sm flex flex-col justify-between group overflow-hidden relative"
+                    className="lg:col-span-6 xl:col-span-3 p-6 glass border-white/40 rounded-[2rem] shadow-sm flex flex-col justify-between group overflow-hidden relative"
                 >
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                         <TrendingUp size={100} strokeWidth={3} className="text-slate-900" />
@@ -245,7 +245,7 @@ export function DashboardUI({ user, stats, recentOrders }: DashboardUIProps) {
                     </div>
 
                     {/* Pro Tip Card */}
-                    <div className="p-8 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-[2.5rem] text-white overflow-hidden relative group">
+                    <div className="p-8 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-[2.5rem] text-white overflow-hidden relative group shadow-premium">
                         <div className="absolute top-0 right-0 p-6 opacity-20 rotate-12 group-hover:rotate-0 transition-transform">
                             <ShieldCheck size={80} />
                         </div>
@@ -275,7 +275,7 @@ function StatCard({ icon, label, value, color, delay }: { icon: any, label: stri
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay }}
-            className="flex-1 p-6 bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-md transition-all group overflow-hidden relative"
+            className="flex-1 p-6 glass border-white/40 rounded-[2rem] shadow-sm hover:shadow-premium transition-all group overflow-hidden relative"
         >
             <div className="flex flex-col h-full justify-between">
                 <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center mb-4 border transition-all group-hover:rotate-6", colors[color])}>
@@ -313,7 +313,7 @@ function OrderListItem({ order, idx }: { order: any, idx: number }) {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 + (idx * 0.05) }}
-            className="group p-5 bg-white border border-slate-100 rounded-[2rem] flex flex-col md:flex-row md:items-center gap-4 hover:border-blue-100 hover:shadow-xl hover:shadow-blue-500/5 transition-all"
+            className="group p-5 glass border-white/40 rounded-[2rem] flex flex-col md:flex-row md:items-center gap-4 hover:shadow-premium transition-all"
         >
             <div className="flex items-center gap-4 flex-1">
                 <div className="w-14 h-14 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center group-hover:bg-blue-50 group-hover:border-blue-200 transition-all">
@@ -360,7 +360,7 @@ function ActionCard({ icon, title, desc, href, color }: { icon: any, title: stri
 
     return (
         <Link href={href}>
-            <div className="group flex items-center gap-5 p-5 bg-white border border-slate-50 rounded-[2.5rem] hover:border-white hover:shadow-2xl hover:shadow-slate-200 transition-all">
+            <div className="group flex items-center gap-5 p-5 glass border-white/40 rounded-[2.5rem] hover:shadow-premium transition-all">
                 <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300", colors[color])}>
                     {React.cloneElement(icon, { size: 24 })}
                 </div>

@@ -7,6 +7,18 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { confirmPayment } from '@/services/orders/order-processor.service';
+import ipRangeCheck from 'ip-range-check';
+
+// Official YooKassa IP subnets for webhooks
+const YOOKASSA_IP_SUBNETS = [
+    '185.71.76.0/27',
+    '185.71.77.0/27',
+    '77.75.153.0/25',
+    '77.75.156.11',
+    '77.75.156.35',
+    '77.75.154.128/25',
+    '2a02:5180::/32'
+];
 
 /**
  * Webhook handler for YooKassa (and potentially other providers)
@@ -20,6 +32,16 @@ export async function POST(req: NextRequest) {
 
         if (!event || !object) {
             return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+        }
+
+        const clientIpStr = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '127.0.0.1';
+        const clientIp = clientIpStr.split(',')[0].trim();
+        const isSimulation = req.headers.get('x-debug-simulator') === 'true' && process.env.NODE_ENV === 'development';
+
+        // SECURITY HARDENING 1: Validate IP Origin against YooKassa official subnets
+        if (!isSimulation && !ipRangeCheck(clientIp, YOOKASSA_IP_SUBNETS)) {
+            console.error(`[Webhook] SECURITY ALERT: Blocked unauthorized YooKassa webhook from IP: ${clientIpStr}`);
+            return NextResponse.json({ error: 'Forbidden: IP not in whitelist' }, { status: 403 });
         }
 
         // We only care about success

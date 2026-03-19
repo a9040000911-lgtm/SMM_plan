@@ -35,15 +35,19 @@ describe('Race Condition: Order Initiation', () => {
 
         testService = await prisma.internalService.create({
             data: {
+                id: 'stress-service-' + Date.now(),
                 name: 'Stress Test Service',
                 platform: 'TELEGRAM',
+                category: 'OTHER',
+                description: 'Service for automated stress testing conditions',
+                geo: 'GLOBAL',
                 type: 'REGULAR',
                 targetType: 'CHANNEL',
                 pricePer1000: new Decimal(100), // Exactly 100 RUB per 1000
                 lastProviderPrice: new Decimal(50),
                 isActive: true,
-                min: 100,
-                max: 10000,
+                minQty: 100,
+                maxQty: 10000,
             }
         });
     });

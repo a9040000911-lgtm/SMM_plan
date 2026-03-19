@@ -11,10 +11,22 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/certbot/conf:/etc/letsencrypt:ro
+      - ./nginx/certbot/www:/var/www/certbot:ro
       - next_static:/usr/share/nginx/html/_next/static:ro
       - next_public:/usr/share/nginx/html/public:ro
     depends_on:
       - app
+    restart: always
+
+  # === Certbot для SSL ===
+  certbot:
+    image: certbot/certbot
+    container_name: smmplan-certbot
+    volumes:
+      - ./nginx/certbot/conf:/etc/letsencrypt
+      - ./nginx/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
     restart: always
     logging:
       driver: json-file
@@ -35,12 +47,14 @@ services:
   # === Next.js App ===
   app:
     image: smmplan-app:latest
-    build: .
+    build:
+      context: .
+      target: runner
     expose:
       - "3000"
     volumes:
-      - next_static:/app/.next/static:ro
-      - next_public:/app/public:ro
+      - next_static:/app/.next/static
+      - next_public:/app/public
     logging:
       driver: json-file
       options:
@@ -93,7 +107,7 @@ services:
       - POSTGRES_PASSWORD=smmpassword
       - POSTGRES_DB=smmplan
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
       - ./postgres/tune.sql:/docker-entrypoint-initdb.d/tune.sql:ro

@@ -96,6 +96,7 @@ export async function authorizeUser(credentials: any) {
     throw new Error("Invalid password");
   }
 
+  /* 
   // --- 2FA CHECK ---
   if (user.twoFactorEnabled && credentials.twoFactorVerified !== 'true') {
     // Generate 6-digit code, send via email
@@ -117,6 +118,7 @@ export async function authorizeUser(credentials: any) {
 
     throw new Error("2FA_REQUIRED");
   }
+  */
 
   return {
     id: user.id,

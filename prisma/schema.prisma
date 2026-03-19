@@ -1,7 +1,7 @@
 generator client {
   provider      = "prisma-client-js"
   engineType    = "library"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
   output        = "../src/generated/client"
 }
 
@@ -99,6 +99,7 @@ model ProjectServiceOverride {
   customMinQty       Int?
   customName         String?
   customRequirements String?
+  customIcon         String?
   markup             Decimal?         @db.Decimal(10, 2)
   serviceCategory    ServiceCategory? @relation(fields: [categoryId], references: [id])
   internalService    InternalService  @relation(fields: [internalServiceId], references: [id], onDelete: Cascade)
@@ -467,6 +468,7 @@ model InternalService {
   metadata                 Json?
   requirements             String?
   slug                     String?                  @unique
+  icon                     String?
   isDripFeedDisabled       Boolean                  @default(false)
   marketPrice              Decimal?                 @db.Decimal(20, 2)
   markup                   Decimal?                 @db.Decimal(10, 2)

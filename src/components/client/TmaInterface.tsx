@@ -140,7 +140,8 @@ export function TmaInterface() {
 
     return (
         <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/10 select-none pb-24">
-            {/* Background Grid */}
+            {/* Background Grid & Premium Mesh */}
+            <div className="fixed inset-0 pointer-events-none -z-20 mesh-bg opacity-30" />
             <div className="fixed inset-0 pointer-events-none opacity-[0.03] grid-bg -z-10" />
 
             <main className="flex-1 p-6 pt-12 space-y-10 animate-in fade-in duration-700">
@@ -160,7 +161,7 @@ export function TmaInterface() {
                         {/* Analyzer Instrument */}
                         <div className="space-y-4">
                             <div className="relative group">
-                                <div className="bg-muted/50 p-4 rounded-3xl border border-border group-focus-within:border-primary/50 transition-all flex items-center gap-3 cyber-box">
+                                <div className="glass p-4 rounded-3xl border border-white/40 group-focus-within:border-primary/50 transition-all flex items-center gap-3 cyber-box shadow-sm">
                                     <Link2 className="text-muted-foreground" size={18} />
                                     <input
                                         className="flex-1 bg-transparent outline-none text-sm font-medium text-foreground placeholder:text-muted-foreground"
@@ -210,7 +211,7 @@ export function TmaInterface() {
                                                     <button
                                                         key={s.id}
                                                         onClick={() => openOrderForm(s)}
-                                                        className="w-full bg-card p-4 rounded-2xl flex justify-between items-center border border-border hover:border-primary/50 transition-all active:scale-[0.98]"
+                                                        className="w-full glass p-4 rounded-2xl flex justify-between items-center border hover:border-primary/50 transition-all active:scale-[0.98] shadow-sm"
                                                     >
                                                         <div className="text-left">
                                                             <div className="text-xs font-bold leading-tight">{s.name}</div>
@@ -228,7 +229,7 @@ export function TmaInterface() {
                             ) : (
                                 <div className="space-y-8">
                                     {/* Trust Badge */}
-                                    <div className="bg-emerald-500/5 border border-emerald-500/10 p-6 rounded-[2rem] flex items-center gap-4">
+                                    <div className="glass border border-emerald-500/20 p-6 rounded-[2rem] flex items-center gap-4 shadow-sm">
                                         <div className="bg-emerald-500/10 text-emerald-500 p-3 rounded-2xl">
                                             <ShieldCheck size={24} />
                                         </div>
@@ -253,7 +254,7 @@ export function TmaInterface() {
                                                         </div>
                                                         <div className="grid grid-cols-2 gap-3">
                                                             {Object.entries(categories).slice(0, 4).map(([category, _services]: [string, any]) => (
-                                                                <div key={category} className="bg-muted/50 p-4 rounded-2xl border border-border/50 text-left space-y-2">
+                                                                <div key={category} className="glass p-4 rounded-2xl border-white/40 text-left space-y-2 shadow-sm">
                                                                     <div className="text-[10px] font-bold tracking-tight">{category}</div>
                                                                     <div className="text-[8px] font-black text-primary/40 uppercase tracking-widest">{t.tma.available}</div>
                                                                 </div>
@@ -293,7 +294,7 @@ export function TmaInterface() {
                                 initial={{ y: "100%" }}
                                 animate={{ y: 0 }}
                                 exit={{ y: "100%" }}
-                                className="relative w-full max-w-lg bg-card border border-border rounded-[2.5rem] shadow-2xl p-8 space-y-6"
+                                className="relative w-full max-w-lg glass border-white/40 rounded-[2.5rem] shadow-premium p-8 space-y-6"
                             >
                                 <div className="space-y-1">
                                     <h2 className="text-xl font-black tracking-tight">{selectedService.name}</h2>
@@ -316,10 +317,10 @@ export function TmaInterface() {
                                         <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">{t.tma.order_link}</label>
                                         <input
                                             className={cn(
-                                                "w-full bg-muted/50 border rounded-2xl py-4 px-6 text-sm outline-none transition-all",
+                                                "w-full glass py-4 px-6 text-sm outline-none transition-all shadow-inner",
                                                 orderLink && !validateTargetLink(orderLink, selectedService.platform, selectedService.targetType).isValid
                                                     ? "border-destructive/50 focus:border-destructive"
-                                                    : "border-border focus:border-primary/50"
+                                                    : "border-white/40 focus:border-primary/50"
                                             )}
                                             value={orderLink}
                                             onChange={(e) => setOrderLink(e.target.value)}
@@ -344,7 +345,7 @@ export function TmaInterface() {
                                         <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">{t.tma.order_qty}</label>
                                         <input
                                             type="number"
-                                            className="w-full bg-muted/50 border border-border rounded-2xl py-4 px-6 text-sm outline-none focus:border-primary/50 transition-all font-bold"
+                                            className="w-full glass border border-white/40 rounded-2xl py-4 px-6 text-sm outline-none focus:border-primary/50 transition-all font-bold shadow-inner"
                                             value={orderQuantity}
                                             onChange={(e) => setOrderQuantity(parseInt(e.target.value) || 0)}
                                         />
@@ -391,7 +392,7 @@ export function TmaInterface() {
             </main>
 
             {/* Modern TMA Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-md border-t border-border px-4 py-4 flex justify-between items-center z-50">
+            <nav className="fixed bottom-0 left-0 right-0 glass-dark text-white border-t border-white/10 px-4 py-4 flex justify-between items-center z-50">
                 {[
                     { id: "shop", label: "Магазин", icon: ShoppingBag },
                     { id: "mass", label: "Опт", icon: Layers },
