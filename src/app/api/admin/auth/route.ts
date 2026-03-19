@@ -118,15 +118,37 @@ export async function POST(req: NextRequest) {
           });
         } else {
           // Find or Create default project
-          let defaultProject = await prisma.project.findFirst({ where: { slug: 'default' } });
+          const currentHost = req.headers.get('host') || 'localhost';
+          
+          let defaultProject = await prisma.project.findFirst({ 
+            where: { 
+              OR: [
+                { slug: 'default' },
+                { domain: currentHost },
+                { domain: 'localhost' }
+              ]
+            } 
+          });
+
           if (!defaultProject) {
-            defaultProject = await prisma.project.create({
-              data: {
-                name: 'Main Project',
-                slug: 'default',
-                domain: 'localhost'
+            try {
+              defaultProject = await prisma.project.create({
+                data: {
+                  name: 'Main Project',
+                  slug: 'default',
+                  domain: currentHost,
+                }
+              });
+            } catch (createErr: any) {
+              // If creation failed due to unique constraint, try to find it one last time
+              if (createErr.code === 'P2002') {
+                defaultProject = await prisma.project.findFirst({
+                    where: { OR: [{ domain: currentHost }, { domain: 'localhost' }] }
+                });
               }
-            });
+              
+              if (!defaultProject) throw createErr;
+            }
           }
 
           bootstrapUser = await prisma.user.create({
