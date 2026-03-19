@@ -25,9 +25,18 @@ const nextConfig = {
   env: {
     PRISMA_CLIENT_ENGINE_TYPE: "library",
   },
+  eslint: {
+    // We disable linting during build to save memory and time on the production server.
+    // Quality checks should be done locally or in a dedicated CI stage.
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // Same for typechecking.
+    ignoreBuildErrors: true,
+  },
   experimental: {
     webpackMemoryOptimizations: true,
-    webpackBuildWorker: true,
+    webpackBuildWorker: false, // Disabling to reduce memory pressure
   },
   webpack: (config, { dev }) => {
     if (dev) {
