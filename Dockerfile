@@ -21,6 +21,8 @@ ENV IS_BUILD true
 
 # Patch prisma enums if needed and build
 RUN npx prisma generate
+ENV NODE_OPTIONS="--max-old-space-size=2048"
+ENV NEXT_PRIVATE_LOCAL_WEBPACK_WORKERS=1
 RUN npm run build
 
 # STAGE 3: Runner
