@@ -70,9 +70,9 @@ services:
       - HOSTNAME=0.0.0.0
       - PRISMA_CLIENT_ENGINE_TYPE=library
       - AUTH_TRUST_HOST=true
-      - NEXT_PUBLIC_URL=http://89.23.98.202
-      - NEXT_PUBLIC_APP_URL=http://89.23.98.202
-      - NEXTAUTH_URL=http://89.23.98.202
+      - NEXT_PUBLIC_URL=https://smmplan.pro
+      - NEXT_PUBLIC_APP_URL=https://smmplan.pro
+      - NEXTAUTH_URL=https://smmplan.pro
       - NEXTAUTH_URL_INTERNAL=http://localhost:3000
     depends_on:
       db:
