@@ -96,6 +96,14 @@ export default function AdminLoginPage() {
         if (data.requires2fa) {
           setRequires2fa(true);
           setIsLoading(false);
+          // Show feedback to user
+          if (data.sentTo === 'all') {
+             alert('Код безопасности отправлен в ваш Telegram и на Почту.');
+          } else if (data.sentTo === 'telegram') {
+             alert('Код безопасности отправлен в ваш Telegram.');
+          } else {
+             alert('Код безопасности отправлен на вашу Почту.');
+          }
         } else {
           // Success! Keep loading state while redirecting
           router.push('/admin');
@@ -155,16 +163,53 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 font-sans">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 shadow-2xl space-y-8">
-        <div className="text-center space-y-2">
-          <div className="w-16 h-16 bg-blue-600/20 text-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+    <div className="min-h-screen bg-slate-50 flex font-sans">
+      {/* Sidebar Visual (Desktop) */}
+      <div className="hidden lg:flex w-[45%] bg-[#05070a] flex-col justify-between p-12 relative overflow-hidden text-white border-r border-slate-800">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.15),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
+        
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-black shadow-lg shadow-blue-500/20 text-white">S</div>
+          <span className="text-2xl font-black tracking-tighter">Smmplan <span className="text-blue-500">CMS</span></span>
+        </div>
+        
+        <div className="relative z-10 max-w-lg mb-20">
+          <div className="flex items-center gap-2 mb-6 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full w-fit">
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            <span className="text-[9px] font-black uppercase text-blue-400 tracking-widest">Admin Control Center</span>
+          </div>
+          <h2 className="text-4xl xl:text-[3.5rem] font-black tracking-tight mb-6 leading-[1.1] text-balance">
+            Управляйте платформой <span className="text-blue-500 italic font-serif">комфортно</span>.
+          </h2>
+          <p className="text-slate-400 font-medium text-lg leading-relaxed text-balance">
+            Управление контентом, модерация, биллинг и глубокая аналитика в едином защищённом пространстве.
+          </p>
+        </div>
+        
+        <div className="relative z-10 flex gap-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+          <span>v3.0.0 Architecture</span>
+          <span className="w-1 h-1 rounded-full bg-slate-800 self-center" />
+          <span className="flex items-center gap-1.5"><ShieldCheck size={12} className="text-emerald-500" /> Secured</span>
+        </div>
+      </div>
+
+      {/* Login Container */}
+      <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8">
+        <div className="lg:hidden flex items-center gap-3 mb-8">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-black text-white shadow-lg">S</div>
+          <span className="text-xl font-black tracking-tighter text-slate-900">Smmplan CMS</span>
+        </div>
+
+        <div className="w-full max-w-md bg-white border border-slate-200 rounded-[2.5rem] p-8 md:p-10 shadow-2xl shadow-blue-900/5 space-y-8">
+          <div className="text-center space-y-2">
+          <div className="w-16 h-16 bg-blue-600/10 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             {requires2fa || isResetting ? <ShieldCheck size={32} className="text-emerald-500" /> : <Lock size={32} />}
           </div>
-          <h1 className="text-2xl font-black text-white">
+          <h1 className="text-2xl font-black text-slate-900">
             {isResetting ? 'Восстановление' : (requires2fa ? 'Подтверждение входа' : 'Вход в систему')}
           </h1>
-          <p className="text-slate-400 text-sm">
+          <p className="text-slate-500 text-sm">
             {isResetting
               ? (resetStep === 1 ? 'Введите email для получения кода сброса' : 'Введите код из письма и новый пароль')
               : (requires2fa ? 'Введите 6-значный код, отправленный в ваш Telegram или на Почту.' : 'Выберите метод авторизации для доступа к панели.')
@@ -174,17 +219,17 @@ export default function AdminLoginPage() {
 
         {/* Переключатель вкладок - скрываем если идет 2FA или Сброс */}
         {!requires2fa && !isResetting && (
-          <div className="flex p-1 bg-slate-950 rounded-2xl border border-slate-800">
+          <div className="flex p-1 bg-slate-100 rounded-2xl border border-slate-200">
             <button
               onClick={() => setActiveTab('email')}
-              className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${activeTab === 'email' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'
+              className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${activeTab === 'email' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                 }`}
             >
               Почта и пароль
             </button>
             <button
               onClick={() => setActiveTab('telegram')}
-              className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${activeTab === 'telegram' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'
+              className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${activeTab === 'telegram' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                 }`}
             >
               Telegram
@@ -195,15 +240,15 @@ export default function AdminLoginPage() {
         {!requires2fa && !isResetting && activeTab === 'email' ? (
           <form onSubmit={handleEmailLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Email адрес</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Email адрес</label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@smmplan.com"
-                  className="w-full pl-12 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-2xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-[0_0_0_30px_#0f172a_inset_!important] [-webkit-text-fill-color:white_!important]"
+                  placeholder="email@example.com"
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                   required
                 />
               </div>
@@ -211,23 +256,23 @@ export default function AdminLoginPage() {
 
             <div className="space-y-1.5">
               <div className="flex justify-between px-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Пароль</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Пароль</label>
                 <button
                   type="button"
                   onClick={() => setIsResetting(true)}
-                  className="text-[10px] font-bold text-blue-500 hover:text-blue-400 uppercase tracking-widest"
+                  className="text-[10px] font-bold text-blue-600 hover:text-blue-500 uppercase tracking-widest"
                 >
                   Забыли?
                 </button>
               </div>
               <div className="relative">
-                <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-12 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-2xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-[0_0_0_30px_#0f172a_inset_!important] [-webkit-text-fill-color:white_!important]"
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                   required
                 />
               </div>
@@ -236,7 +281,7 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-sm hover:bg-blue-700 shadow-xl shadow-blue-900/20 transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-sm hover:bg-blue-700 shadow-xl shadow-blue-500/10 transition-all flex items-center justify-center gap-2"
             >
               {isLoading ? <Loader2 className="animate-spin" size={20} /> : (
                 <>
@@ -249,13 +294,13 @@ export default function AdminLoginPage() {
         ) : isResetting ? (
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Email администратора</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Email администратора</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-blue-500 transition-all"
+                placeholder="email@example.com"
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm text-slate-900 outline-none focus:border-blue-500 transition-all"
                 required
                 disabled={resetStep === 2}
               />
@@ -264,24 +309,24 @@ export default function AdminLoginPage() {
             {resetStep === 2 && (
               <>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Код из письма</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Код из письма</label>
                   <input
                     type="text"
                     value={resetCode}
                     onChange={(e) => setResetCode(e.target.value)}
                     placeholder="000000"
-                    className="w-full px-4 py-3 bg-slate-950 border border-blue-500/50 rounded-2xl text-center font-mono text-xl tracking-widest text-white outline-none"
+                    className="w-full px-4 py-3 bg-white border border-blue-500/30 rounded-2xl text-center font-mono text-xl tracking-widest text-slate-900 outline-none"
                     required
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Новый пароль</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Новый пароль</label>
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Минимум 8 символов"
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-white outline-none focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm text-slate-900 outline-none focus:border-blue-500 transition-all"
                     required
                   />
                 </div>
@@ -299,7 +344,7 @@ export default function AdminLoginPage() {
             <button
               type="button"
               onClick={() => { setIsResetting(false); setResetStep(1); }}
-              className="w-full py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest"
+              className="w-full py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
             >
               Отмена
             </button>
@@ -308,16 +353,16 @@ export default function AdminLoginPage() {
           <form onSubmit={handleEmailLogin} className="space-y-4">
             {requires2fa && (
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Код безопасности</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Код безопасности</label>
                 <div className="relative">
-                  <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                  <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                   <input
                     type="text"
                     maxLength={6}
                     value={twoFactorCode}
                     onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
                     placeholder="000000"
-                    className="w-full pl-12 pr-4 py-4 bg-slate-950 border border-blue-500/50 rounded-2xl text-xl font-mono tracking-[0.5em] text-center text-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
+                    className="w-full pl-12 pr-4 py-4 bg-white border border-blue-500/20 rounded-2xl text-xl font-mono tracking-[0.5em] text-center text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/5 transition-all"
                     autoFocus
                     required
                   />
@@ -328,7 +373,7 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-sm hover:bg-blue-700 shadow-xl shadow-blue-900/20 transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-sm hover:bg-blue-700 shadow-xl shadow-blue-500/10 transition-all flex items-center justify-center gap-2"
             >
               {isLoading ? <Loader2 className="animate-spin" size={20} /> : (
                 <>
@@ -357,14 +402,14 @@ export default function AdminLoginPage() {
                       setIsLoading(false);
                     }
                   }}
-                  className="w-full py-2 text-[10px] font-bold text-blue-400 hover:text-blue-300 uppercase tracking-widest transition-colors"
+                  className="w-full py-2 text-[10px] font-bold text-blue-600 hover:text-blue-500 uppercase tracking-widest transition-colors"
                 >
                   Не пришел код? Отправить еще раз
                 </button>
                 <button
                   type="button"
                   onClick={() => { setRequires2fa(false); setTwoFactorCode(''); }}
-                  className="w-full py-2 text-[10px] font-bold text-slate-500 hover:text-slate-300 uppercase tracking-widest transition-colors"
+                  className="w-full py-2 text-[10px] font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors"
                 >
                   Вернуться к вводу пароля
                 </button>
@@ -374,21 +419,22 @@ export default function AdminLoginPage() {
         ) : (
           <div className="py-8 flex flex-col items-center justify-center space-y-4">
             <div ref={scriptContainerRef} className="min-h-[40px]"></div>
-            <p className="text-[10px] text-slate-500 text-center max-w-[200px] leading-relaxed">
+            <p className="text-[10px] text-slate-400 text-center max-w-[200px] leading-relaxed">
               Быстрый и безопасный вход через ваш аккаунт Telegram.
             </p>
           </div>
         )}
 
-        <div className="pt-6 border-t border-slate-800/50 flex items-center justify-center gap-2 text-slate-600 text-[10px] uppercase font-bold tracking-widest">
+        <div className="pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-slate-400 text-[10px] uppercase font-bold tracking-widest">
           <ShieldCheck size={12} className="text-emerald-500" />
           Защищенная корпоративная среда
         </div>
       </div>
 
-      <p className="mt-8 text-slate-700 text-[10px] font-medium uppercase tracking-tighter">
-        Система управления платформой SMMPlan v1.2
+      <p className="mt-8 text-slate-400 text-[10px] font-medium uppercase tracking-widest bg-white/50 px-4 py-2 rounded-full border border-slate-200 backdrop-blur-sm shadow-sm">
+        Smmplan CMS v3.0.0 &copy; 2026
       </p>
+    </div>
     </div>
   );
 }

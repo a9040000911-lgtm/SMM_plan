@@ -24,13 +24,14 @@ export async function GET(req: NextRequest) {
       where: { isActive: true, isPrivate: false },
       include: {
         serviceCategory: true,
+        socialPlatform: true,
         projectOverrides: {
           where: { projectId: projectId || undefined }
         }
       },
       orderBy: [
-        { platform: 'asc' },
-        { category: 'asc' },
+        { socialPlatform: { slug: 'asc' } },
+        { serviceCategory: { priority: 'asc' } },
         { pricePer1000: 'asc' }
       ]
     });
@@ -42,10 +43,13 @@ export async function GET(req: NextRequest) {
       const override = s.projectOverrides?.[0];
       if (override && !override.isActive) return; // Hide if disabled for project
 
-      if (!catalog[s.platform]) catalog[s.platform] = {};
-      if (!catalog[s.platform][s.category]) catalog[s.platform][s.category] = [];
+      const platformSlug = s.socialPlatform?.slug?.toUpperCase() || 'OTHER';
+      const categoryType = s.serviceCategory?.categoryType || 'OTHER';
 
-      catalog[s.platform][s.category].push({
+      if (!catalog[platformSlug]) catalog[platformSlug] = {};
+      if (!catalog[platformSlug][categoryType]) catalog[platformSlug][categoryType] = [];
+
+      catalog[platformSlug][categoryType].push({
         id: s.id,
         name: override?.customName || s.name,
         description: override?.customDescription || s.description,

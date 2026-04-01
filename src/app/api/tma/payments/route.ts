@@ -19,12 +19,18 @@ export async function POST(req: NextRequest) {
     const auth = TelegramAuth.validateTMAData(authHeader.split('tma ')[1], BOT_TOKEN);
     if (!auth.isValid || !auth.data?.user) return NextResponse.json({ error: 'Auth failed' }, { status: 403 });
 
-    const _body = await req.json();
-    const { amount } = _body;
+    const rawBody = await req.json();
+    const { z } = await import('zod');
+    const tmaPaymentSchema = z.object({
+      amount: z.union([z.number(), z.string()]).transform(Number).refine(val => !isNaN(val) && val >= 10, { message: 'Минимальная сумма пополнения 10₽' })
+    }).passthrough();
 
-    if (!amount || amount < 10) {
-      return NextResponse.json({ error: 'Минимальная сумма пополнения 10₽' }, { status: 400 });
+    const parsed = tmaPaymentSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
+
+    const { amount } = parsed.data;
 
     const tgId = BigInt(auth.data.user.id);
     const user = await prisma.user.findFirst({ where: { tgId } });
@@ -98,7 +104,6 @@ export async function POST(req: NextRequest) {
 
     // Если транзакция была создана, но произошла ошибка - помечаем её как FAILED
     try {
-      const _body = await req.json();
       const authHeader = req.headers.get('Authorization');
       if (authHeader?.startsWith('tma ') && BOT_TOKEN) {
         const auth = TelegramAuth.validateTMAData(authHeader.split('tma ')[1], BOT_TOKEN);
@@ -124,7 +129,7 @@ export async function POST(req: NextRequest) {
                   status: 'ERROR',
                   metadata: {
                     ...pendingTx.metadata as object,
-                    error: error.message,
+                    error: 'Payment init failed',
                     failedAt: new Date().toISOString()
                   }
                 }

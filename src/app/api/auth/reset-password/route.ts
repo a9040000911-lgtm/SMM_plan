@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import * as bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { checkRateLimit, getRealIp } from '@/services/core/rate-limiter';
 
 /**
  * POST /api/auth/reset-password
@@ -15,6 +16,16 @@ import crypto from 'crypto';
  */
 export async function POST(req: NextRequest) {
     try {
+        // Enforce Rate Limiting to prevent Brute-Force Token Guessing (Account Takeover)
+        const ip = getRealIp(req);
+        const rl = await checkRateLimit('auth', ip);
+        if (!rl.success) {
+            return NextResponse.json(
+                { error: 'Слишком много попыток. Подождите.' },
+                { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) } }
+            );
+        }
+
         const { email, code, mode, newPassword } = await req.json();
 
         if (!email || !code || !mode) {

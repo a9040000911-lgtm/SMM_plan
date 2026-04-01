@@ -21,7 +21,7 @@ import {
   exportOrdersReport,
   exportUsersReport,
   exportProfitLossReport
-} from '@/app/admin/reports/actions';
+} from '@/app/admin/analytics/reports/actions';
 
 import { DatePicker } from '@/components/admin/ui/date-picker';
 

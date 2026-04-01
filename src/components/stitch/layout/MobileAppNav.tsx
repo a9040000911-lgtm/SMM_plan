@@ -22,9 +22,31 @@ const navItems = [
 
 export function MobileAppNav() {
     const pathname = usePathname();
+    const [isBlocked, setIsBlocked] = React.useState(false);
+    const [isVisible, setIsVisible] = React.useState(true);
+    const [lastScrollY, setLastScrollY] = React.useState(0);
+
+    React.useEffect(() => {
+        // [UX Hardening] Persistent navigation for better accessibility
+        setIsVisible(true);
+    }, []);
+
+    React.useEffect(() => {
+        const check = () => setIsBlocked(document.body.classList.contains('modal-open'));
+        check();
+        const obs = new MutationObserver(check);
+        obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        return () => obs.disconnect();
+    }, []);
+
+    if (isBlocked) return null;
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden px-4 pb-6 pt-2 pointer-events-none">
+        <div className={cn(
+            "fixed bottom-0 left-0 right-0 z-50 md:hidden px-4 pb-6 pt-2 transition-all duration-500 transform",
+            isVisible ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0",
+            "pointer-events-none"
+        )}>
             <nav className="max-w-md mx-auto h-16 bg-white/80 backdrop-blur-2xl border border-white/40 rounded-[2.5rem] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.15)] flex items-center justify-around px-2 pointer-events-auto relative">
 
                 {/* Accent Background Glow */}

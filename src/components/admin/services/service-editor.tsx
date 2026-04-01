@@ -16,7 +16,7 @@ import { usePriceDisplay } from './price-display-context';
 import { ServiceHistory } from './service-history';
 import { X } from 'lucide-react';
 
-import { Platform, Category } from '@/generated/client';
+import { Platform, Category } from '@prisma/client';
 
 const TARGET_TYPES = [
   { value: 'TG_CHANNEL', label: 'Telegram: Канал/Группа' },

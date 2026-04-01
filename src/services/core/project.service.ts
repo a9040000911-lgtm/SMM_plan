@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
-import { Project } from '@/generated/client';
+import { Project } from '@prisma/client';
 import { CryptoService } from './crypto.service';
 
 export class ProjectService {

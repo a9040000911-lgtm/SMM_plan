@@ -5,7 +5,7 @@
  */
 import { LedgerService } from '@/services/finance/ledger.service';
 import { Decimal } from 'decimal.js';
-import { Prisma, OrderStatus } from '@/generated/client';
+import { Prisma, OrderStatus } from '@prisma/client';
 import { OrderWithRelations } from '@/types/orders';
 import { UserRepository } from '@/services/repositories/user.repository';
 import { TransactionRepository } from '@/services/repositories/transaction.repository';

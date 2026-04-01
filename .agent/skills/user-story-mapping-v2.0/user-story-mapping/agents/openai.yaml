@@ -1,0 +1,32 @@
+# OpenAI UI Metadata for user-story-mapping
+# See references/openai_yaml.md for field specifications
+
+name: user-story-mapping
+display_name: "User Story Mapping"
+short_description: "Create story maps to visualize user journeys and define MVP scope"
+default_prompt: "Create a story map for [PRODUCT/FEATURE]"
+brand_color: "#1565C0"
+tags:
+  - product-management
+  - planning
+  - user-experience
+  - mvp
+  - prioritization
+author: "Z.ai"
+version: "2.0.0"
+
+examples:
+  - prompt: "Create a story map for my food delivery app"
+    description: "Visualize complete user journey for ordering food"
+  - prompt: "Help me define MVP scope for my project management tool"
+    description: "Identify essential features for first release"
+  - prompt: "Map out the user journey for our onboarding flow"
+    description: "Align team on user workflow and priorities"
+  - prompt: "Create a story map for an e-commerce checkout"
+    description: "Identify gaps and opportunities in checkout process"
+
+related_skills:
+  - proto-persona
+  - jobs-to-be-done
+  - user-story
+  - problem-statement

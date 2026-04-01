@@ -15,12 +15,13 @@ import {
     Package, Database, Layers, Newspaper, Tag, Award,
     TrendingUp, MessageSquare, BookOpen, Settings, History,
     ShieldAlert, ChevronRight, ChevronsLeft, ChevronsRight,
-
+    Star, Crown, Rss, Clock, PieChart, BarChart, ReceiptText, Bug, Landmark
 } from 'lucide-react';
 
 import { ProjectSelector } from '@/components/admin/core/project-selector';
 import { AdminProvider } from '@/components/admin/core/admin-context';
 import { Toaster } from 'sonner';
+import { SmmplanLogo } from '@/components/ui/SmmplanLogo';
 
 interface SidebarUser {
     id: string;
@@ -45,6 +46,7 @@ interface LayoutWrapperProps {
     lang: string;
     accessibleProjects: Project[];
     activeProjectId: string | null;
+    initialIsCollapsed: boolean;
 }
 
 export function LayoutWrapper({
@@ -54,23 +56,16 @@ export function LayoutWrapper({
     dict: t,
     lang,
     accessibleProjects,
-    activeProjectId
+    activeProjectId,
+    initialIsCollapsed
 }: LayoutWrapperProps) {
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(initialIsCollapsed);
     const pathname = usePathname();
-
-    // Load preference from localStorage on mount
-    useEffect(() => {
-        const saved = localStorage.getItem('sidebar-collapsed');
-        if (saved) {
-            setIsCollapsed(saved === 'true');
-        }
-    }, []);
 
     const toggleCollapse = () => {
         const newState = !isCollapsed;
         setIsCollapsed(newState);
-        localStorage.setItem('sidebar-collapsed', String(newState));
+        document.cookie = `sidebar-collapsed=${newState}; path=/admin; max-age=31536000`; // 1 year
     };
 
     const roleNames: Record<string, string> = {
@@ -81,63 +76,88 @@ export function LayoutWrapper({
     };
 
     const nav_sections = t?.nav_sections || {
-        management: 'Management',
-        showcase: 'Showcase',
-        marketing: 'Marketing',
-        finance: 'Finance',
-        support: 'Support',
-        system: 'System'
+        management: 'Управление',
+        showcase: 'Витрина',
+        marketing: 'Маркетинг',
+        finance: 'Финансы',
+        support: 'Поддержка',
+        system: 'Система'
     };
 
-    const navGroups = [
+    let navGroups = [
         {
             title: nav_sections.management,
             items: [
-                { id: 'dashboard', name: t?.dashboard || 'Dashboard', href: '/admin', icon: LayoutDashboard },
-                { id: 'orders', name: t?.orders || 'Orders', href: '/admin/orders', icon: ShoppingCart },
-                { id: 'users', name: t?.users || 'Users', href: '/admin/users', icon: Users },
-                { id: 'employees', name: t?.employees || 'Employees', href: '/admin/employees', icon: Briefcase },
+                { id: 'dashboard', name: t?.dashboard || 'Панель управления', href: '/admin', icon: LayoutDashboard },
+                { id: 'statistics', name: 'Статистика', href: '/admin/analytics/statistics', icon: BarChart },
+                { id: 'analytics', name: t?.analytics || 'Отток (Churn)', href: '/admin/analytics/churn', icon: PieChart },
+                { id: 'orders', name: t?.orders || 'Заказы', href: '/admin/orders', icon: ShoppingCart },
+                { id: 'users', name: t?.users || 'Пользователи', href: '/admin/users', icon: Users },
+                { id: 'employees', name: t?.employees || 'Сотрудники', href: '/admin/employees', icon: Briefcase },
             ]
         },
         {
             title: nav_sections.showcase,
             items: [
-                { id: 'services', name: t?.services || 'Services', href: '/admin/services', icon: Package },
-                { id: 'categories', name: t?.categories || 'Categories', href: '/admin/services/categories', icon: Layers },
-                { id: 'providers', name: t?.providers || 'Providers', href: '/admin/providers', icon: Database },
+                { id: 'services', name: t?.services || 'Услуги', href: '/admin/services', icon: Package },
+                { id: 'categories', name: t?.categories || 'Категории', href: '/admin/services/categories', icon: Layers },
+                { id: 'providers', name: t?.providers || 'Провайдеры (API)', href: '/admin/providers', icon: Database },
             ]
         },
         {
             title: nav_sections.marketing,
             items: [
-                { id: 'marketing', name: t?.marketing || 'Marketing', href: '/admin/content', icon: Newspaper },
-                { id: 'promocodes', name: t?.promocodes || 'Promo Codes', href: '/admin/promo-codes', icon: Tag },
-                { id: 'advocacy', name: t?.advocacy || 'Advocacy', href: '/admin/advocacy/nps', icon: Award },
+                { id: 'marketing', name: t?.marketing || 'Маркетинг', href: '/admin/cms/content', icon: Newspaper },
+                { id: 'news', name: t?.news || 'Новости', href: '/admin/news', icon: Rss },
+                { id: 'reviews', name: t?.reviews || 'Отзывы', href: '/admin/reviews', icon: Star },
+                { id: 'promocodes', name: t?.promocodes || 'Промокоды', href: '/admin/promo-codes', icon: Tag },
+                { id: 'loyalty', name: t?.loyalty || 'Лояльность', href: '/admin/loyalty', icon: Crown },
+                { id: 'advocacy', name: t?.advocacy || 'NPS и Опросы', href: '/admin/advocacy/nps', icon: Award },
             ]
         },
         {
             title: nav_sections.finance,
             items: [
-                { id: 'finance', name: t?.finance || 'Finance', href: '/admin/finance', icon: TrendingUp },
+                { id: 'finance', name: t?.finance || 'Сводка Финансов', href: '/admin/finance', icon: TrendingUp },
+                { id: 'transactions', name: t?.transactions || 'Транзакции', href: '/admin/transactions', icon: ReceiptText },
+                { id: 'reports', name: t?.reports || 'Отчеты', href: '/admin/analytics/reports', icon: BarChart },
+                ...(isGlobalAdmin ? [{ id: 'treasury', name: 'Казначейство', href: '/admin/finance/treasury', icon: Landmark }] : [])
             ]
         },
         {
             title: nav_sections.support,
             items: [
-                { id: 'support', name: t?.support || 'Support', href: '/admin/support', icon: MessageSquare },
-                { id: 'kb', name: t?.knowledge_base || 'Knowledge Base', href: '/admin/knowledge-base', icon: BookOpen },
+                { id: 'support', name: t?.support || 'Поддержка', href: '/admin/support', icon: MessageSquare },
+                { id: 'kb', name: t?.knowledge_base || 'База Знаний', href: '/admin/knowledge-base', icon: BookOpen },
+                { id: 'bug_reports', name: t?.bug_reports || 'Баг-репорты', href: '/admin/support/bug-reports', icon: Bug },
             ]
         },
         {
             title: nav_sections.system,
             items: [
-                { id: 'projects', name: t?.projects || 'Projects', href: '/admin/projects', icon: Settings },
-                { id: 'logs', name: t?.logs || 'Logs', href: '/admin/logs', icon: History },
-                { id: 'security', name: t?.security || 'Security', icon: ShieldAlert, href: '/admin/security' },
-                { id: 'settings', name: t?.settings || 'Settings', href: '/admin/settings', icon: Settings },
+                { id: 'projects', name: t?.projects || 'Проекты', href: '/admin/projects', icon: Settings },
+                { id: 'scheduled', name: t?.scheduled || 'Задачи по расписанию', href: '/admin/scheduled', icon: Clock },
+                { id: 'logs', name: t?.logs || 'Логи Системы', href: '/admin/logs', icon: History },
+                { id: 'security', name: t?.security || 'Безопасность', icon: ShieldAlert, href: '/admin/security' },
+                { id: 'settings', name: t?.settings || 'Настройки', href: '/admin/settings', icon: Settings },
             ]
         }
     ];
+
+    if (user.role === 'SUPPORT') {
+        const supportGroup = navGroups.find(g => g.title === nav_sections.support);
+        const managementGroup = navGroups.find(g => g.title === nav_sections.management);
+        const otherGroups = navGroups.filter(g => g.title !== nav_sections.support && g.title !== nav_sections.management);
+        
+        if (managementGroup) {
+            const orders = managementGroup.items.find(i => i.id === 'orders');
+            const users = managementGroup.items.find(i => i.id === 'users');
+            const dashboard = managementGroup.items.find(i => i.id === 'dashboard');
+            managementGroup.items = [orders, users, dashboard].filter(Boolean) as any;
+        }
+
+        navGroups = [supportGroup, managementGroup, ...otherGroups].filter(Boolean) as any;
+    }
 
     return (
         <AdminProvider
@@ -154,10 +174,16 @@ export function LayoutWrapper({
                 {/* Header */}
                 <div className={cn("flex flex-col items-center justify-center p-4 h-20 relative transition-all duration-300", isCollapsed ? "px-2" : "px-6 items-start")}>
                     <div className={cn("overflow-hidden transition-all duration-300 whitespace-nowrap", isCollapsed ? "w-0 opacity-0 absolute" : "w-full opacity-100")}>
-                        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent truncate">
-                            SMMPlan — {t?.title || 'Admin'}
-                        </h1>
-                        <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest font-semibold text-[10px] truncate mb-3">{t?.subtitle || 'Platform Management'}</p>
+                        <SmmplanLogo 
+                            textSize="text-xl" 
+                            colorMode="white" 
+                            showText={!isCollapsed} 
+                            className="mb-1" 
+                            href="/admin" 
+                        />
+                        <p className="text-xs text-slate-500 mt-0.5 uppercase tracking-widest font-bold text-[9px] truncate mb-4 pl-1 opacity-70">
+                            {t?.title || 'Admin'} — {t?.subtitle || 'Platform'}
+                        </p>
 
                         {/* Project Selection UI */}
                         {!isCollapsed && (
@@ -170,7 +196,7 @@ export function LayoutWrapper({
 
                     {/* Logo Icon when collapsed */}
                     <div className={cn("absolute inset-0 flex items-center justify-center transition-all duration-300", isCollapsed ? "opacity-100 scale-100" : "opacity-0 scale-50 pointer-events-none")}>
-                        <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">S</span>
+                        <SmmplanLogo showText={false} iconSize={24} colorMode="white" href="/admin" />
                     </div>
 
                     {/* Toggle Button */}
@@ -207,6 +233,15 @@ export function LayoutWrapper({
                                     const Icon = item.icon;
                                     const isActive = pathname === item.href;
 
+                                    const hotkeyMap: Record<string, string> = {
+                                        'support': 'Alt+H',
+                                        'orders': 'Alt+O',
+                                        'users': 'Alt+U',
+                                        'services': 'Alt+S',
+                                        'providers': 'Alt+P',
+                                        'dashboard': 'Alt+D'
+                                    };
+
                                     return (
                                         <Link
                                             key={item.id}
@@ -226,13 +261,23 @@ export function LayoutWrapper({
                                             </div>
 
                                             {!isCollapsed && (
-                                                <ChevronRight size={14} className="text-slate-600 group-hover:text-slate-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0" />
+                                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {hotkeyMap[item.id] && (
+                                                        <kbd className="text-[10px] font-mono font-medium text-slate-400 bg-slate-700/50 px-1.5 py-0.5 rounded shadow-sm border border-slate-600">
+                                                            {hotkeyMap[item.id]}
+                                                        </kbd>
+                                                    )}
+                                                    <ChevronRight size={14} className="text-slate-600 group-hover:text-slate-400 transition-colors shrink-0" />
+                                                </div>
                                             )}
 
                                             {/* Tooltip for collapsed state (simple absolute div) */}
                                             {isCollapsed && (
-                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-1.5 bg-slate-800 text-white text-xs rounded-md shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 border border-slate-700">
+                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-1.5 bg-slate-800 text-white text-xs rounded-md shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 border border-slate-700 flex items-center gap-2">
                                                     {item.name}
+                                                    {hotkeyMap[item.id] && (
+                                                        <span className="text-[9px] text-slate-400 font-mono pl-2 border-l border-slate-700">{hotkeyMap[item.id]}</span>
+                                                    )}
                                                 </div>
                                             )}
 

@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://developers.viber.com/docs/tools/deep-links",
+    "name": "DeepLinks | Viber Developers Hub",
+    "snippet": "Deeplinks. Bot can have deeplinks to direct users to different parts of the bot. Deeplinks require specifying the URI of your bot. Missing: group patterns",
+    "host_name": "developers.viber.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/41324364/create-a-link-that-will-open-viber-and-whatsapp-and-will-send-a-message-to-me",
+    "name": "url - Create a link that will open Viber and WhatsApp and will send a",
+    "snippet": "What you need is called deep-linking, some examples for viber and whatsapp are: Viber: <a href=\"viber://pa? How to make deep link for Viber that will redirect to specific number ... Is it possible to create Viber deep link that opens Viber app and ... More results from stackoverflow.com",
+    "host_name": "stackoverflow.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://kb.apifon.com/use-viber-deep-links",
+    "name": "Use Viber Deep Links - Knowledge Base - Apifon",
+    "snippet": "Viber Deep Links allows you to perform actions inside the Viber application and make your Viber messages more interactive. Missing: group patterns",
+    "host_name": "kb.apifon.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.viber.com/docs/guides/chatex",
+    "name": "Chat Extensions Technical Documentation | Viber Developers Hub",
+    "snippet": "Chat Extensions can be accessed by deep links from both within a conversation and from outside Viber. These deep links direct users to specific locations in ... Missing: patterns | Show results with: patterns",
+    "host_name": "developers.viber.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://smsbat.com/integrations/viber-link-generator",
+    "name": "Viber Deep Link Generator - smsbat",
+    "snippet": "Create free Viber deep links. Pre-fill messages and generate viber:// chat links to instantly connect Viber users to your bot. Missing: formats patterns",
+    "host_name": "smsbat.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.myalice.ai/viber-generator",
+    "name": "Viber Link and QR Code Generator - MyAlice",
+    "snippet": "Generate free Viber link and Viber QR code in seconds. Connect with your customers on Viber with a link or QR code instead of a phone number. Missing: formats patterns",
+    "host_name": "www.myalice.ai",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.viber.com/docs/api/rest-bot-api",
+    "name": "Viber REST API | Viber Developers Hub",
+    "snippet": "You can share your bot with the users via a deeplink. The API supports a variety of message types: text , picture , video , file , location , ... Missing: patterns | Show results with: patterns",
+    "host_name": "developers.viber.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://hackmd.io/%40TAu-UvxrSPCdtOwioPZHew/HkR3HkG6h",
+    "name": "Viber links - HackMD",
+    "snippet": "You can get the Viber links manually by appending your chatbot username to the Viber deep link. To get the Viber links, follow these steps: Open ... Missing: formats chat group patterns",
+    "host_name": "hackmd.io",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://respond.io/blog/viber-link",
+    "name": "Viber Link Generator: How to Get Viber Links for Your Business",
+    "snippet": "This method involves appending your chatbot username to the Viber deep link. ... 1. Go to More > Settings > My Bots > Select your Viber bot. 2. Missing: formats patterns",
+    "host_name": "respond.io",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/tagged/viber%3Ftab%3DNewest",
+    "name": "Newest 'viber' Questions - Stack Overflow",
+    "snippet": "Is it possible to create viber deep link that will send a message to multiple participatns (by specifying their phone numbers) or to the viber group?",
+    "host_name": "stackoverflow.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { Platform } from '@/generated/client';
+import { Platform } from '@prisma/client';
 import {
     PackagePlus, RefreshCw, Layers, Info,
     Activity, Search, X, Edit, Trash2,
@@ -31,6 +31,7 @@ import { CopyButton } from '@/components/admin/core/copy-button';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProjectBulkManagerModal } from '../ProjectBulkManagerModal';
+import { AdminTableCard } from '@/components/admin/core/admin-table-card';
 
 // --- WIDGET 1: ACTION CARDS (BENTO) ---
 export function ActionCardsWidget() {
@@ -320,9 +321,17 @@ export function ServicesTableWidget() {
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex-1 min-h-0 flex flex-col relative">
-                <div className="overflow-x-auto flex-1 custom-scrollbar">
-                    <table className="w-full border-collapse">
+            <AdminTableCard
+                title="Все услуги"
+                icon={Layers}
+                className="flex-1 min-h-0 flex flex-col relative"
+                rightElement={
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        Страница {currentPage} из {totalPages || 1}
+                    </div>
+                }
+            >
+                    <table className="w-full border-collapse flex-1 relative">
                         <thead className="sticky top-0 z-20 bg-white/80 backdrop-blur-md">
                             <tr className="border-b border-slate-50">
                                 <th className="px-6 py-4 text-left w-10">
@@ -487,7 +496,6 @@ export function ServicesTableWidget() {
                             })}
                         </tbody>
                     </table>
-                </div>
 
                 <ProjectBulkManagerModal
                     isOpen={!!projectsModalService}
@@ -576,7 +584,7 @@ export function ServicesTableWidget() {
                         </motion.div>
                     )}
                 </AnimatePresence>
-            </div>
+            </AdminTableCard>
         </div>
     );
 }

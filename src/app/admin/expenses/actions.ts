@@ -40,7 +40,7 @@ export async function createExpenseAction(formData: FormData) {
   if (!result.success) throw new Error(result.error.message);
 
   revalidatePath('/admin/expenses');
-  revalidatePath('/admin/reports');
+  revalidatePath('/admin/analytics/reports');
 }
 
 export async function deleteExpenseAction(id: string) {

@@ -5,7 +5,7 @@
  */
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
-import { prisma } from "@/lib/prisma";
+// import { prisma } from "@/lib/prisma"; // Removed for Edge compatibility
 import type { NextRequest } from "next/server";
 
 // Cache for dynamic limits from DB
@@ -22,15 +22,34 @@ export async function getDynamicLimit(key: string, defaultValue: number): Promis
     }
 
     try {
-        const settings = await prisma.globalSetting.findMany({
-            where: { key: { in: [key] } }
-        });
-        const val = settings.find(s => s.key === key)?.value;
+        let val: string | null | undefined;
+        
+        // --- EDGE COMPATIBILITY ---
+        // If we are in Edge (Middleware), we must use internal API instead of Direct Prisma
+        const isEdge = process.env.NEXT_RUNTIME === 'edge';
+        
+        if (isEdge) {
+            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://127.0.0.1:3000';
+            const res = await fetch(`${baseUrl}/api/internal/global-settings?key=${key}`);
+            if (res.ok) {
+                const data = await res.json();
+                val = data.value;
+            }
+        } else {
+            // Standard Node runtime - can use Prisma
+            const { prisma } = await import("@/lib/prisma");
+            const settings = await prisma.globalSetting.findMany({
+                where: { key: { in: [key] } }
+            });
+            val = settings.find(s => s.key === key)?.value;
+        }
+
         const result = val ? parseInt(val) : defaultValue;
         
         limitCache.set(key, { value: result, expiresAt: Date.now() + CACHE_TTL });
         return result;
     } catch (_e) {
+        console.error(`[RateLimiter] getDynamicLimit error for ${key}:`, _e);
         return defaultValue;
     }
 }
@@ -78,14 +97,23 @@ export async function checkRateLimit(type: 'auth' | 'api' | 'public', ip: string
         return { success, limit, remaining, reset };
     }
 
-    // 3. Fallback: Simple in-memory limit for Dev/Local (Mock)
-    // In production, redis should ALWAYS be present.
+    // 3. Fallback: Fail-Closed in production, Fail-Open only in development
+    if (process.env.NODE_ENV === 'production') {
+        console.error(`[SECURITY] Rate limiter has NO Redis backend in PRODUCTION! Blocking request from ${ip} as Fail-Closed precaution.`);
+        return {
+            success: false,
+            limit: limitCount,
+            remaining: 0,
+            reset: Date.now() + 60000
+        };
+    }
+
+    // Development only: allow all requests without Redis
     const now = Date.now();
-    const _mockKey = `mock:${type}:${ip}`;
     const mockReset = now + 60000;
     
     return {
-        success: true, // Always allow in dev/local without Redis to prevent blocking devs
+        success: true,
         limit: limitCount,
         remaining: limitCount,
         reset: mockReset

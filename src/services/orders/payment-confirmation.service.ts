@@ -12,7 +12,7 @@ import { ReferralService } from '@/services/users/referral.service';
 import { PaymentService } from '@/services/finance/payment.service';
 import { ConfigService } from '@/services/core/config.service';
 import { NotificationTemplates } from '@/bot/utils/notification-templates';
-import { Prisma } from '@/generated/client';
+import { Prisma } from '@prisma/client';
 import { createLogger } from '@/lib/logger';
 import { eventBus } from '@/services/core/event-bus';
 
@@ -31,12 +31,21 @@ export class PaymentConfirmationService {
         if (!tx) return false;
 
         await prisma.$transaction(async (txPrisma: Prisma.TransactionClient) => {
+            // Атомарный захват PENDING-транзакции (Prevent Double-Credit Race Condition)
+            const capture = await txPrisma.transaction.updateMany({
+                where: { id: tx.id, status: 'PENDING' },
+                data: { status: 'COMPLETED' }
+            });
+
+            if (capture.count === 0) {
+                console.warn(`[PaymentConfirmation] Transaction ${tx.id} already processed. Blocked Double-Credit attempt.`);
+                return false;
+            }
+
             // 1. ЗАПИСЬ В LEDGER (ПОПОЛНЕНИЕ)
             await LedgerService.record(txPrisma, tx.userId, tx.amount, 'DEPOSIT', tx.id, 'Пополнение через YooKassa');
-
             await txPrisma.user.update({ where: { id: tx.userId }, data: { balance: { increment: tx.amount } } });
-            await txPrisma.transaction.update({ where: { id: tx.id }, data: { status: 'COMPLETED' } });
-
+            
             try {
                 await BotRegistry.get(tx.projectId).telegram.sendMessage(
                     Number(tx.user.tgId),

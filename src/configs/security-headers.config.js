@@ -8,17 +8,19 @@
  * Following OWASP best practices for Next.js applications.
  */
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org https://www.googletagmanager.com;
+  script-src 'self' ${isDev ? "'unsafe-eval'" : ""} 'unsafe-inline' https://telegram.org https://www.googletagmanager.com;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-  img-src 'self' blob: data: https://images.unsplash.com https://plus.unsplash.com;
+  img-src 'self' blob: data: https://images.unsplash.com https://plus.unsplash.com https://i.pravatar.cc;
   font-src 'self' data: https://fonts.gstatic.com;
   object-src 'none';
   base-uri 'self';
   form-action 'self';
   connect-src 'self' https://telegram.org https://www.google-analytics.com;
-  frame-src 'self' https://telegram.org;
+  frame-src 'self' https://telegram.org https://oauth.telegram.org;
   frame-ancestors 'self';
   manifest-src 'self';
 `.replace(/\s{2,}/g, ' ').trim();

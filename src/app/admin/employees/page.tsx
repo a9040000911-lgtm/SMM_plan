@@ -6,8 +6,10 @@
 
 import React from 'react';
 import {
-  FileText
+  FileText,
+  Briefcase
 } from 'lucide-react';
+import { AdminTableCard } from '@/components/admin/core/admin-table-card';
 import Link from 'next/link';
 import { StaffAccessEditor } from '@/components/admin/core/staff-access-editor';
 import { CreateEmployeeModal } from '@/components/admin/employees/create-employee-modal';
@@ -44,27 +46,21 @@ export default async function EmployeesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight italic uppercase">Команда и Доступы</h2>
-          <p className="text-sm text-slate-500 font-medium">Управление сотрудниками, ролями и правами доступа ({staff.length} чел.)</p>
-        </div>
-        {session.isGlobalAdmin && (
-          <CreateEmployeeModal allProjects={allProjects} />
-        )}
-      </div>
-
-      <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm">
+      <AdminTableCard 
+        title={`Команда и Доступы (${staff.length} чел.)`} 
+        icon={Briefcase}
+        rightElement={session.isGlobalAdmin ? <CreateEmployeeModal allProjects={allProjects} /> : null}
+      >
         <table className="w-full text-left border-collapse text-[13px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest rounded-tl-[2rem]">Сотрудник</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Сотрудник</th>
               <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Роль</th>
               <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Доступ к проектам</th>
               <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Логи</th>
               <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Активность</th>
               <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Статус</th>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest rounded-tr-[2rem]"></th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
@@ -72,7 +68,7 @@ export default async function EmployeesPage() {
               const isLast = index === staff.length - 1;
               return (
                 <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className={`px-6 py-4 ${isLast ? 'rounded-bl-[2rem]' : ''}`}>
+                  <td className={`px-6 py-4`}>
                     <div className="flex items-center gap-3">
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-[10px] uppercase text-white ${user.role === 'ADMIN' ? 'bg-rose-500' :
                         user.role === 'SUPPORT' ? 'bg-blue-500' : 'bg-emerald-500'
@@ -133,7 +129,7 @@ export default async function EmployeesPage() {
                       <span className="text-[10px] font-bold text-slate-400 uppercase">Не в сети</span>
                     )}
                   </td>
-                  <td className={`px-6 py-4 text-right ${isLast ? 'rounded-br-[2rem]' : ''}`}>
+                  <td className={`px-6 py-4 text-right`}>
                     <StaffDeleteButton userId={user.id} username={user.username || 'unknown'} />
                   </td>
                 </tr>
@@ -141,7 +137,7 @@ export default async function EmployeesPage() {
             })}
           </tbody>
         </table>
-      </div>
+      </AdminTableCard>
     </div>
   );
 }

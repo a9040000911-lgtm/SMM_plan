@@ -82,8 +82,8 @@ export default async function AdminServicesPage({
         usdRate={usdRate}
       >
         <AdminHeader
-          title="Центр управления услугами"
-          subtitle="Единый центр управления API, балансами и глобальным каталогом"
+          title="Услуги"
+          subtitle="Внутренние цены, маржинальность и распределение по проектам"
         />
 
         {/* Action Widgets Grid */}
@@ -106,9 +106,7 @@ export default async function AdminServicesPage({
         <MaintenanceWidget />
 
         {/* Table Section */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-          <ServicesTableWidget />
-        </div>
+        <ServicesTableWidget />
       </UnifiedServiceManager>
     </div>
   );

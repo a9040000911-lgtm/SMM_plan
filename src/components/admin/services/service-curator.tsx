@@ -9,8 +9,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Filter, Download, Check, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getProviderServicesAction, ignoreServicesAction, importServicesAction, ServiceFilter } from '@/app/admin/services/curator/actions';
 
-const PLATFORMS = ['TELEGRAM', 'INSTAGRAM', 'VK', 'TIKTOK', 'YOUTUBE', 'TWITCH', 'OTHER'];
-const CATEGORIES = ['SUBSCRIBERS', 'LIKES', 'VIEWS', 'REACTIONS', 'COMMENTS'];
+import { 
+    PLATFORMS, 
+    CATEGORIES, 
+    PLATFORM_LABELS 
+} from '@/services/providers/smart-analyzer.logic';
+import { getActivityLabel } from '@/utils/order-utils';
 
 export function ServiceCurator({ providers }: { providers: any[] }) {
     const [filter, setFilter] = useState<ServiceFilter>({
@@ -147,14 +151,16 @@ export function ServiceCurator({ providers }: { providers: any[] }) {
 
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase">Platform</label>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
                                 {PLATFORMS.map(p => (
                                     <button
                                         key={p}
+                                        type="button"
                                         onClick={() => setFilter(prev => ({ ...prev, platform: p, page: 1 }))}
-                                        className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${filter.platform === p ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                                        className={`px-3 py-2 rounded-lg text-[10px] font-bold transition-all text-left truncate ${filter.platform === p ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                                        title={PLATFORM_LABELS[p] || p}
                                     >
-                                        {p}
+                                        {PLATFORM_LABELS[p] || p}
                                     </button>
                                 ))}
                             </div>
@@ -162,14 +168,15 @@ export function ServiceCurator({ providers }: { providers: any[] }) {
 
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase">Category</label>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
                                 {CATEGORIES.map(c => (
                                     <button
                                         key={c}
+                                        type="button"
                                         onClick={() => setFilter(prev => ({ ...prev, category: c === filter.category ? undefined : c, page: 1 }))}
                                         className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${filter.category === c ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}
                                     >
-                                        {c}
+                                        {getActivityLabel(c)}
                                     </button>
                                 ))}
                             </div>

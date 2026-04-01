@@ -10,7 +10,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { upsertServiceCategoryAction, deleteServiceCategoryAction } from '@/app/admin/services/actions';
 import { IconSelector } from '@/components/admin/services/icon-selector';
-import { Platform } from '@/generated/client';
+import { Platform } from '@prisma/client';
 import { X, Save, Trash2, Loader2, TrendingUp } from 'lucide-react';
 import { getIcon } from './icon-selector';
 import { smartSearch } from '@/utils/smart-search';

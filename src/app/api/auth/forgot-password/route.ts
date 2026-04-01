@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { send2FACodeEmail } from '@/services/mail.service';
+import { checkRateLimit, getRealIp } from '@/services/core/rate-limiter';
 
 /**
  * POST /api/auth/forgot-password
@@ -14,6 +15,16 @@ import { send2FACodeEmail } from '@/services/mail.service';
  */
 export async function POST(req: NextRequest) {
     try {
+        // Enforce Rate Limiting to prevent Email Spamming & DoS
+        const ip = getRealIp(req);
+        const rl = await checkRateLimit('auth', ip);
+        if (!rl.success) {
+            return NextResponse.json(
+                { error: 'Слишком много запросов. Подождите.' },
+                { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) } }
+            );
+        }
+
         const { email } = await req.json();
         if (!email) {
             return NextResponse.json({ error: 'Email обязателен' }, { status: 400 });

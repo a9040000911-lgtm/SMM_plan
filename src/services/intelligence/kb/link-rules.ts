@@ -40,14 +40,14 @@ export const LINK_RULES: LinkRule[] = [
     {
         platform: IntelligencePlatform.TELEGRAM,
         type: 'channel',
-        pattern: /t\.me\/(?:joinchat\/|\+)?([\w_-]+)$/,
+        pattern: /t\.me\/(?:joinchat\/|\+)?([\w_-]+)$|web\.telegram\.org\/(?:k|a)\/#@([\w_-]+)/,
         suggestedCategories: ['FOLLOWERS', 'VIEWS', 'REACTIONS_PREMIUM'],
         context: 'global_search_optimization'
     },
     {
         platform: IntelligencePlatform.TELEGRAM,
         type: 'post',
-        pattern: /t\.me\/[\w_-]+\/(\d+)/,
+        pattern: /t\.me\/[\w_-]+\/(?:s\/)?(\d+)/,
         suggestedCategories: ['VIEWS', 'REACTIONS'],
         context: 'engagement'
     },
@@ -61,14 +61,14 @@ export const LINK_RULES: LinkRule[] = [
     {
         platform: IntelligencePlatform.TIKTOK,
         type: 'short_link',
-        pattern: /(?:vm|vt)\.tiktok\.com\/([\w-]+)/,
+        pattern: /(?:vm\.tiktok\.com|vt\.tiktok\.com|tiktok\.com\/t)\/([\w-]+)/,
         suggestedCategories: ['VIEWS', 'LIKES', 'SHARES'],
         context: 'mobile_viral'
     },
     {
         platform: IntelligencePlatform.VK,
         type: 'post',
-        pattern: /vk\.(?:com|ru)\/(?:wall|clip|video)(-?\d+_\d+)/,
+        pattern: /(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|clip|video)(-?\d+_\d+)/,
         suggestedCategories: ['LIKES', 'REPOSTS', 'VIEWS'],
         context: 'social_reach'
     },
@@ -113,6 +113,13 @@ export const LINK_RULES: LinkRule[] = [
         pattern: /[^:]+:[^ \n]+$/,
         suggestedCategories: ['TRAFFIC_ORGANIC', 'TRAFFIC_KEYWORDS'],
         context: 'seo_authority'
+    },
+    {
+        platform: IntelligencePlatform.LIKEE,
+        type: 'video',
+        pattern: /l\.likee\.video\/v\/([\w-]+)|likee\.video\/@[\w.]+\/video\/(\d+)/,
+        suggestedCategories: ['LIKES', 'VIEWS'],
+        context: 'mobile_viral'
     },
     {
         platform: IntelligencePlatform.WEBSITE,

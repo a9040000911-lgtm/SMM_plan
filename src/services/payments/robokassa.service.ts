@@ -4,61 +4,55 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import crypto from 'crypto';
-import { prisma } from '@/lib/prisma';
 
 export class RobokassaService {
     /**
-     * Получает учетные данные Robokassa для конкретного проекта из БД
+     * Получает учетные данные Robokassa через PaymentSettingsService
      */
     private static async getCredentialsForProject(projectId: string) {
-        console.log(`[Robokassa Debug] Fetching settings for project: ${projectId}`);
-        const project = await prisma.project.findUnique({
-            where: { id: projectId },
-            select: { paymentSettings: true, name: true }
-        });
+        const { PaymentSettingsService } = await import('./payment-settings.service');
+        const credentials = await PaymentSettingsService.getCredentials<any>(projectId, 'ROBOKASSA');
 
-        console.log(`[Robokassa Debug] Project found: ${project?.name}`);
-
-        const settings = project?.paymentSettings as any;
-        const robokassaSettings = settings?.robokassa || settings || {};
-
-        const merchantLogin = robokassaSettings.merchantLogin || process.env.ROBOKASSA_MERCHANT_LOGIN;
-        const password1 = robokassaSettings.password1 || process.env.ROBOKASSA_PASSWORD1;
-
-        if (!merchantLogin || !password1) {
-            console.error(`[Robokassa Debug] Missing credentials for project ${projectId}`);
-            throw new Error(`Robokassa не настроена для проекта ${project?.name || projectId}. Пожалуйста, настройте Merchant Login и Password1.`);
+        if (!credentials.merchantLogin || !credentials.password1) {
+            throw new Error(`Robokassa не настроена. Пожалуйста, проверьте настройки в админ-панели.`);
         }
 
-        const mode = robokassaSettings.mode || settings?.mode || process.env.PAYMENT_MODE || 'PRODUCTION';
-
         return {
-            merchantLogin: merchantLogin,
-            password1: mode === 'TEST' && (robokassaSettings.testPassword1 || process.env.ROBOKASSA_TEST_PASSWORD1)
-                ? (robokassaSettings.testPassword1 || process.env.ROBOKASSA_TEST_PASSWORD1)
-                : password1,
-            password2: mode === 'TEST' && (robokassaSettings.testPassword2 || process.env.ROBOKASSA_TEST_PASSWORD2)
-                ? (robokassaSettings.testPassword2 || process.env.ROBOKASSA_TEST_PASSWORD2)
-                : (robokassaSettings.password2 || process.env.ROBOKASSA_PASSWORD2),
-            isTest: mode === 'TEST'
+            merchantLogin: credentials.merchantLogin,
+            password1: credentials.mode === 'TEST' && credentials.testPassword1
+                ? credentials.testPassword1
+                : credentials.password1,
+            password2: credentials.mode === 'TEST' && credentials.testPassword2
+                ? credentials.testPassword2
+                : (credentials.password2 || ''),
+            isTest: credentials.mode === 'TEST'
         };
     }
 
     /**
      * Создает подпись для платежа Robokassa
      */
-    private static generateSignature(merchantLogin: string, outSum: string, invId: string, password: string): string {
-        const signatureString = `${merchantLogin}:${outSum}:${invId}:${password}`;
+    private static generateSignature(merchantLogin: string, outSum: string, invId: string, password: string, shpTxId?: string): string {
+        let signatureString = `${merchantLogin}:${outSum}:${invId}:${password}`;
+        if (shpTxId) {
+            signatureString += `:Shp_txId=${shpTxId}`;
+        }
         return crypto.createHash('md5').update(signatureString).digest('hex').toUpperCase();
     }
 
     /**
      * Проверяет подпись от Robokassa (для webhook)
      */
-    static verifySignature(outSum: string, invId: string, receivedSignature: string, password: string): boolean {
-        const signatureString = `${outSum}:${invId}:${password}`;
+    static verifySignature(outSum: string, invId: string, receivedSignature: string, password: string, shpTxId?: string): boolean {
+        let signatureString = `${outSum}:${invId}:${password}`;
+        if (shpTxId) {
+            signatureString += `:Shp_txId=${shpTxId}`;
+        }
         const expectedSignature = crypto.createHash('md5').update(signatureString).digest('hex').toUpperCase();
-        return expectedSignature === receivedSignature.toUpperCase();
+        const received = receivedSignature.trim().toUpperCase();
+        // [SECURITY] Use timing-safe comparison to prevent timing attacks
+        if (expectedSignature.length !== received.length) return false;
+        return crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(received));
     }
 
     /**
@@ -74,14 +68,16 @@ export class RobokassaService {
         const credentials = await this.getCredentialsForProject(projectId);
 
         const outSum = amount.toFixed(2);
-        const invId = transactionId;
+        const invId = '0'; // UUID is too large/string, use 0 and pass UUID via Shp_txId
+        const shpTxId = transactionId;
 
         // Генерация подписи
         const signature = this.generateSignature(
             credentials.merchantLogin,
             outSum,
             invId,
-            credentials.password1
+            credentials.password1,
+            shpTxId
         );
 
         // Формирование URL для редиректа
@@ -110,6 +106,7 @@ export class RobokassaService {
             InvId: invId,
             Description: description,
             SignatureValue: signature,
+            Shp_txId: shpTxId,
             ...(credentials.isTest && { IsTest: '1' }),
             ...(email && { Email: email }),
             Culture: 'ru',

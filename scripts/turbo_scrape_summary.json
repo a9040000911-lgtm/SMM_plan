@@ -1,0 +1,11 @@
+{
+  "totalOrders": 1290120,
+  "uniqueEmails": 201632,
+  "uniqueLinks": 647364,
+  "pagesProcessed": 63908,
+  "failedPages": 0,
+  "durationSeconds": 3230,
+  "avgSpeed": "19.8 pages/sec",
+  "stoppedAt": 1,
+  "completedAt": "2026-03-28T18:46:44.390Z"
+}

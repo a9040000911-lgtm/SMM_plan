@@ -6,7 +6,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Platform, Category } from '@/generated/client';
+import { Platform, Category } from '@prisma/client';
 import { SmartAnalyzerService, SmartMappingService } from '@/services/providers';
 import { PricingService } from '@/services/finance/pricing.service';
 import { Decimal } from 'decimal.js';
@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
     const platformFilter = searchParams.get('platform');
     const categoryFilter = searchParams.get('category');
 
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50'), 1), 200); // SECURITY: Cap at 200
 
     const minPrice = searchParams.get('minPrice');
     const maxPrice = searchParams.get('maxPrice');
@@ -152,7 +152,7 @@ export async function GET(req: NextRequest) {
       }
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -223,8 +223,7 @@ export async function POST(req: NextRequest) {
         await tx.internalService.upsert({
           where: { id },
           update: {
-            platform: platform as Platform,
-            category: category as Category,
+            socialPlatform: { connect: { slug: platform.toLowerCase() } },
             serviceCategory: { connect: { id: categoryObj.id } },
             name,
             description,
@@ -242,8 +241,7 @@ export async function POST(req: NextRequest) {
           },
           create: {
             id,
-            platform: platform as Platform,
-            category: category as Category,
+            socialPlatform: { connect: { slug: platform.toLowerCase() } },
             serviceCategory: { connect: { id: categoryObj.id } },
             name,
             description,
@@ -309,7 +307,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, count: results.length });
   } catch (error: any) {
     console.error('Import Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

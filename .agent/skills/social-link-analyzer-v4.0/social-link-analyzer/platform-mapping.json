@@ -1,0 +1,1334 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "4.0.0",
+  "updated": "2026-03-27",
+  "changes": [
+    "Исправлены критические ошибки regex",
+    "Добавлен флаг ambiguous для неоднозначных форматов",
+    "Добавлены азиатские платформы: Douyin, Weibo, Bilibili, Kuaishou, Xiaohongshu",
+    "Исправлен Instagram highlights regex",
+    "Добавлен $ в конец Spotify URI regex"
+  ],
+  "platforms": {
+    "vk": {
+      "name": "ВКонтакте",
+      "name_en": "VK",
+      "category": "social_network",
+      "country": "RU",
+      "domains": [
+        "vk.com",
+        "m.vk.com",
+        "vk.me",
+        "vk.cc",
+        "live.vkvideo.ru"
+      ],
+      "primary_domain": "vk.com",
+      "url_patterns": {
+        "profile_id": {
+          "pattern": "/id{user_id}",
+          "regex": "^https?://(?:m\\.)?vk\\.com/id(\\d+)$",
+          "example": "https://vk.com/id1",
+          "ambiguous": false
+        },
+        "group_id": {
+          "pattern": "/(club|public|event){group_id}",
+          "regex": "^https?://(?:m\\.)?vk\\.com/(club|public|event)(\\d+)$",
+          "example": "https://vk.com/club22884714",
+          "ambiguous": false,
+          "groups": ["type", "group_id"]
+        },
+        "screen_name": {
+          "pattern": "/{screen_name}",
+          "regex": "^https?://(?:m\\.)?vk\\.com/([a-zA-Z][a-zA-Z0-9_.]{1,31})$",
+          "example": "https://vk.com/durov",
+          "ambiguous": true,
+          "ambiguity_type": "vk_screen_name",
+          "ambiguity_options": ["profile", "group"],
+          "note": "Может быть профилем или группой. Используйте /id или /club для однозначности"
+        },
+        "wall_post": {
+          "pattern": "/wall{owner_id}_{post_id}",
+          "regex": "^https?://(?:m\\.)?vk\\.com/wall(-?\\d+)_(\\d+)$",
+          "example": "https://vk.com/wall-22884714_12345",
+          "ambiguous": false
+        },
+        "photo": {
+          "pattern": "/photo{owner_id}_{photo_id}",
+          "regex": "^https?://(?:m\\.)?vk\\.com/photo(-?\\d+)_(\\d+)$",
+          "example": "https://vk.com/photo-22884714_457654321",
+          "ambiguous": false
+        },
+        "video": {
+          "pattern": "/video{owner_id}_{video_id}",
+          "regex": "^https?://(?:m\\.)?vk\\.com/video(-?\\d+)_(\\d+)$",
+          "example": "https://vk.com/video-22884714_456239687",
+          "ambiguous": false
+        },
+        "clip": {
+          "pattern": "/clip{owner_id}_{clip_id}",
+          "regex": "^https?://(?:m\\.)?vk\\.com/clip(-?\\d+)_(\\d+)$",
+          "example": "https://vk.com/clip-22884714_456239487",
+          "ambiguous": false
+        },
+        "comment": {
+          "pattern": "/wall{owner_id}_{post_id}?reply={comment_id}",
+          "regex": "^https?://(?:m\\.)?vk\\.com/wall(-?\\d+)_(\\d+)\\?reply=(\\d+)",
+          "example": "https://vk.com/wall-22884714_12345?reply=67890",
+          "ambiguous": false
+        },
+        "article": {
+          "pattern": "/@{screen_name}/{slug}",
+          "regex": "^https?://(?:m\\.)?vk\\.com/@([a-zA-Z0-9_]+)/([^/]+)",
+          "example": "https://vk.com/@aprilclub/kak-rabotat",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "profile": ["followers", "friends"],
+        "group": ["members"],
+        "wall_post": ["likes", "comments", "reposts"],
+        "video": ["views", "likes"],
+        "clip": ["views", "likes"],
+        "photo": ["likes", "comments"]
+      }
+    },
+    "youtube": {
+      "name": "YouTube",
+      "name_en": "YouTube",
+      "category": "video_platform",
+      "country": "US",
+      "domains": [
+        "youtube.com",
+        "www.youtube.com",
+        "m.youtube.com",
+        "youtu.be",
+        "youtube-nocookie.com"
+      ],
+      "primary_domain": "youtube.com",
+      "url_patterns": {
+        "video": {
+          "pattern": "/watch?v={video_id}",
+          "regex": "^https?://(?:www\\.)?youtube\\.com/watch\\?v=([a-zA-Z0-9_-]{11})$",
+          "example": "https://youtube.com/watch?v=dQw4w9WgXcQ",
+          "ambiguous": false
+        },
+        "video_short": {
+          "pattern": "youtu.be/{video_id}",
+          "regex": "^https?://youtu\\.be/([a-zA-Z0-9_-]{11})$",
+          "example": "https://youtu.be/dQw4w9WgXcQ",
+          "ambiguous": false
+        },
+        "shorts": {
+          "pattern": "/shorts/{video_id}",
+          "regex": "^https?://(?:www\\.)?youtube\\.com/shorts/([a-zA-Z0-9_-]{11})$",
+          "example": "https://youtube.com/shorts/dQw4w9WgXcQ",
+          "ambiguous": false
+        },
+        "live": {
+          "pattern": "/live/{video_id}",
+          "regex": "^https?://(?:www\\.)?youtube\\.com/live/([a-zA-Z0-9_-]{11})$",
+          "example": "https://youtube.com/live/dQw4w9WgXcQ",
+          "ambiguous": false
+        },
+        "channel_handle": {
+          "pattern": "/@{handle}",
+          "regex": "^https?://(?:www\\.)?youtube\\.com/@([a-zA-Z0-9_.-]+)$",
+          "example": "https://youtube.com/@MrBeast",
+          "ambiguous": false
+        },
+        "channel_id": {
+          "pattern": "/channel/{channel_id}",
+          "regex": "^https?://(?:www\\.)?youtube\\.com/channel/(UC[a-zA-Z0-9_-]{22})$",
+          "example": "https://youtube.com/channel/UCX6OQ3DkA2zQ5j3z5xZ5c6A",
+          "ambiguous": false
+        },
+        "playlist": {
+          "pattern": "/playlist?list={playlist_id}",
+          "regex": "^https?://(?:www\\.)?youtube\\.com/playlist\\?list=([a-zA-Z0-9_-]+)$",
+          "example": "https://youtube.com/playlist?list=PLrAXtmRdnEQy4Q",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "channel": ["subscribers"],
+        "video": ["views", "likes", "comments"],
+        "shorts": ["views", "likes"],
+        "live": ["viewers"]
+      }
+    },
+    "instagram": {
+      "name": "Instagram",
+      "name_en": "Instagram",
+      "category": "social_network",
+      "country": "US",
+      "domains": [
+        "instagram.com",
+        "www.instagram.com",
+        "instagr.am",
+        "ig.me"
+      ],
+      "primary_domain": "instagram.com",
+      "url_patterns": {
+        "profile": {
+          "pattern": "/{username}",
+          "regex": "^https?://(?:www\\.)?instagram\\.com/([a-zA-Z0-9_.]+)/?$",
+          "example": "https://instagram.com/instagram",
+          "ambiguous": false
+        },
+        "post": {
+          "pattern": "/p/{shortcode}/",
+          "regex": "^https?://(?:www\\.)?instagram\\.com/p/([a-zA-Z0-9_-]+)/?$",
+          "example": "https://instagram.com/p/CgBxesYIjZ/",
+          "ambiguous": false,
+          "note": "Пост /p/ может содержать Reels контент"
+        },
+        "reel": {
+          "pattern": "/reel/{shortcode}/",
+          "regex": "^https?://(?:www\\.)?instagram\\.com/reel/([a-zA-Z0-9_-]+)/?$",
+          "example": "https://instagram.com/reel/CgBxesYIjZ/",
+          "ambiguous": false
+        },
+        "story": {
+          "pattern": "/stories/{username}/{story_id}",
+          "regex": "^https?://(?:www\\.)?instagram\\.com/stories/([a-zA-Z0-9_.]+)/(\\d+)/?$",
+          "example": "https://instagram.com/stories/instagram/1234567890123456/",
+          "ambiguous": false
+        },
+        "highlight": {
+          "pattern": "/stories/highlights/{highlight_id}",
+          "regex": "^https?://(?:www\\.)?instagram\\.com/stories/highlights/(\\d+)/?$",
+          "example": "https://instagram.com/stories/highlights/1234567890123456789/",
+          "ambiguous": false
+        },
+        "hashtag": {
+          "pattern": "/explore/tags/{tag}/",
+          "regex": "^https?://(?:www\\.)?instagram\\.com/explore/tags/([^/]+)/?$",
+          "example": "https://instagram.com/explore/tags/fashion/",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "profile": ["followers"],
+        "post": ["likes", "comments", "saves"],
+        "reel": ["views", "likes", "comments"],
+        "story": ["views"]
+      }
+    },
+    "tiktok": {
+      "name": "TikTok",
+      "name_en": "TikTok",
+      "category": "video_platform",
+      "country": "CN",
+      "domains": [
+        "tiktok.com",
+        "www.tiktok.com",
+        "vm.tiktok.com"
+      ],
+      "primary_domain": "tiktok.com",
+      "url_patterns": {
+        "profile": {
+          "pattern": "/@{username}",
+          "regex": "^https?://(?:www\\.)?tiktok\\.com/@([a-zA-Z0-9_.]+)/?$",
+          "example": "https://tiktok.com/@tiktok",
+          "ambiguous": false
+        },
+        "video": {
+          "pattern": "/@{username}/video/{video_id}",
+          "regex": "^https?://(?:www\\.)?tiktok\\.com/@([a-zA-Z0-9_.]+)/video/(\\d+)$",
+          "example": "https://tiktok.com/@tiktok/video/1234567890123456789",
+          "ambiguous": false
+        },
+        "video_vm": {
+          "pattern": "vm.tiktok.com/{code}/",
+          "regex": "^https?://vm\\.tiktok\\.com/([a-zA-Z0-9]+)/?$",
+          "example": "https://vm.tiktok.com/ZM6abc123/",
+          "ambiguous": false,
+          "requires_resolution": true
+        },
+        "live": {
+          "pattern": "/@{username}/live",
+          "regex": "^https?://(?:www\\.)?tiktok\\.com/@([a-zA-Z0-9_.]+)/live/?$",
+          "example": "https://tiktok.com/@tiktok/live",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "profile": ["followers"],
+        "video": ["views", "likes", "comments", "shares"],
+        "live": ["viewers", "likes"]
+      }
+    },
+    "douyin": {
+      "name": "Douyin (抖音)",
+      "name_en": "Douyin",
+      "category": "video_platform",
+      "country": "CN",
+      "domains": [
+        "douyin.com",
+        "www.douyin.com",
+        "v.douyin.com",
+        "iesdouyin.com"
+      ],
+      "primary_domain": "douyin.com",
+      "url_patterns": {
+        "profile_id": {
+          "pattern": "/user/{user_id}",
+          "regex": "^https?://(?:www\\.)?douyin\\.com/user/([a-zA-Z0-9_-]+)$",
+          "example": "https://douyin.com/user/MS4wLjABAAAA...",
+          "ambiguous": false
+        },
+        "profile_name": {
+          "pattern": "/@{username}",
+          "regex": "^https?://(?:www\\.)?douyin\\.com/@([a-zA-Z0-9_.]+)$",
+          "example": "https://douyin.com/@username",
+          "ambiguous": false
+        },
+        "video": {
+          "pattern": "/video/{video_id}",
+          "regex": "^https?://(?:www\\.)?douyin\\.com/video/(\\d+)$",
+          "example": "https://douyin.com/video/1234567890123456",
+          "ambiguous": false
+        },
+        "short_link": {
+          "pattern": "v.douyin.com/{code}/",
+          "regex": "^https?://v\\.douyin\\.com/([a-zA-Z0-9]+)/?$",
+          "example": "https://v.douyin.com/iRNBhHU/",
+          "ambiguous": false,
+          "requires_resolution": true
+        },
+        "note": {
+          "pattern": "/note/{note_id}",
+          "regex": "^https?://(?:www\\.)?douyin\\.com/note/(\\d+)$",
+          "example": "https://douyin.com/note/1234567890123456",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "profile": ["followers"],
+        "video": ["views", "likes", "comments"]
+      }
+    },
+    "weibo": {
+      "name": "Sina Weibo (微博)",
+      "name_en": "Weibo",
+      "category": "social_network",
+      "country": "CN",
+      "domains": [
+        "weibo.com",
+        "www.weibo.com",
+        "weibo.cn",
+        "t.sina.com.cn"
+      ],
+      "primary_domain": "weibo.com",
+      "url_patterns": {
+        "profile_uid": {
+          "pattern": "/u/{uid}",
+          "regex": "^https?://(?:www\\.)?weibo\\.com/u/(\\d+)$",
+          "example": "https://weibo.com/u/1234567890",
+          "ambiguous": false
+        },
+        "profile_name": {
+          "pattern": "/{username}",
+          "regex": "^https?://(?:www\\.)?weibo\\.com/([a-zA-Z0-9_]+)$",
+          "example": "https://weibo.com/username",
+          "ambiguous": false
+        },
+        "post": {
+          "pattern": "/{uid}/{post_id}",
+          "regex": "^https?://(?:www\\.)?weibo\\.com/(\\d+)/([a-zA-Z0-9]+)$",
+          "example": "https://weibo.com/1234567890/Oabcdefg",
+          "ambiguous": false
+        },
+        "article": {
+          "pattern": "/ttarticle/p/show?id={id}",
+          "regex": "^https?://(?:www\\.)?weibo\\.com/ttarticle/p/show\\?id=(\\d+)$",
+          "example": "https://weibo.com/ttarticle/p/show?id=123456",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "profile": ["followers"],
+        "post": ["likes", "reposts", "comments"]
+      }
+    },
+    "bilibili": {
+      "name": "Bilibili (哔哩哔哩)",
+      "name_en": "Bilibili",
+      "category": "video_platform",
+      "country": "CN",
+      "domains": [
+        "bilibili.com",
+        "www.bilibili.com",
+        "b23.tv",
+        "acgvideo.com",
+        "bilivideo.com"
+      ],
+      "primary_domain": "bilibili.com",
+      "url_patterns": {
+        "profile": {
+          "pattern": "space.bilibili.com/{uid}",
+          "regex": "^https?://space\\.bilibili\\.com/(\\d+)$",
+          "example": "https://space.bilibili.com/12345678",
+          "ambiguous": false
+        },
+        "video_bv": {
+          "pattern": "/video/{bv_id}",
+          "regex": "^https?://(?:www\\.)?bilibili\\.com/video/(BV[a-zA-Z0-9]+)$",
+          "example": "https://bilibili.com/video/BV1xx411c7mD",
+          "ambiguous": false
+        },
+        "video_av": {
+          "pattern": "/video/av{av_id}",
+          "regex": "^https?://(?:www\\.)?bilibili\\.com/video/av(\\d+)$",
+          "example": "https://bilibili.com/video/av12345678",
+          "ambiguous": false
+        },
+        "short_link": {
+          "pattern": "b23.tv/{bv_id}",
+          "regex": "^https?://b23\\.tv/(BV[a-zA-Z0-9]+)$",
+          "example": "https://b23.tv/BV1xx411c7mD",
+          "ambiguous": false
+        },
+        "bangumi": {
+          "pattern": "/bangumi/play/ep{ep_id}",
+          "regex": "^https?://(?:www\\.)?bilibili\\.com/bangumi/play/ep(\\d+)$",
+          "example": "https://bilibili.com/bangumi/play/ep12345",
+          "ambiguous": false
+        },
+        "article": {
+          "pattern": "/read/cv{cv_id}",
+          "regex": "^https?://(?:www\\.)?bilibili\\.com/read/cv(\\d+)$",
+          "example": "https://bilibili.com/read/cv123456",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "profile": ["followers"],
+        "video": ["views", "likes", "coins", "favorites"]
+      }
+    },
+    "kuaishou": {
+      "name": "Kuaishou (快手)",
+      "name_en": "Kuaishou",
+      "category": "video_platform",
+      "country": "CN",
+      "domains": [
+        "kuaishou.com",
+        "www.kuaishou.com",
+        "kwai.com",
+        "gifshow.com"
+      ],
+      "primary_domain": "kuaishou.com",
+      "url_patterns": {
+        "profile": {
+          "pattern": "/profile/{user_id}",
+          "regex": "^https?://(?:www\\.)?kuaishou\\.com/profile/([a-zA-Z0-9_-]+)$",
+          "example": "https://kuaishou.com/profile/3x...",
+          "ambiguous": false
+        },
+        "video": {
+          "pattern": "/short-video/{video_id}",
+          "regex": "^https?://(?:www\\.)?kuaishou\\.com/short-video/([a-zA-Z0-9_-]+)$",
+          "example": "https://kuaishou.com/short-video/3x...",
+          "ambiguous": false
+        },
+        "photo": {
+          "pattern": "/photo/{photo_id}",
+          "regex": "^https?://(?:www\\.)?kuaishou\\.com/photo/([a-zA-Z0-9_-]+)$",
+          "example": "https://kuaishou.com/photo/3x...",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "profile": ["followers"],
+        "video": ["views", "likes"]
+      }
+    },
+    "xiaohongshu": {
+      "name": "Xiaohongshu (小红书)",
+      "name_en": "Little Red Book",
+      "category": "social_network",
+      "country": "CN",
+      "domains": [
+        "xiaohongshu.com",
+        "www.xiaohongshu.com",
+        "xhslink.com"
+      ],
+      "primary_domain": "xiaohongshu.com",
+      "url_patterns": {
+        "profile": {
+          "pattern": "/user/profile/{user_id}",
+          "regex": "^https?://(?:www\\.)?xiaohongshu\\.com/user/profile/([a-zA-Z0-9_-]+)$",
+          "example": "https://xiaohongshu.com/user/profile/5b...",
+          "ambiguous": false
+        },
+        "post": {
+          "pattern": "/explore/{post_id}",
+          "regex": "^https?://(?:www\\.)?xiaohongshu\\.com/explore/([a-zA-Z0-9_-]+)$",
+          "example": "https://xiaohongshu.com/explore/64...",
+          "ambiguous": false
+        },
+        "short_link": {
+          "pattern": "xhslink.com/{code}",
+          "regex": "^https?://xhslink\\.com/([a-zA-Z0-9]+)/?$",
+          "example": "https://xhslink.com/abc123",
+          "ambiguous": false,
+          "requires_resolution": true
+        }
+      },
+      "smm_services": {
+        "profile": ["followers"],
+        "post": ["likes", "comments", "saves"]
+      }
+    },
+    "facebook": {
+      "name": "Facebook",
+      "name_en": "Facebook",
+      "category": "social_network",
+      "country": "US",
+      "domains": [
+        "facebook.com",
+        "www.facebook.com",
+        "m.facebook.com",
+        "fb.com",
+        "fb.me",
+        "fb.watch"
+      ],
+      "primary_domain": "facebook.com",
+      "url_patterns": {
+        "profile_id": {
+          "pattern": "/profile.php?id={user_id}",
+          "regex": "^https?://(?:www\\.)?facebook\\.com/profile\\.php\\?id=(\\d+)$",
+          "example": "https://facebook.com/profile.php?id=123456789",
+          "ambiguous": false
+        },
+        "page_id": {
+          "pattern": "/pages/{name}/{page_id}",
+          "regex": "^https?://(?:www\\.)?facebook\\.com/pages/[^/]+/(\\d+)$",
+          "example": "https://facebook.com/pages/FacebookApp/123456789",
+          "ambiguous": false
+        },
+        "profile_or_page": {
+          "pattern": "/{name}",
+          "regex": "^https?://(?:www\\.)?facebook\\.com/([a-zA-Z0-9.]{5,50})/?$",
+          "example": "https://facebook.com/zuck",
+          "ambiguous": true,
+          "ambiguity_type": "fb_profile_page",
+          "ambiguity_options": ["profile", "page"],
+          "note": "Может быть профилем или страницей"
+        },
+        "group": {
+          "pattern": "/groups/{group_id}",
+          "regex": "^https?://(?:www\\.)?facebook\\.com/groups/([^/]+)/?$",
+          "example": "https://facebook.com/groups/123456789",
+          "ambiguous": false
+        },
+        "post": {
+          "pattern": "/{username}/posts/{post_id}",
+          "regex": "^https?://(?:www\\.)?facebook\\.com/([^/]+)/posts/(\\d+)$",
+          "example": "https://facebook.com/zuck/posts/10112345678901234",
+          "ambiguous": false
+        },
+        "video": {
+          "pattern": "/{username}/videos/{video_id}",
+          "regex": "^https?://(?:www\\.)?facebook\\.com/([^/]+)/videos/(\\d+)$",
+          "example": "https://facebook.com/FacebookApp/videos/10112345678901234",
+          "ambiguous": false
+        },
+        "reel": {
+          "pattern": "/reel/{reel_id}",
+          "regex": "^https?://(?:www\\.)?facebook\\.com/reel/(\\d+)$",
+          "example": "https://facebook.com/reel/1234567890123456",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "page": ["followers", "likes"],
+        "profile": ["followers"],
+        "group": ["members"],
+        "post": ["likes", "comments", "shares"],
+        "video": ["views", "likes"],
+        "reel": ["views", "likes"]
+      }
+    },
+    "twitter": {
+      "name": "X (Twitter)",
+      "name_en": "X",
+      "category": "social_network",
+      "country": "US",
+      "domains": [
+        "x.com",
+        "twitter.com",
+        "t.co"
+      ],
+      "primary_domain": "x.com",
+      "url_patterns": {
+        "profile_x": {
+          "pattern": "/{username}",
+          "regex": "^https?://x\\.com/([a-zA-Z0-9_]{1,15})/?$",
+          "example": "https://x.com/elonmusk",
+          "ambiguous": false
+        },
+        "profile_twitter": {
+          "pattern": "/{username}",
+          "regex": "^https?://twitter\\.com/([a-zA-Z0-9_]{1,15})/?$",
+          "example": "https://twitter.com/elonmusk",
+          "ambiguous": false
+        },
+        "tweet_x": {
+          "pattern": "/{username}/status/{tweet_id}",
+          "regex": "^https?://x\\.com/([a-zA-Z0-9_]{1,15})/status/(\\d+)$",
+          "example": "https://x.com/elonmusk/status/1234567890123456",
+          "ambiguous": false
+        },
+        "tweet_twitter": {
+          "pattern": "/{username}/status/{tweet_id}",
+          "regex": "^https?://twitter\\.com/([a-zA-Z0-9_]{1,15})/status/(\\d+)$",
+          "example": "https://twitter.com/elonmusk/status/1234567890123456",
+          "ambiguous": false
+        },
+        "spaces": {
+          "pattern": "/i/spaces/{space_id}",
+          "regex": "^https?://x\\.com/i/spaces/([a-zA-Z0-9]+)$",
+          "example": "https://x.com/i/spaces/1DXGydjBJBgKM",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "profile": ["followers"],
+        "tweet": ["likes", "retweets", "views", "bookmarks"]
+      }
+    },
+    "telegram": {
+      "name": "Telegram",
+      "name_en": "Telegram",
+      "category": "messenger",
+      "country": "DE",
+      "domains": [
+        "t.me",
+        "telegram.me"
+      ],
+      "primary_domain": "t.me",
+      "schemes": ["tg://"],
+      "url_patterns": {
+        "channel_post": {
+          "pattern": "/{channel}/{post_id}",
+          "regex": "^https?://t\\.me/([a-zA-Z][a-zA-Z0-9_]{4,31})/(\\d+)$",
+          "example": "https://t.me/telegram/123",
+          "ambiguous": false,
+          "note": "Пост однозначно указывает на канал"
+        },
+        "comment": {
+          "pattern": "/{channel}/{post_id}?comment={comment_id}",
+          "regex": "^https?://t\\.me/([a-zA-Z][a-zA-Z0-9_]{4,31})/(\\d+)\\?comment=(\\d+)$",
+          "example": "https://t.me/telegram/123?comment=456",
+          "ambiguous": false
+        },
+        "private_post": {
+          "pattern": "/c/{channel_id}/{post_id}",
+          "regex": "^https?://t\\.me/c/(\\d+)/(\\d+)$",
+          "example": "https://t.me/c/1234567890/123",
+          "ambiguous": false
+        },
+        "join": {
+          "pattern": "/+{invite_code}",
+          "regex": "^https?://t\\.me/\\+([a-zA-Z0-9_-]+)$",
+          "example": "https://t.me/+abc123DEF",
+          "ambiguous": false
+        },
+        "joinchat": {
+          "pattern": "/joinchat/{invite_code}",
+          "regex": "^https?://t\\.me/joinchat/([a-zA-Z0-9_-]+)$",
+          "example": "https://t.me/joinchat/UVW1l84hDzM5M2Iy",
+          "ambiguous": false
+        },
+        "entity_name": {
+          "pattern": "/{username}",
+          "regex": "^https?://t\\.me/([a-zA-Z][a-zA-Z0-9_]{4,31})/?$",
+          "example": "https://t.me/telegram",
+          "ambiguous": true,
+          "ambiguity_type": "tg_entity_type",
+          "ambiguity_options": ["channel", "group", "bot", "profile"],
+          "note": "Может быть каналом, группой, ботом или профилем"
+        }
+      },
+      "smm_services": {
+        "channel": ["members", "post_views", "reactions"],
+        "chat": ["members"],
+        "post": ["views", "reactions"]
+      }
+    },
+    "whatsapp": {
+      "name": "WhatsApp",
+      "name_en": "WhatsApp",
+      "category": "messenger",
+      "country": "US",
+      "domains": [
+        "wa.me",
+        "api.whatsapp.com",
+        "chat.whatsapp.com"
+      ],
+      "primary_domain": "wa.me",
+      "schemes": ["whatsapp://"],
+      "url_patterns": {
+        "click_to_chat": {
+          "pattern": "/{phone}",
+          "regex": "^https?://wa\\.me/(\\d+)$",
+          "example": "https://wa.me/71234567890",
+          "ambiguous": false
+        },
+        "click_to_chat_text": {
+          "pattern": "/{phone}?text={text}",
+          "regex": "^https?://wa\\.me/(\\d+)\\?text=(.+)$",
+          "example": "https://wa.me/71234567890?text=Hello%20World",
+          "ambiguous": false,
+          "note": "text должен быть URL-encoded"
+        },
+        "group": {
+          "pattern": "chat.whatsapp.com/{invite_code}",
+          "regex": "^https?://chat\\.whatsapp\\.com/([a-zA-Z0-9]{22})$",
+          "example": "https://chat.whatsapp.com/XXXXXXXXXXXXXXXXXXXXXX",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "group": ["members"]
+      }
+    },
+    "discord": {
+      "name": "Discord",
+      "name_en": "Discord",
+      "category": "messenger",
+      "country": "US",
+      "domains": [
+        "discord.com",
+        "discord.gg",
+        "discordapp.com"
+      ],
+      "primary_domain": "discord.com",
+      "url_patterns": {
+        "invite": {
+          "pattern": "/{invite_code}",
+          "regex": "^https?://(?:discord\\.gg|discord\\.com/invite)/([a-zA-Z0-9-]{2,30})/?$",
+          "example": "https://discord.gg/abc123",
+          "ambiguous": false
+        },
+        "server": {
+          "pattern": "/channels/{server_id}",
+          "regex": "^https?://discord\\.com/channels/(\\d+)$",
+          "example": "https://discord.com/channels/123456789012345678",
+          "ambiguous": false
+        },
+        "channel": {
+          "pattern": "/channels/{server_id}/{channel_id}",
+          "regex": "^https?://discord\\.com/channels/(\\d+)/(\\d+)$",
+          "example": "https://discord.com/channels/123456789012345678/987654321098765432",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "server": ["members"]
+      }
+    },
+    "spotify": {
+      "name": "Spotify",
+      "name_en": "Spotify",
+      "category": "music",
+      "country": "SE",
+      "domains": [
+        "spotify.com",
+        "open.spotify.com",
+        "spoti.fi"
+      ],
+      "primary_domain": "open.spotify.com",
+      "url_patterns": {
+        "track": {
+          "pattern": "/track/{track_id}",
+          "regex": "^https?://open\\.spotify\\.com/track/([a-zA-Z0-9]{22})$",
+          "example": "https://open.spotify.com/track/4iV5W9uYEdYUVa79Axb7Rh",
+          "ambiguous": false
+        },
+        "album": {
+          "pattern": "/album/{album_id}",
+          "regex": "^https?://open\\.spotify\\.com/album/([a-zA-Z0-9]{22})$",
+          "example": "https://open.spotify.com/album/1A2GTWGtrFRACTpXLGQhYa",
+          "ambiguous": false
+        },
+        "playlist": {
+          "pattern": "/playlist/{playlist_id}",
+          "regex": "^https?://open\\.spotify\\.com/playlist/([a-zA-Z0-9]{22})$",
+          "example": "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M",
+          "ambiguous": false
+        },
+        "artist": {
+          "pattern": "/artist/{artist_id}",
+          "regex": "^https?://open\\.spotify\\.com/artist/([a-zA-Z0-9]{22})$",
+          "example": "https://open.spotify.com/artist/06HL4z0CvFAxyc27GXpf02",
+          "ambiguous": false
+        },
+        "uri": {
+          "pattern": "spotify:{type}:{id}",
+          "regex": "^spotify:(track|album|playlist|artist|episode|show):([a-zA-Z0-9]{22})$",
+          "example": "spotify:track:4iV5W9uYEdYUVa79Axb7Rh",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "artist": ["followers"],
+        "playlist": ["followers"],
+        "track": ["plays"]
+      }
+    },
+    "threads": {
+      "name": "Threads",
+      "name_en": "Threads",
+      "category": "social_network",
+      "country": "US",
+      "domains": [
+        "threads.net",
+        "www.threads.net"
+      ],
+      "primary_domain": "threads.net",
+      "url_patterns": {
+        "profile": {
+          "pattern": "/@{username}",
+          "regex": "^https?://(?:www\\.)?threads\\.net/@([a-zA-Z0-9_.]+)/?$",
+          "example": "https://threads.net/@zuck",
+          "ambiguous": false
+        },
+        "post": {
+          "pattern": "/@{username}/post/{post_id}",
+          "regex": "^https?://(?:www\\.)?threads\\.net/@([a-zA-Z0-9_.]+)/post/([a-zA-Z0-9_-]+)$",
+          "example": "https://threads.net/@zuck/post/CuWx123abc",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "profile": ["followers"],
+        "post": ["likes", "comments", "reposts"]
+      }
+    },
+    "ok": {
+      "name": "Одноклассники",
+      "name_en": "Odnoklassniki",
+      "category": "social_network",
+      "country": "RU",
+      "domains": [
+        "ok.ru",
+        "www.ok.ru",
+        "m.ok.ru"
+      ],
+      "primary_domain": "ok.ru",
+      "url_patterns": {
+        "profile_id": {
+          "pattern": "/profile/{user_id}",
+          "regex": "^https?://(?:www\\.)?ok\\.ru/profile/(\\d+)$",
+          "example": "https://ok.ru/profile/123456789",
+          "ambiguous": false
+        },
+        "group": {
+          "pattern": "/group/{group_id}",
+          "regex": "^https?://(?:www\\.)?ok\\.ru/group/(\\d+)$",
+          "example": "https://ok.ru/group/123456789",
+          "ambiguous": false
+        },
+        "video": {
+          "pattern": "/video/{video_id}",
+          "regex": "^https?://(?:www\\.)?ok\\.ru/video/(\\d+)$",
+          "example": "https://ok.ru/video/123456789",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "group": ["members"],
+        "profile": ["friends"],
+        "video": ["views", "likes"]
+      }
+    },
+    "rutube": {
+      "name": "Rutube",
+      "name_en": "Rutube",
+      "category": "video_platform",
+      "country": "RU",
+      "domains": [
+        "rutube.ru",
+        "www.rutube.ru",
+        "rutube.video"
+      ],
+      "primary_domain": "rutube.ru",
+      "url_patterns": {
+        "channel": {
+          "pattern": "/channel/{channel_id}/",
+          "regex": "^https?://(?:www\\.)?rutube\\.ru/channel/(\\d+)/$",
+          "example": "https://rutube.ru/channel/123456/",
+          "ambiguous": false
+        },
+        "video": {
+          "pattern": "/video/{video_id}/",
+          "regex": "^https?://(?:www\\.)?rutube\\.ru/video/([a-zA-Z0-9]{16,})/$",
+          "example": "https://rutube.ru/video/abc123def456ghi789/",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "channel": ["subscribers"],
+        "video": ["views", "likes", "comments"]
+      }
+    },
+    "dzen": {
+      "name": "Яндекс Дзен",
+      "name_en": "Yandex Zen",
+      "category": "content_platform",
+      "country": "RU",
+      "domains": [
+        "dzen.ru",
+        "www.dzen.ru",
+        "zen.yandex.ru"
+      ],
+      "primary_domain": "dzen.ru",
+      "url_patterns": {
+        "channel": {
+          "pattern": "/{channel_name}",
+          "regex": "^https?://(?:www\\.)?dzen\\.ru/([a-zA-Z0-9_-]+)/?$",
+          "example": "https://dzen.ru/channelname",
+          "ambiguous": false
+        },
+        "article": {
+          "pattern": "/a/{article_id}",
+          "regex": "^https?://(?:www\\.)?dzen\\.ru/a/([a-zA-Z0-9_-]+)$",
+          "example": "https://dzen.ru/a/abc123def",
+          "ambiguous": false
+        },
+        "video": {
+          "pattern": "/video/watch/{video_id}",
+          "regex": "^https?://(?:www\\.)?dzen\\.ru/video/watch/([a-zA-Z0-9_-]+)$",
+          "example": "https://dzen.ru/video/watch/abc123def",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "channel": ["subscribers"],
+        "video": ["views", "likes"],
+        "article": ["likes", "comments"]
+      }
+    },
+    "max": {
+      "name": "MAX",
+      "name_en": "MAX",
+      "category": "messenger",
+      "country": "RU",
+      "domains": [
+        "max.ru",
+        "www.max.ru",
+        "web.max.ru"
+      ],
+      "primary_domain": "max.ru",
+      "url_patterns": {
+        "profile": {
+          "pattern": "/u/{user_code}",
+          "regex": "^https?://(?:www\\.)?max\\.ru/u/([a-zA-Z0-9_-]+)$",
+          "example": "https://max.ru/u/abc123xyz",
+          "ambiguous": false
+        },
+        "channel": {
+          "pattern": "/{nickname}",
+          "regex": "^https?://(?:www\\.)?max\\.ru/([a-zA-Z0-9_]+)/?$",
+          "example": "https://max.ru/nickname",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "channel": ["subscribers"]
+      }
+    },
+    "twitch": {
+      "name": "Twitch",
+      "name_en": "Twitch",
+      "category": "streaming",
+      "country": "US",
+      "domains": [
+        "twitch.tv",
+        "www.twitch.tv",
+        "clips.twitch.tv"
+      ],
+      "primary_domain": "twitch.tv",
+      "url_patterns": {
+        "channel": {
+          "pattern": "/{channel_name}",
+          "regex": "^https?://(?:www\\.)?twitch\\.tv/([a-zA-Z0-9_]+)/?$",
+          "example": "https://twitch.tv/ninja",
+          "ambiguous": false
+        },
+        "vod": {
+          "pattern": "/videos/{vod_id}",
+          "regex": "^https?://(?:www\\.)?twitch\\.tv/videos/(\\d+)$",
+          "example": "https://twitch.tv/videos/123456789",
+          "ambiguous": false
+        },
+        "clip": {
+          "pattern": "clips.twitch.tv/{clip_slug}",
+          "regex": "^https?://clips\\.twitch\\.tv/([a-zA-Z0-9_-]+)$",
+          "example": "https://clips.twitch.tv/ClipName-abc123",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "channel": ["followers", "viewers"],
+        "vod": ["views"],
+        "clip": ["views"]
+      }
+    },
+    "linkedin": {
+      "name": "LinkedIn",
+      "name_en": "LinkedIn",
+      "category": "social_network",
+      "country": "US",
+      "domains": [
+        "linkedin.com",
+        "www.linkedin.com"
+      ],
+      "primary_domain": "linkedin.com",
+      "url_patterns": {
+        "profile": {
+          "pattern": "/in/{username}",
+          "regex": "^https?://(?:www\\.)?linkedin\\.com/in/([a-zA-Z0-9_-]+)/?$",
+          "example": "https://linkedin.com/in/username",
+          "ambiguous": false
+        },
+        "company": {
+          "pattern": "/company/{company_name}",
+          "regex": "^https?://(?:www\\.)?linkedin\\.com/company/([^/]+)/?$",
+          "example": "https://linkedin.com/company/linkedin",
+          "ambiguous": false
+        },
+        "post": {
+          "pattern": "/posts/{username}_{post_id}",
+          "regex": "^https?://(?:www\\.)?linkedin\\.com/posts/([a-zA-Z0-9_-]+)_([a-zA-Z0-9-]+)$",
+          "example": "https://linkedin.com/posts/username_abc123",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "profile": ["followers"],
+        "company": ["followers"],
+        "post": ["likes", "comments"]
+      }
+    },
+    "pinterest": {
+      "name": "Pinterest",
+      "name_en": "Pinterest",
+      "category": "social_network",
+      "country": "US",
+      "domains": [
+        "pinterest.com",
+        "www.pinterest.com",
+        "pin.it",
+        "in.pinterest.com",
+        "ru.pinterest.com"
+      ],
+      "primary_domain": "pinterest.com",
+      "url_patterns": {
+        "profile": {
+          "pattern": "/{username}",
+          "regex": "^https?://(?:[a-z]{2}\\.)?pinterest\\.com/([a-zA-Z0-9_]+)/?$",
+          "example": "https://pinterest.com/username",
+          "ambiguous": false
+        },
+        "pin": {
+          "pattern": "/pin/{pin_id}",
+          "regex": "^https?://(?:[a-z]{2}\\.)?pinterest\\.com/pin/(\\d+)$",
+          "example": "https://pinterest.com/pin/1234567890123456",
+          "ambiguous": false
+        },
+        "pin_short": {
+          "pattern": "pin.it/{code}",
+          "regex": "^https?://pin\\.it/([a-zA-Z0-9]+)$",
+          "example": "https://pin.it/abc123",
+          "ambiguous": false,
+          "requires_resolution": true
+        }
+      },
+      "smm_services": {
+        "profile": ["followers"],
+        "pin": ["saves", "likes"]
+      }
+    },
+    "reddit": {
+      "name": "Reddit",
+      "name_en": "Reddit",
+      "category": "social_network",
+      "country": "US",
+      "domains": [
+        "reddit.com",
+        "www.reddit.com",
+        "redd.it",
+        "old.reddit.com"
+      ],
+      "primary_domain": "reddit.com",
+      "url_patterns": {
+        "profile": {
+          "pattern": "/user/{username}",
+          "regex": "^https?://(?:www\\.)?reddit\\.com/(?:user|u)/([a-zA-Z0-9_-]+)/?$",
+          "example": "https://reddit.com/user/username",
+          "ambiguous": false
+        },
+        "subreddit": {
+          "pattern": "/r/{subreddit}",
+          "regex": "^https?://(?:www\\.)?reddit\\.com/r/([a-zA-Z0-9_]+)/?$",
+          "example": "https://reddit.com/r/programming",
+          "ambiguous": false
+        },
+        "post": {
+          "pattern": "/r/{subreddit}/comments/{post_id}/",
+          "regex": "^https?://(?:www\\.)?reddit\\.com/r/([a-zA-Z0-9_]+)/comments/([a-zA-Z0-9]+)/",
+          "example": "https://reddit.com/r/programming/comments/abc123/title/",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "subreddit": ["members"],
+        "post": ["upvotes", "comments"]
+      }
+    },
+    "likee": {
+      "name": "Likee",
+      "name_en": "Likee",
+      "category": "video_platform",
+      "country": "SG",
+      "domains": [
+        "likee.com",
+        "www.likee.com",
+        "likee.video"
+      ],
+      "primary_domain": "likee.com",
+      "url_patterns": {
+        "profile": {
+          "pattern": "/@{username}",
+          "regex": "^https?://(?:www\\.)?likee\\.com/@([a-zA-Z0-9_.]+)/?$",
+          "example": "https://likee.com/@username",
+          "ambiguous": false
+        },
+        "video": {
+          "pattern": "/video/{video_id}",
+          "regex": "^https?://(?:www\\.)?likee\\.com/video/([a-zA-Z0-9_-]+)$",
+          "example": "https://likee.com/video/abc123",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "profile": ["followers"],
+        "video": ["views", "likes"]
+      }
+    },
+    "viber": {
+      "name": "Viber",
+      "name_en": "Viber",
+      "category": "messenger",
+      "country": "CY",
+      "domains": [
+        "viber.com",
+        "vb.me"
+      ],
+      "primary_domain": "viber.com",
+      "schemes": ["viber://"],
+      "url_patterns": {
+        "chat": {
+          "pattern": "viber://chat?number={phone}",
+          "regex": "^viber://chat\\?number=(\\d+)$",
+          "example": "viber://chat?number=71234567890",
+          "ambiguous": false
+        },
+        "short_link": {
+          "pattern": "vb.me/{username}",
+          "regex": "^https?://vb\\.me/([a-zA-Z0-9_]+)$",
+          "example": "https://vb.me/username",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {}
+    },
+    "line": {
+      "name": "Line",
+      "name_en": "Line",
+      "category": "messenger",
+      "country": "JP",
+      "domains": [
+        "line.me",
+        "www.line.me"
+      ],
+      "primary_domain": "line.me",
+      "schemes": ["line://"],
+      "url_patterns": {
+        "profile": {
+          "pattern": "/ti/p/~{username}",
+          "regex": "^https?://(?:www\\.)?line\\.me/ti/p/~([a-zA-Z0-9_.-]+)$",
+          "example": "https://line.me/ti/p/~username",
+          "ambiguous": false
+        },
+        "official_account": {
+          "pattern": "/ti/p/@{account_name}",
+          "regex": "^https?://(?:www\\.)?line\\.me/ti/p/@([a-zA-Z0-9_]+)$",
+          "example": "https://line.me/ti/p/@accountname",
+          "ambiguous": false
+        },
+        "group": {
+          "pattern": "/R/ti/g/{invite_code}",
+          "regex": "^https?://line\\.me/R/ti/g/([a-zA-Z0-9_-]+)$",
+          "example": "https://line.me/R/ti/g/abc123",
+          "ambiguous": false
+        }
+      },
+      "smm_services": {
+        "group": ["members"],
+        "official_account": ["friends"]
+      }
+    }
+  },
+  "ambiguity_handlers": {
+    "vk_screen_name": {
+      "message": "Не удалось определить: профиль пользователя или сообщество",
+      "options": [
+        {
+          "id": "profile",
+          "label": "Профиль пользователя",
+          "description": "Личная страница пользователя ВКонтакте",
+          "smm_services": ["followers", "friends"]
+        },
+        {
+          "id": "group",
+          "label": "Сообщество/группа",
+          "description": "Группа, публичная страница или мероприятие",
+          "smm_services": ["members"]
+        }
+      ],
+      "how_to_check": [
+        "Откройте ссылку в браузере",
+        "Профиль показывает: 'Подписчики' и 'Друзья'",
+        "Группа показывает: 'Участники' и тип (группа/паблик/мероприятие)",
+        "Группы имеют ID с префиксом club/public/event"
+      ]
+    },
+    "fb_profile_page": {
+      "message": "Не удалось определить: профиль или страница",
+      "options": [
+        {
+          "id": "profile",
+          "label": "Профиль пользователя",
+          "description": "Личный профиль Facebook",
+          "smm_services": ["followers"]
+        },
+        {
+          "id": "page",
+          "label": "Страница (Fan Page)",
+          "description": "Публичная страница бренда, компании или личности",
+          "smm_services": ["followers", "likes"]
+        }
+      ],
+      "how_to_check": [
+        "Профиль: URL может быть facebook.com/profile.php?id=...",
+        "Страница: Показывает 'Нравится' и 'Подписчики' отдельно",
+        "Страницы могут иметь кнопку 'Сообщение'",
+        "Профили показывают 'Добавить в друзья'"
+      ]
+    },
+    "tg_entity_type": {
+      "message": "Не удалось определить тип: канал, группа или бот",
+      "options": [
+        {
+          "id": "channel",
+          "label": "Канал",
+          "description": "Канал для вещания контента",
+          "smm_services": ["members", "post_views", "reactions"]
+        },
+        {
+          "id": "group",
+          "label": "Группа/Чат",
+          "description": "Групповой чат для общения",
+          "smm_services": ["members"]
+        },
+        {
+          "id": "bot",
+          "label": "Бот",
+          "description": "Telegram бот",
+          "smm_services": []
+        }
+      ],
+      "how_to_check": [
+        "Канал: показывает 'Подписаться', посты от имени канала",
+        "Группа: показывает участников, сообщения от всех",
+        "Бот: показывает кнопку 'Запустить' или 'Start'",
+        "Боты часто имеют имя оканчивающееся на 'bot'"
+      ]
+    }
+  },
+  "normalization_rules": [
+    {
+      "from": "^https?://m\\.",
+      "to": "https://",
+      "description": "Удаление мобильного префикса"
+    },
+    {
+      "from": "^https?://www\\.",
+      "to": "https://",
+      "description": "Удаление www префикса"
+    },
+    {
+      "from": "/$",
+      "to": "",
+      "description": "Удаление trailing slash"
+    },
+    {
+      "from": "\\?(igshid|utm_[^&]+|fbclid|gclid|ref|src|feature)=[^&]*&?",
+      "to": "",
+      "description": "Удаление служебных параметров"
+    },
+    {
+      "from": "^https?://twitter\\.com/",
+      "to": "https://x.com/",
+      "description": "Редирект Twitter -> X"
+    },
+    {
+      "from": "^https?://fb\\.com/",
+      "to": "https://facebook.com/",
+      "description": "Редирект fb.com -> facebook.com"
+    }
+  ],
+  "service_mapping": {
+    "followers": {
+      "aliases": ["subs", "subscribers", "подписчики"],
+      "description": "Подписчики на профиль/канал"
+    },
+    "likes": {
+      "aliases": ["лайки", "hearts"],
+      "description": "Лайки/сердечки на контент"
+    },
+    "views": {
+      "aliases": ["просмотры", "plays"],
+      "description": "Просмотры видео/контента"
+    },
+    "comments": {
+      "aliases": ["комментарии", "comms"],
+      "description": "Комментарии к посту/видео"
+    },
+    "members": {
+      "aliases": ["участники", "members"],
+      "description": "Участники группы/сообщества"
+    },
+    "reposts": {
+      "aliases": ["репосты", "shares"],
+      "description": "Репосты/поделиться"
+    },
+    "saves": {
+      "aliases": ["сохранения", "bookmarks"],
+      "description": "Сохранения контента"
+    },
+    "reactions": {
+      "aliases": ["реакции", "emojis"],
+      "description": "Реакции (эмодзи) на контент"
+    },
+    "viewers": {
+      "aliases": ["зрители", "watchers"],
+      "description": "Зрители стрима/трансляции"
+    }
+  }
+}

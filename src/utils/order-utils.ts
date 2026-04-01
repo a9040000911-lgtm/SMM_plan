@@ -3,7 +3,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { OrderStatus } from '@/generated/client';
+import { OrderStatus } from '@/services/types';
 
 /**
  * Возвращает понятное русское название для статуса заказа.

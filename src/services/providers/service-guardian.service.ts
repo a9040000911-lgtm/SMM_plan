@@ -154,7 +154,7 @@ export class ServiceGuardian {
             const service = await prisma.internalService.update({
                 where: { id: internalServiceId },
                 data: { isActive: false },
-                select: { name: true, platform: true }
+                select: { name: true, socialPlatform: { select: { slug: true } } }
             });
 
             console.warn(`[ServiceGuardian] Service ${internalServiceId} DISABLED. Reason: ${reason}`);
@@ -162,10 +162,10 @@ export class ServiceGuardian {
             // 1. Уведомление в логи (без ID админа, так как действие системное)
             await prisma.adminLog.create({
                 data: {
-                    adminId: 'system',
+                    adminId: 'system-guardian',
                     action: 'SERVICE_AUTO_DISABLED',
                     targetId: internalServiceId,
-                    details: `Service "${service.name}" (${service.platform}) auto-disabled. Reason: ${reason}`
+                    details: `Service "${service.name}" (${service.socialPlatform?.slug || 'other'}) auto-disabled. Reason: ${reason}`
                 }
             });
 

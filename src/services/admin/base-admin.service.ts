@@ -76,21 +76,35 @@ export abstract class BaseAdminService {
     }
 
     /**
-     * Creates an administrative log entry.
+     * Creates an administrative log entry with optional data audit (old/new values).
      */
-    protected async logAction(ctx: AdminContext, action: string, details: string, targetId: string | null = null) {
+    protected async logAction(
+        ctx: AdminContext, 
+        action: string, 
+        details: string, 
+        targetId: string | null = null,
+        metadata: any = null, // restore original position
+        oldValue: any = null,
+        newValue: any = null,
+        projectId?: string | null // Add to the end
+    ) {
         try {
             await prisma.adminLog.create({
                 data: {
                     adminId: ctx.userId,
                     action,
                     details,
-                    targetId
+                    targetId,
+                    metadata: metadata || oldValue || newValue ? {
+                        ...JSON.parse(JSON.stringify(metadata || {})),
+                        oldValue: oldValue ? JSON.parse(JSON.stringify(oldValue)) : undefined,
+                        newValue: newValue ? JSON.parse(JSON.stringify(newValue)) : undefined
+                    } : null
                 }
             });
-            this.logger.info(`Action: ${action} | Admin: ${ctx.userId} | Target: ${targetId}`);
+            this.logger.info(`Action: ${action} | Admin: ${ctx.userId} | Target: ${targetId} | Project: ${projectId || 'GLOBAL'}`);
         } catch (error: any) {
-            this.logger.error(`Failed to create admin log: ${action}`, error);
+            this.logger.error(`Failed to create system log: ${action}`, error);
         }
     }
 

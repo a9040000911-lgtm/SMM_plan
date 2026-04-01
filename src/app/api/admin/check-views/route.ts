@@ -12,7 +12,7 @@ export async function GET() {
     try {
         const services = await prisma.internalService.findMany({
             where: {
-                category: 'VIEWS',
+                serviceCategory: { categoryType: 'VIEWS' },
                 OR: [
                     { name: { contains: 'подписчик', mode: 'insensitive' } },
                     { name: { contains: 'member', mode: 'insensitive' } },

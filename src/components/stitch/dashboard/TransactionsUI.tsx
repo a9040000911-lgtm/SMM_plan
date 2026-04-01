@@ -132,7 +132,7 @@ export function TransactionsUI({ initialBalance, initialTransactions }: Transact
                     animate={{ opacity: 1, x: 0 }}
                     className="space-y-2"
                 >
-                    <h1 className="text-5xl font-black text-slate-950 tracking-tighter uppercase italic">
+                    <h1 className="text-5xl md:text-8xl font-black text-slate-950 tracking-tighter uppercase italic pr-2 overflow-visible leading-[0.85]">
                         Финансовый <span className="text-blue-600">Хаб</span>
                     </h1>
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Управление балансом и контроль расходов</p>
@@ -152,7 +152,7 @@ export function TransactionsUI({ initialBalance, initialTransactions }: Transact
                             <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest block mb-1">Доступно</span>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-3xl font-black text-white tracking-tighter tabular-nums">{formatAmount(initialBalance)}</span>
-                                <span className="text-xs font-black text-blue-500 uppercase italic pr-1">rub&nbsp;</span>
+                                <span className="text-xs font-black text-blue-500 uppercase italic pr-2">rub&nbsp;</span>
                             </div>
                         </div>
                     </motion.div>
@@ -367,7 +367,7 @@ function TxRow({ tx, idx }: { tx: Transaction, idx: number }) {
             <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 mt-4 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-t-0 border-slate-50">
                 <div className={cn("text-2xl font-black tracking-tighter tabular-nums", cfg.color)}>
                     {cfg.sign}{formatAmount(tx.amount)}
-                    <span className="text-blue-500 italic pr-1">₽&nbsp;</span>
+                    <span className="text-blue-500 italic pr-2">₽&nbsp;</span>
                 </div>
                 <div className={cn("px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border", statusColors[tx.status])}>
                     {tx.status === 'COMPLETED' ? 'Успешно' : tx.status === 'PENDING' ? 'Ожидание' : 'Ошибка'}

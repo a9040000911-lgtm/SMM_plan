@@ -74,12 +74,15 @@ export const dripFeedWorker = new Worker('drip-feed', async (job: Job) => {
 }, { connection });
 
 /**
- * Воркер для переключения зависших заказов
+ * Воркер для ручного переключения зависших заказов (ранее был автоматическим)
+ * ОТКЛЮЧЕНО: Автоматический Failover по таймауту (45 мин) отключен по требованиям безопасности (Double-Spend).
+ * Теперь Failover срабатывает только при статусе CANCELED от провайдера (через OrderSyncService).
  */
 export const failoverWorker = new Worker('order-failover', async (job: Job) => {
-  console.log(`[Worker] Running stuck orders failover check (Job ID: ${job.id})`);
-  const { FailoverService } = await import('@/services/providers/failover.service');
-  await FailoverService.processStuckOrders();
+  // console.log(`[Worker] Running stuck orders failover check (Job ID: ${job.id})`);
+  // const { FailoverService } = await import('@/services/providers/failover.service');
+  // await FailoverService.processStuckOrders();
+  console.log(`[Worker] Cron Failover aborted. PENDING orders wait for manual tech-support intervention.`);
 }, { connection });
 
 /**

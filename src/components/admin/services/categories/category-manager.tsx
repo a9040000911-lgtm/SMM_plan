@@ -20,7 +20,7 @@ import {
 import { CATEGORY_DISPLAY_NAMES, CATEGORY_ICONS as CATEGORY_ICON_NAMES } from '@/utils/category-metadata';
 import { toast } from 'sonner';
 import { cn } from '@/utils/ui';
-import { Platform, Category } from '@/generated/client';
+import { Platform, Category } from '@prisma/client';
 
 interface CategoryManagerProps {
     initialCategories: any[];

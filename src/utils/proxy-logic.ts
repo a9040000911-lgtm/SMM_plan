@@ -81,9 +81,27 @@ export async function proxy(request: NextRequest) {
     console.error('Rate Limiting Error:', error);
   }
 
-  // --- PREPARE HEADERS FOR PAGES ---
+  // --- PREPARE HEADERS FOR PAGES & MULTI-TENANT ---
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-pathname', pathname);
+
+  let hostname = request.headers.get('host') || 'smmplan.ru';
+  if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+      // SECURITY: mock_tenant only allowed in explicit development mode
+      if (process.env.NODE_ENV === 'development') {
+          const mockTenant = request.nextUrl.searchParams.get('mock_tenant');
+          if (mockTenant) hostname = mockTenant;
+          else hostname = 'smmplan.ru';
+      } else {
+          hostname = 'smmplan.ru';
+      }
+  }
+  requestHeaders.set('x-tenant-domain', hostname);
+  
+  let tenantSiteId = '1';
+  if (hostname.includes('cryptoboost')) tenantSiteId = '2';
+  if (hostname.includes('instaboost')) tenantSiteId = '3';
+  requestHeaders.set('x-tenant-id', tenantSiteId);
 
   // --- ADMIN & API AUTH CHECK ---
   const isAdminPath = pathname.startsWith('/admin') && pathname !== '/admin/login';
@@ -91,18 +109,24 @@ export async function proxy(request: NextRequest) {
 
   if (isAdminPath || isAdminApi) {
     const sessionCookie = request.cookies.get('admin_session');
+    let isValidSession = false;
 
-    if (!sessionCookie) {
+    if (sessionCookie?.value) {
+      const adminSession = await verifyAdminSession(sessionCookie.value);
+      if (adminSession && adminSession.id) {
+        isValidSession = true;
+      }
+    }
+
+    if (!isValidSession) {
       if (isAdminApi) {
         return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'content-type': 'application/json' } });
       }
       const loginUrl = new URL('/admin/login', request.url);
-      return NextResponse.redirect(loginUrl);
+      const res = NextResponse.redirect(loginUrl);
+      res.cookies.delete('admin_session'); // Clean up invalid cookie
+      return res;
     }
-
-    // Optional: Deep verification of session validity can be added here
-    // but we already have guards in Server Actions and API routes.
-    // Middleware provides the first layer of defense.
   }
 
   // --- MAINTENANCE MODE CHECK ---
@@ -116,10 +140,10 @@ export async function proxy(request: NextRequest) {
       const host = request.headers.get('host') || 'localhost';
       const domain = host.split(':')[0];
 
-      // FIX: Node.js 18+ has a 5-second IPv6 fallback timeout bug when fetching 'localhost'.
-      // Force IPv4 loopback to avoid blocking every page load in local/docker environments.
-      const safeBaseUrl = request.url.replace('://localhost:', '://127.0.0.1:');
-      const lookupUrl = new URL(`/api/internal/project-lookup?domain=${domain}`, safeBaseUrl);
+      // FIX: Use internal loopback (v4) for maintenance check to avoid SSL/Hairpin NAT issues.
+      // 127.0.0.1:3000 refers to the current container itself (standlone server).
+      const internalBaseUrl = 'http://127.0.0.1:3000';
+      const lookupUrl = new URL(`/api/internal/project-lookup?domain=${domain}`, internalBaseUrl);
 
       const projectRes = await fetch(lookupUrl);
 
@@ -155,6 +179,12 @@ export async function proxy(request: NextRequest) {
 
   let response;
 
+  if (isSystemPath) {
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+  }
+
   if (isSecondSite && !isSystemPath && !isAuthPath) {
     // Используем premium-site (актуальное название папки)
     response = NextResponse.rewrite(new URL(`/premium-site${pathname}`, request.url), {
@@ -171,7 +201,8 @@ export async function proxy(request: NextRequest) {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-XSS-Protection', '1; mode=block');
-  // response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://mc.yandex.ru https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https: wss:; frame-ancestors 'none';");
 
   // --- CORS ---
   const origin = request.headers.get('origin');

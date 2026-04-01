@@ -10,6 +10,7 @@ import { ServiceSyncService } from '@/services/providers/sync.service';
 import { BalanceMonitorService } from '@/services/providers/balance-monitor.service';
 import { getAdminSession } from '@/utils/admin-session';
 import { sanitizeData } from '@/utils/service-sanitizer';
+import { validateSafeUrl } from '@/utils/url-validator';
 
 export async function GET() {
   try {
@@ -32,7 +33,14 @@ export async function GET() {
       });
 
       return {
-        ...p,
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        apiUrl: p.apiUrl,
+        hasApiKey: !!p.apiKey, // [SECURITY] Never expose actual API key
+        isEnabled: p.isEnabled,
+        pricesCurrency: p.pricesCurrency,
+        balanceCurrency: p.balanceCurrency,
         balanceThreshold: p.balanceThreshold.toNumber(),
         currentBalance: lastBalance?.balance.toNumber() || 0,
         lastSync: lastBalance?.createdAt.toISOString() || null,
@@ -42,7 +50,7 @@ export async function GET() {
 
     return NextResponse.json(sanitizeData(providersWithStats));
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -53,8 +61,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { action, providerId, name, type, apiKey, apiUrl, isEnabled } = body;
+    const rawBody = await req.json();
+
+    // [SECURITY] Validate input with Zod schema (prevents __proto__ pollution, type coercion)
+    const { providerActionSchema, safeParse } = await import('@/lib/schemas/api');
+    const parsed = safeParse(providerActionSchema, rawBody);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+    const body = parsed.data!;
+    const { action } = body;
+    const providerId = 'providerId' in body ? body.providerId : undefined;
+    const name = 'name' in body ? body.name : undefined;
+    const type = 'type' in body ? body.type : undefined;
+    const apiKey = 'apiKey' in body ? body.apiKey : undefined;
+    const apiUrl = 'apiUrl' in body ? body.apiUrl : undefined;
+    const isEnabled = 'isEnabled' in body ? body.isEnabled : undefined;
+
+    // [SECURITY] Sync allowed for SUPPORT, mutations require ADMIN
+    const isWriteAction = ['create', 'update', 'delete'].includes(action);
+    if (isWriteAction && session.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Only ADMIN can modify providers' }, { status: 403 });
+    }
 
     if (action === 'sync_all') {
       await ServiceSyncService.syncAllServices();
@@ -71,24 +99,30 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'create') {
-      const exists = await prisma.provider.findFirst({ where: { name } });
+      // [SECURITY] Validate provider API URL against SSRF
+      if (apiUrl) validateSafeUrl(apiUrl, 'Provider API URL');
+
+      const exists = await prisma.provider.findFirst({ where: { name: name! } });
       if (exists) return NextResponse.json({ error: `Провайдер с именем ${name} уже существует` }, { status: 400 });
 
       const provider = await prisma.provider.create({
         data: {
-          name,
+          name: name!,
           type: type || 'universal',
-          apiKey,
-          apiUrl,
+          apiKey: apiKey!,
+          apiUrl: apiUrl!,
           isEnabled: isEnabled ?? true,
-          pricesCurrency: body.pricesCurrency || 'USD',
-          balanceCurrency: body.balanceCurrency || 'USD'
+          pricesCurrency: (body as any).pricesCurrency || 'USD',
+          balanceCurrency: (body as any).balanceCurrency || 'USD'
         }
       });
       return NextResponse.json(sanitizeData(provider));
     }
 
     if (action === 'update') {
+      // [SECURITY] Validate provider API URL against SSRF
+      if (apiUrl) validateSafeUrl(apiUrl, 'Provider API URL');
+
       const provider = await prisma.provider.update({
         where: { id: providerId },
         data: {
@@ -113,7 +147,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

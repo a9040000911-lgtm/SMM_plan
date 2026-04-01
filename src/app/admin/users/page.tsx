@@ -8,8 +8,10 @@ import React from 'react';
 import {
   Plus,
   Pencil,
+  Users as UsersIcon,
   Shield
 } from 'lucide-react';
+import { AdminTableCard } from '@/components/admin/core/admin-table-card';
 import { formatAmount } from '@/utils/formatter';
 import Link from 'next/link';
 import { UserFilter } from '@/components/admin/users/user-filter';
@@ -55,8 +57,8 @@ export default async function UsersPage({ searchParams }: PageProps) {
   return (
     <div className="p-8 space-y-8 bg-[#f8fafc] min-h-screen">
       <AdminHeader
-        title="Управление пользователями"
-        subtitle="Аналитика клиентской базы и управление ролями"
+        title="Пользователи"
+        subtitle="Клиентская база, сессии и настройка ролей"
         rightElement={
           <Link
             href="/admin/users/create"
@@ -81,25 +83,22 @@ export default async function UsersPage({ searchParams }: PageProps) {
         roleNames={{}}
       />
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden min-h-[500px]">
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Список пользователей</h2>
-        </div>
-        <div className="overflow-x-auto">
+      <AdminTableCard title="Список пользователей" icon={UsersIcon}>
+        <div className="overflow-x-auto min-h-[500px]">
           <table className="w-full text-left border-collapse table-fixed">
             <thead>
-              <tr className="bg-white border-b border-slate-100">
-                <th className="w-12 px-3 py-4 text-[10px] font-black text-blue-600 uppercase tracking-wider">ID ▲</th>
-                <th className="w-32 px-3 py-4 text-[10px] font-black text-blue-600 uppercase tracking-wider">ИМЯ</th>
-                <th className="w-44 px-3 py-4 text-[10px] font-black text-blue-600 uppercase tracking-wider">EMAIL</th>
-                <th className="w-24 px-3 py-4 text-[10px] font-black text-blue-600 uppercase tracking-wider text-center">БАЛАНС</th>
-                <th className="w-24 px-3 py-4 text-[10px] font-black text-blue-600 uppercase tracking-wider text-center">СКИДКА КЛИЕНТА</th>
-                <th className="w-24 px-3 py-4 text-[10px] font-black text-blue-600 uppercase tracking-wider text-center">ПАРТН. БАЛАНС</th>
-                <th className="w-24 px-3 py-4 text-[10px] font-black text-blue-600 uppercase tracking-wider text-center">УРОВЕНЬ ПАРТНЕРА</th>
-                <th className="w-24 px-3 py-4 text-[10px] font-black text-blue-600 uppercase tracking-wider text-center">ПРОЦЕНТ ПАРТНЕРА</th>
-                <th className="w-20 px-3 py-4 text-[10px] font-black text-blue-600 uppercase tracking-wider text-center">СТАТУС</th>
-                <th className="w-28 px-3 py-4 text-[10px] font-black text-blue-600 uppercase tracking-wider">СОЗДАН</th>
-                <th className="w-20 px-3 py-4 text-[10px] font-black text-slate-900 uppercase tracking-wider text-right">ДЕЙСТВИЯ</th>
+              <tr className="bg-slate-50 border-b border-slate-100">
+                <th className="w-12 px-3 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">ID ▲</th>
+                <th className="w-32 px-3 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">ИМЯ</th>
+                <th className="w-44 px-3 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">EMAIL</th>
+                <th className="w-24 px-3 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">БАЛАНС</th>
+                <th className="w-24 px-3 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">СКИДКА КЛИЕНТА</th>
+                <th className="w-24 px-3 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">ПАРТН. БАЛАНС</th>
+                <th className="w-24 px-3 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">УРОВЕНЬ ПАРТНЕРА</th>
+                <th className="w-24 px-3 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">ПРОЦЕНТ ПАРТНЕРА</th>
+                <th className="w-20 px-3 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">СТАТУС</th>
+                <th className="w-28 px-3 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">СОЗДАН</th>
+                <th className="w-20 px-3 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider text-right">ДЕЙСТВИЯ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 text-[11px]">
@@ -159,7 +158,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
         <div className="p-6 border-t border-slate-100 flex justify-end">
           <Pagination totalPages={Math.ceil(totalMatching / limit)} />
         </div>
-      </div>
+      </AdminTableCard>
     </div>
   );
 }

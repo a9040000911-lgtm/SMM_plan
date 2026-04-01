@@ -21,7 +21,11 @@ export class IntelligenceLinkAnalyzer {
 
     private sanitize(url: string): string {
         try {
-            const urlObj = new URL(url.trim());
+            let cleanUrl = url.trim();
+            cleanUrl = cleanUrl.split(' ')[0];
+            cleanUrl = cleanUrl.split('%20')[0];
+
+            const urlObj = new URL(cleanUrl);
             const searchParams = urlObj.searchParams;
             const blackList = ['utm_', 'igshid', 'feature', 'si', 'ref'];
             

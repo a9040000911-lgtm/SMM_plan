@@ -25,14 +25,14 @@ export function NavigationHotkeys() {
                 'u': '/admin/users',
                 'h': '/admin/support',
                 'p': '/admin/providers',
-                'n': '/admin/content?tab=news',
+                'n': '/admin/cms/content?tab=news',
                 'd': '/admin', // Dashboard
                 'ы': '/admin/services', // Cyrillic fallbacks
                 'щ': '/admin/orders',
                 'г': '/admin/users',
                 'р': '/admin/support',
                 'з': '/admin/providers',
-                'т': '/admin/content?tab=news',
+                'т': '/admin/cms/content?tab=news',
                 'в': '/admin'
             };
 

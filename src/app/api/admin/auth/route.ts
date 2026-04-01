@@ -184,26 +184,34 @@ export async function POST(req: NextRequest) {
 
       if (!user || !user.password) {
         // ЛОГИРУЕМ ОШИБКУ ВХОДА (ПОЛЬЗОВАТЕЛЬ НЕ НАЙДЕН)
-        await prisma.adminLog.create({
-          data: {
-            adminId: 'system',
-            action: 'AUTH_FAILED',
-            details: `Попытка входа с несуществующим email: ${normalizedEmail}`
-          }
-        });
+        try {
+          await prisma.adminLog.create({
+            data: {
+              adminId: null,
+              action: 'AUTH_FAILED',
+              details: `Неудачная попытка входа: пользователь ${normalizedEmail} не найден`
+            }
+          });
+        } catch (logErr) {
+          console.error('[AUTH_LOG_ERROR] Could not log unauthorized attempt:', logErr);
+        }
         return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
       }
 
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
         // ЛОГИРУЕМ ОШИБКУ ВХОДА (НЕВЕРНЫЙ ПАРОЛЬ)
-        await prisma.adminLog.create({
-          data: {
-            adminId: user.id,
-            action: 'AUTH_FAILED',
-            details: `Неверный пароль для пользователя ${normalizedEmail}`
-          }
-        });
+        try {
+          await prisma.adminLog.create({
+            data: {
+              adminId: user.id,
+              action: 'AUTH_FAILED',
+              details: `Неверный пароль для пользователя ${normalizedEmail}`
+            }
+          });
+        } catch (e) {
+          console.error('[AUTH_LOG_ERROR] Could not log:', e);
+        }
         return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
       }
 
@@ -212,13 +220,17 @@ export async function POST(req: NextRequest) {
       }
 
       // ЛОГИРУЕМ ПЕРВЫЙ ЭТАП
-      await prisma.adminLog.create({
-        data: {
-          adminId: user.id,
-          action: 'AUTH_PASSWORD_OK',
-          details: `Пароль верный, отправка 2FA кода (${normalizedEmail})`
-        }
-      });
+      try {
+        await prisma.adminLog.create({
+          data: {
+            adminId: user.id,
+            action: 'AUTH_PASSWORD_OK',
+            details: `Пароль верный, отправка 2FA кода (${normalizedEmail})`
+          }
+        });
+      } catch (e) {
+        console.error('[AUTH_LOG_ERROR] Could not log:', e);
+      }
 
       // Генерируем код 2FA
       const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -272,13 +284,17 @@ export async function POST(req: NextRequest) {
       const isValid = TelegramAuth.validateWidgetData(authData, botToken);
       if (!isValid) {
         // ЛОГИРУЕМ ОШИБКУ ТГ-ВИДЖЕТА
-        await prisma.adminLog.create({
-          data: {
-            adminId: 'system',
-            action: 'AUTH_TG_INVALID',
-            details: `Неудачная попытка входа через Telegram виджет (Hash mismatch)`
-          }
-        });
+        try {
+          await prisma.adminLog.create({
+            data: {
+              adminId: null,
+              action: 'AUTH_TG_INVALID',
+              details: `Неудачная попытка входа через Telegram виджет (Hash mismatch)`
+            }
+          });
+        } catch (logErr) {
+          console.error('[AUTH_LOG_ERROR] Could not log invalid Telegram auth:', logErr);
+        }
         return NextResponse.json({ error: 'Invalid Telegram authentication' }, { status: 401 });
       }
 
@@ -289,24 +305,32 @@ export async function POST(req: NextRequest) {
 
       if (!user || (!['ADMIN', 'SUPPORT', 'SEO'].includes(user.role) && !user.isGlobalAdmin)) {
         // ЛОГИРУЕМ ОТКАЗ В ДОСТУПЕ
-        await prisma.adminLog.create({
-          data: {
-            adminId: authData.id.toString(),
-            action: 'AUTH_TG_DENIED',
-            details: `Доступ через Telegram запрещен: пользователь не найден или не имеет прав администратора (ID: ${authData.id})`
-          }
-        });
+        try {
+          await prisma.adminLog.create({
+            data: {
+              adminId: null,
+              action: 'AUTH_TG_DENIED',
+              details: `Доступ через Telegram запрещен: пользователь не найден или не имеет прав (ID: ${authData.id})`
+            }
+          });
+        } catch (logErr) {
+          console.error('[AUTH_LOG_ERROR] Could not log denied access:', logErr);
+        }
         return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
 
       // ЛОГИРУЕМ ПРОВЕРКУ ТГ (УСПЕШНО)
-      await prisma.adminLog.create({
-        data: {
-          adminId: user.id,
-          action: 'AUTH_TG_OK',
-          details: `Telegram подтвержден, требуется 2FA код на почту (${user.email})`
-        }
-      });
+      try {
+        await prisma.adminLog.create({
+          data: {
+            adminId: user.id,
+            action: 'AUTH_TG_OK',
+            details: `Telegram подтвержден, требуется 2FA код на почту (${user.email})`
+          }
+        });
+      } catch (e) {
+        console.error('[AUTH_LOG_ERROR] Could not log:', e);
+      }
 
       // Генерируем код 2FA
       const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -332,7 +356,8 @@ export async function POST(req: NextRequest) {
         sentTo: 'email'
       });
     }
-
+    
+    return NextResponse.json({ error: 'Invalid request type' }, { status: 400 });
   } catch (e: any) {
     console.error('Auth API Error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });
@@ -344,8 +369,8 @@ async function createSession(user: any) {
   const cookieStore = await cookies();
   const { signAdminSession } = await import('@/services/core/jwt');
 
-  // Получаем только ID разрешенных проектов
-  const allowedProjects = user.accessibleProjects?.map((p: any) => p.id) || [];
+  // Получаем только ID разрешенных проектов через accessibleProjects (StaffProjects M2M)
+  const allowedProjects = (user.accessibleProjects || []).map((p: any) => p.id);
 
   console.log(`[SessionCreate] Allowed projects: ${allowedProjects.length}`);
   

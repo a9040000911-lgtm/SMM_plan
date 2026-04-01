@@ -24,8 +24,8 @@ export class SmartMappingService {
         // 1. Fetch all active internal services for the same platform and category
         const internals = await prisma.internalService.findMany({
             where: {
-                platform,
-                category,
+                socialPlatform: { slug: platform.toLowerCase() },
+                serviceCategory: { categoryType: category },
                 isActive: true,
             },
         });

@@ -11,7 +11,7 @@ export class ManagedChannelService {
      * Пытается привязать канал к пользователю.
      * Проверяет, является ли бот администратором.
      */
-    static async registerChannel(userId: string, projectId: string, chatIdentifier: string | number, requesterTgId?: number) {
+    static async registerChannel(userId: string, projectId: string, chatIdentifier: string | number, requesterTgId?: number | bigint) {
         try {
             const chat = await bot.telegram.getChat(chatIdentifier);
 
@@ -32,7 +32,7 @@ export class ManagedChannelService {
             // Дополнительная проверка на права пользователя, если предоставлен requesterTgId
             if (requesterTgId) {
                 try {
-                    const userMember = await bot.telegram.getChatMember(chat.id, requesterTgId);
+                    const userMember = await bot.telegram.getChatMember(chat.id, Number(requesterTgId));
                     if (!['administrator', 'creator'].includes(userMember.status)) {
                         throw new Error('Вы должны быть администратором этого канала для его регистрации');
                     }

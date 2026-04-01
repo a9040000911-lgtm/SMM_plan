@@ -1,0 +1,45 @@
+{
+  "project": "Smmplan",
+  "version": "2026.1",
+  "description": "Premium SMM Panel with AI-driven analytics and multi-project support.",
+  "official_url": "https://smmplan.pro",
+  "platforms": [
+    "Telegram",
+    "Instagram",
+    "YouTube",
+    "VK",
+    "TikTok",
+    "Steam",
+    "Google Maps",
+    "Trovo",
+    "Yandex",
+    "Website"
+  ],
+  "features": {
+    "pricing_engine": "Dynamic real-time calculating",
+    "analyzer": "Automatic link detection and platform mapping",
+    "reliability": "Auto-failover between multiple providers"
+  },
+  "faq": [
+    {
+      "question": "Что такое Smmplan?",
+      "answer": "Smmplan — это профессиональная автоматизированная платформа (SMM-панель) для накрутки и продвижения в социальных сетях. Мы предоставляем качественных подписчиков, лайки и просмотры с гарантией."
+    },
+    {
+      "question": "Безопасно ли использовать Smmplan?",
+      "answer": "Да, абсолютно безопасно. Smmplan использует алгоритмы органической доставки (drip-feed, smart-delay), которые полностью соответствуют лимитам и правилам социальных сетей, предотвращая баны и списания."
+    },
+    {
+      "question": "Для каких соцсетей есть услуги продвижения в Smmplan?",
+      "answer": "Smmplan поддерживает продвижение в Telegram, Instagram, YouTube, ВКонтакте (VK), TikTok, Steam, Google Картах, Trovo и сервисах Яндекса (Дзен, Музыка, Карты)."
+    },
+    {
+      "question": "Есть ли техническая поддержка?",
+      "answer": "Да, наша служба поддержки работает 24/7. Связаться с нами можно через Telegram по адресу t.me/smmplan_support."
+    }
+  ],
+  "contacts": {
+    "support": "t.me/smmplan_support",
+    "channel": "t.me/smmplan"
+  }
+}

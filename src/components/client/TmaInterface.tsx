@@ -296,94 +296,165 @@ export function TmaInterface() {
                                 exit={{ y: "100%" }}
                                 className="relative w-full max-w-lg glass border-white/40 rounded-[2.5rem] shadow-premium p-8 space-y-6"
                             >
-                                <div className="space-y-1">
-                                    <h2 className="text-xl font-black tracking-tight">{selectedService.name}</h2>
+                                {/* Close Button */}
+                                <button 
+                                    onClick={() => setSelectedService(null)}
+                                    className="absolute top-6 right-6 p-2 rounded-full glass hover:bg-white/10 transition-colors text-white/50 hover:text-white"
+                                >
+                                    ✕
+                                </button>
+
+                                <div className="space-y-1 pr-10">
+                                    <h2 className="text-xl font-black tracking-tight leading-tight">{selectedService.name}</h2>
                                     <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">{(selectedService.price / 1000).toFixed(4)}₽ за 1 шт.</p>
                                 </div>
 
+                                {/* Requirements Box - Refactored to Info Neutral style */}
                                 {selectedService.requirements && (
-                                    <div className="bg-destructive/5 border border-destructive/20 p-4 rounded-2xl space-y-2">
-                                        <div className="flex items-center gap-2 text-[8px] font-black text-destructive uppercase tracking-widest">
-                                            <AlertTriangle size={10} /> {t.tma.attention}
+                                    <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl space-y-2 shadow-inner">
+                                        <div className="flex items-center gap-2 text-[8px] font-black text-blue-400 uppercase tracking-widest">
+                                            <Info size={10} /> {t.tma.attention || "СОВЕТ ПО ЗАПУСКУ"}
                                         </div>
-                                        <p className="text-[9px] font-bold text-destructive/80 uppercase italic leading-tight">
+                                        <p className="text-[10px] font-bold text-blue-100/80 uppercase italic leading-tight">
                                             {selectedService.requirements}
                                         </p>
                                     </div>
                                 )}
 
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">{t.tma.order_link}</label>
-                                        <input
-                                            className={cn(
-                                                "w-full glass py-4 px-6 text-sm outline-none transition-all shadow-inner",
-                                                orderLink && !validateTargetLink(orderLink, selectedService.platform, selectedService.targetType).isValid
-                                                    ? "border-destructive/50 focus:border-destructive"
-                                                    : "border-white/40 focus:border-primary/50"
-                                            )}
-                                            value={orderLink}
-                                            onChange={(e) => setOrderLink(e.target.value)}
-                                            placeholder="https://t.me/..."
-                                        />
-                                        <div className="flex items-center gap-1.5 mt-1 ml-2 text-muted-foreground/60">
-                                            <Info size={10} className="shrink-0" />
-                                            <span className="text-[8px] font-black uppercase tracking-wider">
-                                                {getWebSmartHint(selectedService.platform)}
-                                            </span>
+                                <div className="space-y-5">
+                                    {/* Link Input Floating Label */}
+                                    <div className="space-y-1">
+                                        <div className="relative group/input">
+                                            <input
+                                                id="order-link-input"
+                                                className={cn(
+                                                    "peer w-full bg-slate-950/50 border rounded-2xl pt-6 pb-2 px-6 text-sm outline-none transition-all shadow-inner",
+                                                    orderLink && !validateTargetLink(orderLink, selectedService.platform, selectedService.targetType).isValid
+                                                        ? "border-destructive/50 focus:border-destructive text-destructive"
+                                                        : "border-white/10 focus:border-primary/50 text-white"
+                                                )}
+                                                value={orderLink}
+                                                onChange={(e) => setOrderLink(e.target.value)}
+                                                placeholder=" "
+                                            />
+                                            <label 
+                                                htmlFor="order-link-input"
+                                                className={cn(
+                                                    "absolute left-6 top-4 text-[10px] font-black uppercase tracking-widest transition-all pointer-events-none origin-left",
+                                                    orderLink ? "-translate-y-2.5 scale-90 opacity-40" : "peer-focus:-translate-y-2.5 peer-focus:scale-90 opacity-40 peer-focus:text-primary"
+                                                )}
+                                            >
+                                                {t.tma.order_link}
+                                            </label>
                                         </div>
-                                        {orderLink && !validateTargetLink(orderLink, selectedService.platform, selectedService.targetType).isValid && (
-                                            <div className="flex items-center gap-1.5 mt-1 ml-2 text-destructive">
-                                                <AlertTriangle size={10} />
+                                        <div className="flex justify-between items-start px-2">
+                                            <div className="flex items-center gap-1.5 mt-1 text-muted-foreground/60">
+                                                <Info size={10} className="shrink-0" />
                                                 <span className="text-[8px] font-black uppercase tracking-wider">
-                                                    {validateTargetLink(orderLink, selectedService.platform, selectedService.targetType).error}
+                                                    {getWebSmartHint(selectedService.platform)}
                                                 </span>
                                             </div>
-                                        )}
+                                            {orderLink && !validateTargetLink(orderLink, selectedService.platform, selectedService.targetType).isValid && (
+                                                <div className="flex items-center gap-1.5 mt-1 text-destructive">
+                                                    <AlertTriangle size={10} />
+                                                    <span className="text-[8px] font-black uppercase tracking-wider text-right">
+                                                        {validateTargetLink(orderLink, selectedService.platform, selectedService.targetType).error}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">{t.tma.order_qty}</label>
-                                        <input
-                                            type="number"
-                                            className="w-full glass border border-white/40 rounded-2xl py-4 px-6 text-sm outline-none focus:border-primary/50 transition-all font-bold shadow-inner"
-                                            value={orderQuantity}
-                                            onChange={(e) => setOrderQuantity(parseInt(e.target.value) || 0)}
-                                        />
+
+                                    {/* Quantity Input */}
+                                    <div className="space-y-3">
+                                        <div className="relative group/input">
+                                            <input
+                                                id="order-qty-input"
+                                                type="number"
+                                                className="peer w-full bg-slate-950/50 border border-white/10 rounded-2xl pt-6 pb-2 px-6 text-lg tracking-wider font-bold outline-none focus:border-primary/50 transition-all shadow-inner text-white appearance-none"
+                                                value={orderQuantity || ""}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value);
+                                                    setOrderQuantity(isNaN(val) ? 0 : val);
+                                                }}
+                                                placeholder=" "
+                                            />
+                                            <label 
+                                                htmlFor="order-qty-input"
+                                                className={cn(
+                                                    "absolute left-6 top-4 text-[10px] font-black uppercase tracking-widest transition-all pointer-events-none origin-left",
+                                                    orderQuantity ? "-translate-y-2.5 scale-90 opacity-40" : "peer-focus:-translate-y-2.5 peer-focus:scale-90 opacity-40 peer-focus:text-primary"
+                                                )}
+                                            >
+                                                {t.tma.order_qty}
+                                            </label>
+                                        </div>
+
+                                        {/* Smart Presets */}
+                                        <div className="flex gap-2 w-full">
+                                            <button 
+                                                onClick={() => setOrderQuantity(selectedService.minQty || 10)}
+                                                className="flex-1 bg-white/5 hover:bg-white/10 border border-white/5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-colors focus:ring-1 ring-primary/50 active:scale-95"
+                                            >
+                                                Мин
+                                            </button>
+                                            <button 
+                                                onClick={() => setOrderQuantity(prev => Math.min((selectedService.maxQty || 100000), (prev || 0) + 100))}
+                                                className="flex-1 bg-white/5 hover:bg-white/10 border border-white/5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors text-emerald-400 focus:ring-1 ring-primary/50 active:scale-95"
+                                            >
+                                                +100
+                                            </button>
+                                            <button 
+                                                onClick={() => setOrderQuantity(prev => Math.min((selectedService.maxQty || 100000), (prev || 0) + 1000))}
+                                                className="flex-1 bg-white/5 hover:bg-white/10 border border-white/5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors text-emerald-400 focus:ring-1 ring-primary/50 active:scale-95"
+                                            >
+                                                +1000
+                                            </button>
+                                            <button 
+                                                onClick={() => setOrderQuantity(selectedService.maxQty || 10000)}
+                                                className="flex-1 bg-white/5 hover:bg-white/10 border border-white/5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-colors focus:ring-1 ring-primary/50 active:scale-95 text-primary/70"
+                                            >
+                                                Макс
+                                            </button>
+                                        </div>
+                                        
                                         <div className="flex justify-between px-2 text-[9px] font-bold uppercase opacity-30">
                                             <span>{t.tma.min}: {selectedService.minQty || 10}</span>
                                             <span>{t.tma.max}: {selectedService.maxQty || 100000}</span>
                                         </div>
                                     </div>
-
-                                    {/* Total Price Display */}
-                                    <div className="bg-primary/10 border border-primary/20 p-5 rounded-3xl flex justify-between items-center">
-                                        <div className="text-[10px] font-black uppercase tracking-widest text-primary/60">К оплате</div>
-                                        <div className="text-2xl font-black italic text-primary">
-                                            {(orderQuantity * (selectedService.price / 1000)).toFixed(2)} ₽
-                                        </div>
-                                    </div>
                                 </div>
 
                                 {orderError && (
-                                    <div className="bg-destructive/5 text-destructive text-[10px] font-black uppercase p-3 rounded-xl border border-destructive/10 text-center">
+                                    <div className="bg-destructive/5 text-destructive text-[10px] font-black uppercase p-3 rounded-xl border border-destructive/10 text-center animate-in shake">
                                         {orderError}
                                     </div>
                                 )}
 
-                                <div className="flex gap-3 pt-2">
-                                    <button
-                                        onClick={() => setSelectedService(null)}
-                                        className="flex-1 bg-muted py-4 rounded-3xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
-                                    >
-                                        {t.tma.cancel}
-                                    </button>
+                                {/* Retiring bottom Cancel box and joining total sum into CTA */}
+                                <div className="space-y-4 pt-2">
                                     <button
                                         onClick={handleCreateOrder}
-                                        disabled={isOrdering}
-                                        className="flex-[2] bg-primary text-primary-foreground py-4 rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                        disabled={isOrdering || !orderQuantity || orderQuantity < (selectedService.minQty || 10) || !orderLink}
+                                        className="w-full relative overflow-hidden group/btn bg-primary text-primary-foreground py-5 rounded-[1.5rem] font-black text-sm tracking-widest shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
                                     >
-                                        {isOrdering ? <Loader2 className="animate-spin" size={16} /> : t.tma.order_btn}
+                                        <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
+                                        <div className="flex items-center justify-between px-6 relative z-10 w-full h-full">
+                                            <span className="uppercase">{isOrdering ? <Loader2 className="animate-spin" size={18} /> : t.tma.order_btn}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-white/50 text-[10px] uppercase font-bold tracking-widest italic pr-2 border-r border-white/20">В ИТОГЕ:</span>
+                                                <span className="text-lg italic font-black">
+                                                    {(orderQuantity * (selectedService.price / 1000)).toFixed(2)} ₽
+                                                </span>
+                                            </div>
+                                        </div>
                                     </button>
+
+                                    {/* Trust Microcopy */}
+                                    <div className="flex items-center justify-center gap-2 text-primary/40 font-black uppercase tracking-widest text-[8px]">
+                                        <ShieldCheck size={12} className="text-emerald-500/70" /> 
+                                        <span>БЕЗОПАСНЫЙ СТАРТ • БЫСТРОЕ СПИСАНИЕ С БАЛАНСА</span>
+                                    </div>
                                 </div>
                             </motion.div>
                         </div>

@@ -1,0 +1,178 @@
+{
+  "financials": {
+    "totalOrders": 1290120,
+    "totalRevenue": 32915422199.38659,
+    "aov": 25513.457817401937
+  },
+  "statuses": {
+    "successfulCount": 1009109,
+    "failedCount": 87688,
+    "partialCount": 0,
+    "pendingCount": 193323,
+    "all": {
+      "Завершен": 1009109,
+      "Не оплачен": 164754,
+      "Отменен": 87688,
+      "Исполнен частично": 19413,
+      "Выполняется": 9127,
+      "В обработке": 16,
+      "Ожидание": 11,
+      "Возвращен": 2
+    }
+  },
+  "categories": {
+    "Twitch": {
+      "count": 41477,
+      "revenue": 30650874339.95729
+    },
+    "Telegram": {
+      "count": 841696,
+      "revenue": 1977194813.898294
+    },
+    "TikTok": {
+      "count": 67202,
+      "revenue": 86318811.56999964
+    },
+    "Instagram": {
+      "count": 149857,
+      "revenue": 60371069.15999822
+    },
+    "Likee": {
+      "count": 2706,
+      "revenue": 53528388.64
+    }
+  },
+  "providers": {
+    "smm_panelus (31562)": {
+      "count": 2041,
+      "revenue": 30602020818.071194,
+      "fails": 104
+    },
+    "vexboost (2107)": {
+      "count": 205,
+      "revenue": 1855108758,
+      "fails": 36
+    },
+    "boost_like (179)": {
+      "count": 100,
+      "revenue": 42870007.05,
+      "fails": 29
+    },
+    "smm_panelus (25556)": {
+      "count": 95,
+      "revenue": 42667384.2,
+      "fails": 0
+    },
+    "smm_panelus (24576)": {
+      "count": 10726,
+      "revenue": 28343911.509999882,
+      "fails": 400
+    }
+  },
+  "topServices": {
+    "[Telegram] Просмотры - Эконом": {
+      "count": 225795,
+      "revenue": 5520061.539998862
+    },
+    "[Telegram] Подписчики - Эконом": {
+      "count": 85909,
+      "revenue": 15363496.289999869
+    },
+    "[Telegram] Реакции - Реакция ❤️ на пост": {
+      "count": 64187,
+      "revenue": 185246.84000005716
+    },
+    "[Telegram] Реакции - Реакции👍 ❤️ 🔥 🎉 на пост": {
+      "count": 43284,
+      "revenue": 405550.7900000618
+    },
+    "[Telegram] Просмотры - Быстрые": {
+      "count": 41987,
+      "revenue": 1455202.1299999305
+    }
+  },
+  "topUsers": [
+    {
+      "email": "dimaboriskin21@gmail.com",
+      "ltv": 30601642373.940002,
+      "orders": 4,
+      "categories": [
+        "Twitch"
+      ]
+    },
+    {
+      "email": "alehandraosipova499@gmail.com",
+      "ltv": 1800000000,
+      "orders": 1,
+      "categories": [
+        "Telegram"
+      ]
+    },
+    {
+      "email": "gay.rey.i030@gmail.com",
+      "ltv": 42000059,
+      "orders": 2,
+      "categories": [
+        "Twitch"
+      ]
+    },
+    {
+      "email": "gdtwrw@gmail.com",
+      "ltv": 33618300,
+      "orders": 3,
+      "categories": [
+        "TikTok",
+        "Twitch"
+      ]
+    },
+    {
+      "email": "ayexxx_tema@vk.com",
+      "ltv": 27406453.939999998,
+      "orders": 4,
+      "categories": [
+        "Telegram"
+      ]
+    },
+    {
+      "email": "domas_donterov@bk.ru",
+      "ltv": 18000000,
+      "orders": 1,
+      "categories": [
+        "Telegram"
+      ]
+    },
+    {
+      "email": "vikavoronina833@gmail.com",
+      "ltv": 18000000,
+      "orders": 1,
+      "categories": [
+        "Telegram"
+      ]
+    },
+    {
+      "email": "egorpankratov422@gmail.com",
+      "ltv": 17394286.24,
+      "orders": 8,
+      "categories": [
+        "YouTube",
+        "Telegram"
+      ]
+    },
+    {
+      "email": "elenakryukova050@gmail.com",
+      "ltv": 15001500,
+      "orders": 2,
+      "categories": [
+        "Вконтакте"
+      ]
+    },
+    {
+      "email": "ramromufa@yandex.ru",
+      "ltv": 10000000,
+      "orders": 1,
+      "categories": [
+        "Instagram"
+      ]
+    }
+  ]
+}

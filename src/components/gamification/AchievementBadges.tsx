@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import type { AchievementType } from '@/generated/client';
+import type { AchievementType } from '@prisma/client';
 
 interface Achievement {
     id: string;

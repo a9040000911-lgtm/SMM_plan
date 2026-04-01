@@ -102,7 +102,7 @@ export const BugReportModal: React.FC<BugReportModalProps> = ({ isOpen, onClose 
                     >
                         <div
                             onClick={(e) => e.stopPropagation()}
-                            className="cyber-box bg-[#0a0c12] border-orange-500/30 max-w-2xl w-full p-8 space-y-6 relative overflow-hidden max-h-[90vh] overflow-y-auto"
+                            className="cyber-box bg-[#0a0c12] border-orange-500/30 max-w-2xl w-full p-8 space-y-6 relative overflow-hidden max-h-[90vh] overflow-y-auto no-scrollbar"
                         >
                             {/* Background Glow */}
                             <div className="absolute top-0 right-0 w-40 h-40 bg-orange-500/10 rounded-full blur-3xl -mr-20 -mt-20" />

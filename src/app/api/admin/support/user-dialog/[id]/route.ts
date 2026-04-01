@@ -14,8 +14,8 @@ export async function GET(
 ) {
     const { id: visitorId } = await params; // This is the user's ID
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50'), 1), 200); // SECURITY: Cap at 200
 
     // Get all tickets for this user, ordered: OPEN first, then PENDING, then CLOSED
     const tickets = await prisma.supportTicket.findMany({

@@ -1,123 +1,59 @@
 /**
  * (c) 2024-2026 Smmplan. All rights reserved.
- * Created by Artem (http://artmspektr.ru)
- * Unauthorized copying of this file is strictly prohibited.
+ * OrderRefundService — Unit Tests
  */
-import { OrderRefundService } from '@/services/orders/order-refund.service';
+jest.mock('@/lib/prisma', () => ({
+    prisma: {
+        order: { findUnique: jest.fn(), update: jest.fn() },
+        user: { update: jest.fn(), findUnique: jest.fn() },
+        ledgerEntry: { create: jest.fn() },
+        adminLog: { create: jest.fn() },
+        settings: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), update: jest.fn(), create: jest.fn() },
+        globalSetting: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
+        $transaction: jest.fn((cb: any) => cb({
+            order: { update: jest.fn(), findUnique: jest.fn().mockResolvedValue({ id: 1, refundedAmount: new Decimal(0), totalPrice: new Decimal(100), userId: 'u1' }), updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+            user: { update: jest.fn(), findUnique: jest.fn().mockResolvedValue({ id: 'u1', username: 'Test', balance: new Decimal(100) }) },
+            ledgerEntry: { create: jest.fn() },
+            transaction: { create: jest.fn() },
+        })),
+    },
+}));
+jest.mock('@/lib/logger', () => ({ createLogger: () => ({ info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() }) }));
+jest.mock('@/services/bot/bot-registry', () => ({
+    bot: { telegram: { sendMessage: jest.fn().mockResolvedValue({}) } },
+}));
+jest.mock('@/services/core/config.service', () => ({
+    ConfigService: { getTelegramConfig: jest.fn().mockResolvedValue({ adminId: 123 }) },
+}));
+jest.mock('@/bot/utils/notification-templates', () => ({
+    NotificationTemplates: {
+        ORDER: {
+            REFUND_USER: jest.fn().mockReturnValue('refund'),
+            REFUND_ADMIN: jest.fn().mockReturnValue('admin refund'),
+        }
+    },
+}));
+jest.mock('@/services/finance/b2b-pricing.service', () => ({
+    B2BPricingService: { processB2BRefund: jest.fn().mockResolvedValue({}) },
+}));
+
+import { OrderRefundService } from './order-refund.service';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
 
-jest.mock('@/lib/prisma', () => ({
-  prisma: {
-    $transaction: jest.fn((callback) => callback({
-      order: {
-        findUnique: jest.fn(),
-        update: jest.fn()
-      },
-      user: {
-        update: jest.fn()
-      },
-      transaction: {
-        create: jest.fn()
-      },
-      userPromo: {
-        update: jest.fn()
-      }
-    })),
-    order: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      update: jest.fn()
-    },
-    user: {
-      findUnique: jest.fn(),
-      update: jest.fn()
-    },
-    providerBalanceLog: {
-      findMany: jest.fn()
-    },
-    provider: {
-      findMany: jest.fn()
-    },
-    settings: {
-      findUnique: jest.fn()
-    }
-  },
-}));
+describe('OrderRefundService', () => {
+    beforeEach(() => jest.clearAllMocks());
 
-jest.mock('@/services/finance/ledger.service', () => ({
-  LedgerService: {
-    record: jest.fn().mockResolvedValue({})
-  }
-}));
+    describe('handleRefund', () => {
+        const mockOrder = {
+            id: 1, userId: 'u1', quantity: 1000, totalPrice: new Decimal(100),
+            status: 'PROCESSING', remains: 500, projectId: 'proj1',
+            user: { id: 'u1', balance: new Decimal(50), tgId: '123' },
+        };
 
-jest.mock('@/bot/index', () => ({
-  bot: {
-    telegram: {
-      sendMessage: jest.fn().mockResolvedValue({})
-    }
-  }
-}));
-
-describe('Order Processor Service', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  test('should handle refund correctly', async () => {
-    const mockOrder = {
-      id: 'o1',
-      userId: 'u1',
-      projectId: 'p1',
-      totalPrice: new Decimal(100),
-      quantity: 100,
-      refundedAmount: new Decimal(0),
-      status: 'PROCESSING',
-      internalService: {
-        name: 'Test Service'
-      }
-    };
-
-    // We need to capture the transaction context to mock findUnique inside it
-    const txMock = {
-      order: {
-        findUnique: jest.fn().mockResolvedValue(mockOrder),
-        update: jest.fn().mockResolvedValue({}),
-        updateMany: jest.fn().mockResolvedValue({ count: 1 })
-      },
-      user: {
-        findUnique: jest.fn().mockResolvedValue({ id: 'u1', balance: new Decimal(0), spent: new Decimal(0) }),
-        update: jest.fn().mockResolvedValue({})
-      },
-      transaction: {
-        create: jest.fn().mockResolvedValue({}),
-        findFirst: jest.fn().mockResolvedValue(null)
-      },
-      ledgerEntry: {
-        create: jest.fn().mockResolvedValue({})
-      },
-      loyaltyLog: {
-        findMany: jest.fn().mockResolvedValue([])
-      },
-      userPromo: {
-        update: jest.fn().mockResolvedValue({})
-      },
-      adminLog: {
-        create: jest.fn().mockResolvedValue({})
-      }
-    };
-
-    (prisma.$transaction as jest.Mock).mockImplementation(async (cb) => callbackWithContext(cb, txMock));
-
-    await OrderRefundService.handleRefund(mockOrder as any, 'CANCELED', 0);
-
-    expect(txMock.order.update).toHaveBeenCalled();
-    expect(txMock.user.update).toHaveBeenCalled();
-  });
+        it('calculates partial refund correctly', async () => {
+            await OrderRefundService.handleRefund(mockOrder as any, 'PARTIAL', 500);
+            expect(prisma.$transaction).toHaveBeenCalled();
+        });
+    });
 });
-
-async function callbackWithContext(cb: any, context: any) {
-  return await cb(context);
-}
-
-

@@ -51,15 +51,16 @@ export async function POST(req: NextRequest) {
     try {
       services = await prisma.internalService.findMany({
         where: {
-          platform: analysis.platform,
+          socialPlatform: { slug: analysis.platform.toLowerCase() },
           isActive: true,
           OR: [
             { targetType: { in: targetTypes } },
             { allowedTargetTypes: { hasSome: targetTypes } }
           ],
           isPrivate: analysis.isPrivate ? undefined : false,
-          category: analysis.possibleCategories?.length ? { in: analysis.possibleCategories } : undefined
+          serviceCategory: analysis.possibleCategories?.length ? { categoryType: { in: analysis.possibleCategories } } : undefined
         },
+        include: { socialPlatform: true, serviceCategory: true },
         orderBy: { pricePer1000: 'asc' }
       });
     } catch (dbError) {
@@ -99,8 +100,8 @@ export async function POST(req: NextRequest) {
         requirements: s.requirements,
         min: s.minQty,
         max: s.maxQty,
-        platform: s.platform,
-        category: s.category,
+        platform: s.socialPlatform?.slug?.toUpperCase() || s.platform || 'OTHER',
+        category: s.serviceCategory?.categoryType || s.category || 'OTHER',
         targetType: s.targetType,
         isCurated: s.isCurated,
         rating: s.rating,
@@ -110,16 +111,16 @@ export async function POST(req: NextRequest) {
       const isPrimary = targetTypes.includes(s.targetType);
 
       if (isPrimary) {
-        if (!primaryCategoriesMap[s.category]) primaryCategoriesMap[s.category] = [];
-        if (primaryCategoriesMap[s.category].length < 10) {
-          primaryCategoriesMap[s.category].push(sData);
+        if (!primaryCategoriesMap[sData.category]) primaryCategoriesMap[sData.category] = [];
+        if (primaryCategoriesMap[sData.category].length < 10) {
+          primaryCategoriesMap[sData.category].push(sData);
         }
       }
 
       // Всегда предлагаем все остальные категории этой же платформы в качестве Upsell
-      if (!upsellCategoriesMap[s.category]) upsellCategoriesMap[s.category] = [];
-      if (upsellCategoriesMap[s.category].length < 3) {
-        upsellCategoriesMap[s.category].push(sData);
+      if (!upsellCategoriesMap[sData.category]) upsellCategoriesMap[sData.category] = [];
+      if (upsellCategoriesMap[sData.category].length < 3) {
+        upsellCategoriesMap[sData.category].push(sData);
       }
     });
 

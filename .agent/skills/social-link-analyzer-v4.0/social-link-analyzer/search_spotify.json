@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://support.spotify.com/us/artists/article/finding-your-artist-track-release-links",
+    "name": "Finding your Spotify artist, track, and release links",
+    "snippet": "Find your artist link . On desktop. Go to your artist profile. Click the 3 dots or right-click your artist name. Select Share. Select Copy link to artist . Read more",
+    "host_name": "support.spotify.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://spotiurl.com/uri/playlist",
+    "name": "What Is a Spotify Playlist URI? Format, Examples & How",
+    "snippet": "A Spotify playlist URI identifies a specific playlist , whether it's a personal collection, a collaborative playlist , or one of Spotify's editorial playlists . Read more",
+    "host_name": "spotiurl.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.spotify.com/documentation/design",
+    "name": "Design & Branding Guidelines | Spotify for Developers",
+    "snippet": "Track , artist , playlist , and album titles must always be presented with the metadata provided by Spotify . The metadata must always be legible. You may truncate ... Read more",
+    "host_name": "developer.spotify.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.spotify.com/documentation/web-api/reference/search",
+    "name": "Web API Reference | Spotify for Developers",
+    "snippet": "Get Spotify catalog information about albums, artists, playlists, tracks, shows, episodes or audiobooks that match a keyword string. Read more",
+    "host_name": "developer.spotify.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/shortcuts/comments/1jn2hzn/extensive_list_of_spotify_uri_schemes",
+    "name": "Extensive List of Spotify URI Schemes : r/shortcuts",
+    "snippet": "Hello y'all! Over the past month or so I have been trying to find as many Spotify URI schemes as I can due to the limited documentation. Read more",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.spotify.com/documentation/web-api/reference/get-an-artists-albums",
+    "name": "Get Artist's Albums",
+    "snippet": "Metadata, cover art and artist images must be accompanied by a link back to the applicable artist , album , track , or playlist on the Spotify Service. Read more",
+    "host_name": "developer.spotify.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.spotify.com/documentation/web-api/reference/get-an-albums-tracks",
+    "name": "Get Album Tracks",
+    "snippet": "Get Spotify catalog information about an album's tracks . Optional parameters can be used to limit the number of tracks returned. Read more",
+    "host_name": "developer.spotify.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://mintlify.com/jonathan343/spotify-sdk/api/models/track",
+    "name": "Track Models - Spotify SDK",
+    "snippet": "Track Models. The track models represent track data from the Spotify API. Tracks can be embedded in albums and playlists or returned with full details. Read more",
+    "host_name": "mintlify.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.spotify.com/documentation/web-api/concepts/spotify-uris-ids",
+    "name": "Spotify URIs and IDs",
+    "snippet": "To find a Spotify URI, right-click (on Windows) or Ctrl-Click (on a Mac) on the artist , album or track name. Example: spotify : track :6rqhFgbbKwnb9MLmUQDhG6. Read more",
+    "host_name": "developer.spotify.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/12514569/how-do-i-create-links-to-an-artist-track-or-album-in-a-spotify-app-as-described",
+    "name": "How do I create links to an artist, track or album in a Spotify",
+    "snippet": "The client will be smart enough to do the right thing. You can get these URIs from Track , Artist , Album and Playlist objects in the API. Read more",
+    "host_name": "stackoverflow.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

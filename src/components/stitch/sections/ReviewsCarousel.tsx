@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Star, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import { cn } from '@/utils/ui';
 
 interface Review {
@@ -28,10 +28,15 @@ interface ReviewsCarouselProps {
 const ReviewCard = memo(({ review }: { review: Review }) => (
     <motion.div
         layout
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        className="flex-1 min-w-[300px] md:min-w-0 bg-blue-50/80 border border-blue-100/50 rounded-3xl p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300 group"
+        initial={{ opacity: 0, x: 40 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -40 }}
+        transition={{ 
+            layout: { type: "spring", damping: 25, stiffness: 120 },
+            opacity: { duration: 0.4 },
+            x: { duration: 0.5 }
+        }}
+        className="flex-1 min-w-[300px] md:w-[calc(33.333%-16px)] bg-blue-50/80 border border-blue-100/50 rounded-3xl p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow duration-300 group"
     >
         <div>
             <div className="flex gap-1 mb-4">
@@ -51,12 +56,18 @@ const ReviewCard = memo(({ review }: { review: Review }) => (
         </div>
 
         <div className="flex items-center gap-3 pt-4 border-t border-blue-100/30">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white text-sm font-black shadow-sm group-hover:scale-105 transition-transform">
+            <div className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-black shadow-inner group-hover:scale-105 transition-transform overflow-hidden",
+                !review.avatarUrl && "bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10"
+            )}>
                 {review.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={review.avatarUrl} alt="" className="w-full h-full object-cover rounded-xl" />
+                    <img src={review.avatarUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
-                    (review.userName || review.user?.username || 'A').charAt(0).toUpperCase()
+                    <div className="flex flex-col items-center">
+                        <User size={18} className="text-blue-400" />
+                        <div className="w-1 h-1 rounded-full bg-blue-400 mt-0.5 animate-pulse" />
+                    </div>
                 )}
             </div>
             <div className="overflow-hidden">
@@ -130,16 +141,16 @@ export const ReviewsCarousel = memo(({ reviews }: ReviewsCarouselProps) => {
     return (
         <div className="w-full relative py-8">
             <div className="relative">
-                {/* Contain with enough padding for shadows and rounded corners */}
-                <div className="relative overflow-visible min-h-[280px] -m-4 p-4">
+                {/* Contain with enough padding for navigation arrows and shadows */}
+                <div className="relative overflow-visible min-h-[280px] -m-4 px-12 py-4">
                     <div className={cn(
                         "flex gap-4 md:gap-6 w-full h-full",
                         !showNavigation && "justify-center"
                     )}>
                         <AnimatePresence mode="popLayout" initial={false}>
-                            {visibleRange.map((review, idx) => (
+                            {visibleRange.map((review) => (
                                 <ReviewCard
-                                    key={`${review.id}-${showNavigation ? currentIndex : 'static'}-${idx}`}
+                                    key={review.id}
                                     review={review}
                                 />
                             ))}
@@ -152,14 +163,14 @@ export const ReviewsCarousel = memo(({ reviews }: ReviewsCarouselProps) => {
                     <>
                         <button
                             onClick={prev}
-                            className="absolute -left-2 top-1/2 -translate-y-1/2 w-12 h-12 bg-white border border-blue-100 shadow-xl rounded-2xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:scale-105 transition-all z-30 active:scale-95"
+                            className="absolute -left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white border border-blue-100 shadow-xl rounded-2xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:scale-105 transition-all z-30 active:scale-95"
                             aria-label="Previous review"
                         >
                             <ChevronLeft size={24} />
                         </button>
                         <button
                             onClick={next}
-                            className="absolute -right-2 top-1/2 -translate-y-1/2 w-12 h-12 bg-white border border-blue-100 shadow-xl rounded-2xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:scale-105 transition-all z-30 active:scale-95"
+                            className="absolute -right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white border border-blue-100 shadow-xl rounded-2xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:scale-105 transition-all z-30 active:scale-95"
                             aria-label="Next review"
                         >
                             <ChevronRight size={24} />

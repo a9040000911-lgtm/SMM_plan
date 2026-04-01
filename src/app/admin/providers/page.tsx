@@ -42,6 +42,7 @@ import {
 } from './actions';
 import { MetadataBuilder } from '@/components/admin/providers/metadata-builder';
 import { SecurityReportModal } from '@/components/admin/providers/security-report-modal'; // Add this import
+import { AdminTableCard } from '@/components/admin/core/admin-table-card';
 
 export default function ProvidersPage() {
   const [providers, setProviders] = useState<AdminProvider[]>([]);
@@ -281,10 +282,8 @@ export default function ProvidersPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <AdminHeader
-        title={isGlobalMode ? 'API Провайдеры (Глобально)' : 'Провайдеры проекта'}
-        subtitle={isGlobalMode
-          ? 'Управление мастер-ключами и общими кошельками'
-          : 'Проектные переопределения и локальные провайдеры'}
+        title="API-Провайдеры"
+        subtitle="Внешние интеграции, контроль балансов и качества (Success Rate)"
         rightElement={
           <div className="flex items-center gap-3">
             <button
@@ -338,18 +337,11 @@ export default function ProvidersPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
-                  <BrainCircuit size={20} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-800">Анализ счетов провайдеров</h3>
-                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Обучено на дельтах расхода</p>
-                </div>
-              </div>
-            </div>
+          <AdminTableCard 
+            title="Анализ счетов провайдеров" 
+            icon={BrainCircuit}
+            description="Обучено на дельтах расхода"
+          >
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -423,22 +415,20 @@ export default function ProvidersPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </AdminTableCard>
         </>
       )}
 
 
-      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-8 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="font-bold text-slate-800 text-lg uppercase tracking-tight flex items-center gap-2">
-            <div className="p-2 bg-slate-900 text-white rounded-lg"><CreditCard size={18} /></div>
-            Список провайдеров
-          </h3>
-          <div className="text-sm text-slate-500 font-medium">
-            Всего провайдеров: <span className="text-slate-900 font-bold">{providers.length}</span>
+      <AdminTableCard 
+        title="Список интеграций" 
+        icon={CreditCard}
+        rightElement={
+          <div className="text-sm text-slate-500 font-medium whitespace-nowrap">
+            Всего: <span className="text-slate-900 font-bold">{providers.length}</span>
           </div>
-        </div>
-
+        }
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -472,6 +462,9 @@ export default function ProvidersPage() {
                           )}
                           {provider.type !== 'universal' && (
                             <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[9px] font-bold border border-indigo-100">{provider.type}</span>
+                          )}
+                          {(provider.metadata as any)?.isMock && (
+                            <span className="px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded text-[9px] font-bold border border-amber-200 animate-pulse">🧪 ТЕСТ</span>
                           )}
                           {(['stream-promotion', 'vexboost'].includes(provider.type) || (provider.metadata as any)?.currency === 'USD') && (
                             <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[9px] font-bold border border-emerald-100">USD</span>
@@ -604,7 +597,7 @@ export default function ProvidersPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </AdminTableCard>
 
       {/* MODALS */}
       {(isEditModalOpen || isAddModalOpen) && (

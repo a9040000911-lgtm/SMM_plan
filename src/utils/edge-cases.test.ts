@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { analyzeLink } from './analyzer';
-import { Platform, Category } from '@/generated/client';
+import { Platform, Category } from '@prisma/client';
 
 describe('Edge Cases (Survivor Bias Method)', () => {
   describe('Analyzer Edge Cases', () => {

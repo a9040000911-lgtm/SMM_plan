@@ -6,11 +6,23 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { FileText, AlertCircle, CheckCircle2, Loader2, PlusCircle } from "lucide-react";
+import { 
+    FileText, 
+    AlertCircle, 
+    CheckCircle2, 
+    Loader2, 
+    PlusCircle
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function MassOrderContent() {
     const [ordersText, setOrdersText] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [magicCode, setMagicCode] = useState("");
+    const [authMode, setAuthMode] = useState<'PASSWORD' | 'MAGIC' | null>(null);
     const [loading, setLoading] = useState(false);
+    const [isSendingCode, setIsSendingCode] = useState(false);
     const [status, setStatus] = useState<{ success?: string, error?: string } | null>(null);
 
     useEffect(() => {
@@ -20,6 +32,20 @@ export function MassOrderContent() {
             } catch (_error) { console.error(_error); }
         };
         fetchCatalog();
+
+        // --- BROKEN LOOP PROTECTION: Restore draft if found ---
+        try {
+            const draftRaw = localStorage.getItem('smmplan_draft_mass');
+            if (draftRaw) {
+                const draft = JSON.parse(draftRaw);
+                if (draft.expiresAt > Date.now()) {
+                    setOrdersText(draft.text || "");
+                    setEmail(draft.email || "");
+                    setStatus({ success: "Ваш массовый заказ был восстановлен. Вы можете продолжить!" });
+                }
+                localStorage.removeItem('smmplan_draft_mass');
+            }
+        } catch (e) { console.error("Draft restore failed", e); }
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -39,27 +65,80 @@ export function MassOrderContent() {
             }).filter(o => o.serviceId && o.quantity && o.link);
 
             if (parsedOrders.length === 0) {
-                setStatus({ error: "Неверный формат данных" });
+                setStatus({ error: "Неверный формат данных. Используйте: Service_ID | Quantity | Link" });
                 setLoading(false);
                 return;
             }
 
-            let successCount = 0;
-            for (const order of parsedOrders) {
-                const res = await fetch("/api/client/orders", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(order)
-                });
-                if (res.ok) successCount++;
+            const res = await fetch("/api/client/orders", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    batch: parsedOrders,
+                    email: email || undefined,
+                    password: authMode === 'PASSWORD' ? password : undefined,
+                    magicCode: authMode === 'MAGIC' ? magicCode : undefined
+                })
+            });
+
+            const data = await res.json();
+            
+            if (!res.ok) {
+                if (res.status === 409) {
+                    setAuthMode('PASSWORD');
+                    throw new Error(data.message || 'Email уже зарегистрирован. Введите пароль.');
+                }
+                throw new Error(data.error || "Ошибка при отправке");
             }
 
-            setStatus({ success: `Успешно создано зазаков: ${successCount}` });
-            setOrdersText("");
-        } catch (_error) {
-            setStatus({ error: "Произошла ошибка при отправке" });
+            // --- SEAMLESS AUTH ---
+            if (data.loginToken) {
+                try {
+                    const { signIn } = await import("next-auth/react");
+                    await signIn('credentials', { magicToken: data.loginToken, redirect: false });
+                } catch (e) { console.warn("Mass Auth Failed", e); }
+            }
+
+            if (data.requiresPayment && data.paymentUrl) {
+                // --- BROKEN LOOP PROTECTION ---
+                localStorage.setItem('smmplan_draft_mass', JSON.stringify({
+                    text: ordersText,
+                    email: email,
+                    expiresAt: Date.now() + 1000 * 60 * 60
+                }));
+                window.location.href = data.paymentUrl;
+            } else {
+                setStatus({ success: `Успешно создано заказов: ${parsedOrders.length}` });
+                setOrdersText("");
+            }
+        } catch (err: any) {
+            setStatus({ error: err.message || "Произошла ошибка при отправке" });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSendMagicCode = async () => {
+        if (!email || isSendingCode) return;
+        setIsSendingCode(true);
+        setStatus(null);
+        try {
+            const res = await fetch('/api/client/auth/send-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            if (res.ok) {
+                setAuthMode('MAGIC');
+                setStatus({ success: 'Код отправлен на почту!' });
+            } else {
+                const data = await res.json();
+                setStatus({ error: data.error || 'Не удалось отправить код' });
+            }
+        } catch (e) {
+            setStatus({ error: 'Ошибка сети' });
+        } finally {
+            setIsSendingCode(false);
         }
     };
 
@@ -94,38 +173,105 @@ export function MassOrderContent() {
 
                 <div className="lg:col-span-2 space-y-6">
                     <form onSubmit={handleSubmit} className="bg-card border border-border p-8 rounded-[2.5rem] shadow-2xl space-y-6">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Список заказов</label>
-                            <textarea
-                                value={ordersText}
-                                onChange={(e) => setOrdersText(e.target.value)}
-                                placeholder="Service_ID | Quantity | Link"
-                                className="w-full min-h-[400px] bg-muted/30 border border-border focus:border-primary/50 outline-none rounded-3xl p-6 text-sm font-mono tracking-tight transition-all resize-none"
-                            />
+                        <div className="space-y-4 pt-4 border-t border-border/10">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2 text-primary">Email для подтверждения</label>
+                                <input 
+                                    type="email"
+                                    placeholder="example@mail.com"
+                                    value={email}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        if (authMode) setAuthMode(null);
+                                    }}
+                                    className="w-full bg-muted/20 border border-border focus:border-primary/50 outline-none rounded-2xl py-3 px-6 text-sm font-medium transition-all"
+                                />
+                            </div>
+
+                            <AnimatePresence mode="wait">
+                                {authMode === 'PASSWORD' && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="space-y-2"
+                                    >
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-2">Пароль аккаунта</label>
+                                        <input 
+                                            type="password"
+                                            placeholder="••••••••"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            className="w-full bg-muted/30 border border-primary/30 rounded-2xl py-3 px-6 text-sm font-medium outline-none focus:border-primary transition-all"
+                                        />
+                                        <button 
+                                            type="button"
+                                            onClick={handleSendMagicCode}
+                                            className="text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors px-2"
+                                        >
+                                            Забыли пароль? Войти по коду
+                                        </button>
+                                    </motion.div>
+                                )}
+
+                                {authMode === 'MAGIC' && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="space-y-2"
+                                    >
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-success ml-2">Код из письма</label>
+                                        <input 
+                                            type="text"
+                                            placeholder="000000"
+                                            maxLength={6}
+                                            value={magicCode}
+                                            onChange={(e) => setMagicCode(e.target.value.replace(/\D/g, ''))}
+                                            className="w-full bg-success/5 border border-success/30 rounded-2xl py-3 px-6 text-sm font-medium outline-none focus:border-success transition-all text-center tracking-[0.5em]"
+                                        />
+                                        <button 
+                                            type="button"
+                                            onClick={() => setAuthMode('PASSWORD')}
+                                            className="text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors px-2"
+                                        >
+                                            Вернуться к паролю
+                                        </button>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
 
                         {status?.error && (
-                            <div className="flex items-center gap-3 p-4 bg-destructive/5 border border-destructive/10 rounded-2xl text-destructive text-[10px] font-black uppercase">
-                                <AlertCircle size={16} />
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex items-center gap-3 p-5 bg-destructive/5 border border-destructive/10 rounded-2xl text-destructive text-[10px] font-black uppercase tracking-tight"
+                            >
+                                <AlertCircle size={18} />
                                 {status.error}
-                            </div>
+                            </motion.div>
                         )}
 
                         {status?.success && (
-                            <div className="flex items-center gap-3 p-4 bg-success/5 border border-success/10 rounded-2xl text-success text-[10px] font-black uppercase">
-                                <CheckCircle2 size={16} />
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex items-center gap-3 p-5 bg-success/5 border border-success/10 rounded-2xl text-success text-[10px] font-black uppercase tracking-tight"
+                            >
+                                <CheckCircle2 size={18} />
                                 {status.success}
-                            </div>
+                            </motion.div>
                         )}
 
                         <button
                             type="submit"
                             disabled={loading || !ordersText.trim()}
-                            className="w-full bg-primary text-primary-foreground py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-2"
+                            className="w-full bg-slate-950 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl shadow-slate-900/20 hover:bg-primary transition-all flex items-center justify-center gap-3 group disabled:opacity-50"
                         >
                             {loading ? <Loader2 className="animate-spin" size={20} /> : (
                                 <>
-                                    <PlusCircle size={18} /> Запустить массовый процесс
+                                    Запустить процесс <PlusCircle size={18} className="group-hover:rotate-90 transition-transform" />
                                 </>
                             )}
                         </button>

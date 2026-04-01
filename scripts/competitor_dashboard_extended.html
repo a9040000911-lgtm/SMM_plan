@@ -1,0 +1,186 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMMToolbox / PrimeLike — Расширенная Аналитика</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px; color: #1f2937; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #e5e7eb; }
+        .brand { font-size: 24px; font-weight: bold; color: #111827; }
+        .subtitle { color: #6b7280; font-size: 14px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 24px; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .card h3 { margin: 0 0 16px 0; font-size: 16px; color: #4b5563; }
+        .value { font-size: 28px; font-weight: bold; color: #111827; margin-bottom: 4px; }
+        .sub-value { font-size: 14px; color: #6b7280; }
+        .chart-container { position: relative; height: 400px; width: 100%; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e5e7eb; }
+        th { background-color: #f9fafb; font-weight: 600; color: #374151; }
+        tr:hover { background-color: #f9fafb; }
+        .alert { background: #fee2e2; color: #991b1b; padding: 16px; border-radius: 8px; margin-bottom: 24px; outline: 1px solid #f87171; }
+        .info { background: #e0f2fe; color: #075985; padding: 16px; border-radius: 8px; margin-bottom: 24px; outline: 1px solid #7dd3fc; }
+        .flex-row { display: flex; gap: 20px; }
+        .w-1-2 { width: 50%; }
+        .loss-text { color: #ef4444; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <div class="brand">SMMToolbox / PrimeLike — Разведывательный Дашборд</div>
+                <div class="subtitle">Анализ отмен, выявление брендов-прикрытий и корреляция с маркетингом</div>
+            </div>
+            <div style="text-align: right">
+                <strong>Юрлица приема платежей:</strong> ИП Соловов Н.С., ИП Расторгуев Е.<br>
+                <span class="subtitle">Основной трафик: SEO-статьи (vc.ru, dtf.ru)</span>
+            </div>
+        </div>
+
+        <div class="info">
+            <strong>🕵️‍♂️ Инсайт по брендингу:</strong> SMMToolbox.ru — это закрытая/теневая панель управления, а <strong>PrimeLike.ru</strong> — их публичная "белая" витрина. Все платежи принимаются на ИП Соловов Никита Сергеевич (ОКВЭД 73.11 Рекламные агентства) и частично на ИП Расторгуев Е. Конкурент активно генерирует контент на vc.ru и dtf.ru, создавая рейтинги, где ставит свой сервис на 1-е место.
+        </div>
+
+        <div class="alert">
+            <strong>⚠️ Проблема отмен:</strong> Из 1.29М заказов <strong>21.1% (271 855)</strong> потеряно (отмены, частичные, неоплаты). ~60% отмен — ошибки клиентов (невалид/дубли), ~25% — проблемы инфраструктуры провайдера (no money / not enough funds).
+        </div>
+
+        <!-- 4 Ключевые метрики -->
+        <div class="grid">
+            <div class="card">
+                <h3>Общая упущенная выручка (Оценка)</h3>
+                <div class="value loss-text">~17.9М ₽</div>
+                <div class="sub-value">Оценка потерь при среднем чеке 66 ₽</div>
+            </div>
+            <div class="card">
+                <h3>Всего Отменённых Заказов</h3>
+                <div class="value loss-text">87 688</div>
+                <div class="sub-value">6.8% от всей базы заказов</div>
+            </div>
+            <div class="card">
+                <h3>Неоплаченные Заказы (Брошенные)</h3>
+                <div class="value">164 754</div>
+                <div class="sub-value">12.8% от всей базы (низкий конверт из корзины)</div>
+            </div>
+            <div class="card">
+                <h3>Всего Статей (VC.ru / DTF)</h3>
+                <div class="value" style="color: #2563eb">24+</div>
+                <div class="sub-value">Пик выхода статей совпадает с пиком выручки</div>
+            </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns: 2fr 1fr;">
+            <!-- Корреляция маркетинга и выручки -->
+            <div class="card">
+                <h3>График корреляции: Выручка и Количество PR-статей</h3>
+                <div class="chart-container">
+                    <canvas id="marketingChart"></canvas>
+                </div>
+                <p class="subtitle" style="margin-top: 10px;">Пик публикаций (окт-дек 2025) четко совпал с максимальной выручкой (с 4М до 7.2М ₽/мес).</p>
+            </div>
+
+            <!-- Причины отмен -->
+            <div class="card">
+                <h3>Топ-5 причин отмен (Данные провайдеров)</h3>
+                <table>
+                    <thead>
+                        <tr><th>Причина</th><th>Кол-во</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>link_duplicate (Ош. клиента)</td><td>7140</td></tr><tr><td>not_enough_funds (Ош. провайдера)</td><td>4454</td></tr><tr><td>no money (Ош. провайдера)</td><td>4100</td></tr><tr><td>not link to the post (Ош. клиента)</td><td>1858</td></tr><tr><td>link incorrect (Ош. клиента)</td><td>1712</td></tr>
+                    </tbody>
+                </table>
+                
+                <h3 style="margin-top: 24px;">Отмены по Категориям</h3>
+                <table>
+                    <thead>
+                        <tr><th>Сетевая панель</th><th>Кол-во отмен</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Telegram</td><td>46804</td></tr><tr><td>Вконтакте</td><td>20381</td></tr><tr><td>Instagram</td><td>9928</td></tr><tr><td>TikTok</td><td>3609</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const ctxMarket = document.getElementById('marketingChart').getContext('2d');
+        const labels = ["2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03"];
+        const revenues = [9.36,1367149.1600000048,3866281.7199998954,4630228.739999966,5374721.140000053,5601535.109999997,6380444.509999688,6431291.849999314,6348635.029999632,6018169.359999659,5234321.05999978,6468498.840000619,6529949.6100003,7237203.02000034,5968286.76000051,5185006.780000262,2433627.880000059];
+        const ads = [0,1,0,0,2,1,1,0,1,2,1,6,4,4,1,0,0];
+
+        new Chart(ctxMarket, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Выручка (₽)',
+                        data: revenues,
+                        backgroundColor: 'rgba(34, 197, 94, 0.4)',
+                        borderColor: 'rgb(34, 197, 94)',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Кол-во PR-статей',
+                        data: ads,
+                        type: 'line',
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgb(59, 130, 246)',
+                        borderWidth: 3,
+                        pointBackgroundColor: 'white',
+                        pointBorderColor: 'rgb(59, 130, 246)',
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { display: true, text: 'Выручка (₽)' },
+                        ticks: {
+                            callback: function(value) { return (value / 1000000).toFixed(1) + 'M ₽'; }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: { display: true, text: 'Кол-во статей' },
+                        grid: { drawOnChartArea: false },
+                        min: 0,
+                        max: 10
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                if (context.datasetIndex === 0) {
+                                    return context.dataset.label + ': ' + new Intl.NumberFormat('ru-RU').format(context.raw) + ' ₽';
+                                }
+                                return context.dataset.label + ': ' + context.raw + ' шт.';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

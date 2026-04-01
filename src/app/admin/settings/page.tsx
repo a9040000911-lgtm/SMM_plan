@@ -10,9 +10,6 @@ import { Locale, dictionaries } from '@/i18n/dictionaries';
 import { AdminTabs } from '@/components/admin/core/admin-tabs';
 import { Settings, Layers, History, Globe, Shield } from 'lucide-react';
 import { GlobalConfiguration } from './global-configuration';
-import ProjectsPage from '../projects/page';
-import AdminLogsPage from '../logs/page';
-import { ProjectSelector } from './components';
 import { PlatformsManager } from './platforms-manager';
 import { GlobalSettingsForm } from './global-settings-form';
 import { getAdminSession } from '@/utils/admin-session';
@@ -46,14 +43,21 @@ export default async function SettingsPage(props: { searchParams: Promise<any> }
   }
 
   const { project, settingsMap, allProjects, platforms, globalSettingsMap } = result.data;
+
+  // Decrypt sensitive global settings for display
+  const { CryptoService } = await import('@/services/core/crypto.service');
+  Object.keys(globalSettingsMap).forEach(key => {
+    if (globalSettingsMap[key] && globalSettingsMap[key].includes(':')) {
+      globalSettingsMap[key] = CryptoService.decrypt(globalSettingsMap[key]);
+    }
+  });
+
   const isGlobalAdmin = session.isGlobalAdmin;
 
   const tabs = [
     { label: t.tabs.config, icon: <Settings size={16} />, id: 'config' },
     { label: 'Платформы', icon: <Globe size={16} />, id: 'platforms', description: 'Управление соцсетями и их определением' },
     isGlobalAdmin && { label: 'Платформа', icon: <Shield size={16} />, id: 'global-settings', description: 'Глобальные лимиты и безопасность' },
-    { label: t.tabs.projects, icon: <Layers size={16} />, id: 'projects' },
-    { label: t.tabs.logs, icon: <History size={16} />, id: 'logs' },
   ].filter(Boolean) as any[];
 
   return (
@@ -64,11 +68,10 @@ export default async function SettingsPage(props: { searchParams: Promise<any> }
             <Layers size={20} />
           </div>
           <div>
-            <h1 className="text-xl font-black text-slate-800 tracking-tight">{t.title}</h1>
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{t.subtitle}</p>
+            <h1 className="text-xl font-black text-slate-800 tracking-tight">Глобальные Настройки</h1>
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Управление платформой</p>
           </div>
         </div>
-        <ProjectSelector allProjects={allProjects} currentProjectId={project.id} />
       </div>
       <AdminTabs tabs={tabs}>
         <div>
@@ -84,14 +87,6 @@ export default async function SettingsPage(props: { searchParams: Promise<any> }
             <GlobalSettingsForm initialSettings={globalSettingsMap} />
           </div>
         )}
-
-        <div>
-          <ProjectsPage />
-        </div>
-
-        <div>
-          <AdminLogsPage />
-        </div>
       </AdminTabs>
     </div>
   );

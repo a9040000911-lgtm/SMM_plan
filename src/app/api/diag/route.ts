@@ -5,20 +5,25 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { signAdminSession } from '@/services/core/jwt';
+import { verifyAdminSession } from '@/services/core/jwt';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
+    // SECURITY: Require authenticated Global Admin session
+    const sessionCookie = req.cookies.get('admin_session');
+    if (!sessionCookie?.value) {
+        return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+    }
+
+    const adminSession = await verifyAdminSession(sessionCookie.value);
+    if (!adminSession?.isGlobalAdmin) {
+        return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+    }
+
     const results: any = {
         timestamp: new Date().toISOString(),
         db: 'starting',
-        jwt: 'starting',
-        env: {
-            NODE_ENV: process.env.NODE_ENV,
-            NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-            HOSTNAME: process.env.HOSTNAME
-        }
     };
 
     try {
@@ -29,22 +34,5 @@ export async function GET(_req: NextRequest) {
         results.db = `ERROR: ${err.message}`;
     }
 
-    try {
-        const startJwt = Date.now();
-        const token = await signAdminSession({
-            id: 'test-id',
-            tgId: null,
-            role: 'ADMIN',
-            username: 'test',
-            isGlobalAdmin: true,
-            allowedProjects: []
-        });
-        results.jwt = `ok (${token.length} chars, ${Date.now() - startJwt}ms)`;
-    } catch (err: any) {
-        results.jwt = `ERROR: ${err.message}`;
-    }
-
     return NextResponse.json(results);
 }
-
-

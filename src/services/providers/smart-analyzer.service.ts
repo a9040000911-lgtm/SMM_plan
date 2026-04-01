@@ -3,7 +3,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { Category } from '@/generated/client';
+import { Category, Platform } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
 import { SmartAnalyzerLogic, AnalyzedService } from './smart-analyzer.logic';
@@ -145,11 +145,9 @@ export class SmartAnalyzerService {
                     description: analysis.description_ru || rawSvc.description || '',
                     pricePer1000: finalPrice,
                     lastProviderPrice: rawSvc.rawPrice,
-                    platform: analysis.platform,
                     socialPlatform: {
                         connect: { slug: analysis.platformSlug || 'other' }
                     },
-                    category: analysis.category,
                     serviceCategory: { connect: { id: categoryObj.id } },
                     targetType: analysis.targetType,
                     isPrivate: analysis.isPrivate,
@@ -163,11 +161,9 @@ export class SmartAnalyzerService {
                     lastProviderPrice: rawSvc.rawPrice,
                     minQty: rawSvc.minQty || 10,
                     maxQty: rawSvc.maxQty || 100000,
-                    platform: analysis.platform,
                     socialPlatform: {
                         connect: { slug: analysis.platformSlug || 'other' }
                     },
-                    category: analysis.category,
                     serviceCategory: { connect: { id: categoryObj.id } },
                     targetType: analysis.targetType,
                     isPrivate: analysis.isPrivate,
@@ -205,7 +201,7 @@ export class SmartAnalyzerService {
                 // 1. Получаем данные об услуге, чтобы знать платформу и тип
                 const service = await tx.internalService.findUnique({
                     where: { id: serviceId },
-                    select: { platform: true, category: true, targetType: true }
+                    select: { socialPlatform: { select: { slug: true } }, serviceCategory: { select: { categoryType: true } }, targetType: true }
                 });
 
                 if (!service) throw new Error('Service not found');
@@ -214,22 +210,22 @@ export class SmartAnalyzerService {
                 let category = await tx.serviceCategory.findFirst({
                     where: {
                         projectId,
-                        platform: service.platform,
-                        categoryType: service.category
+                        platform: service.socialPlatform?.slug as Platform,
+                        categoryType: service.serviceCategory?.categoryType as Category
                     }
                 });
 
                 // 3. Если категории нет - создаем её
                 if (!category) {
-                    const name = (CATEGORY_DISPLAY_NAMES && CATEGORY_DISPLAY_NAMES[service.category as any]) || service.category;
-                    const icon = (CATEGORY_ICONS && CATEGORY_ICONS[service.category as any]) || 'layers';
+                    const name = (CATEGORY_DISPLAY_NAMES && CATEGORY_DISPLAY_NAMES[service.serviceCategory?.categoryType as any]) || service.serviceCategory?.categoryType;
+                    const icon = (CATEGORY_ICONS && CATEGORY_ICONS[service.serviceCategory?.categoryType as any]) || 'layers';
 
                     category = await tx.serviceCategory.create({
                         data: {
                             projectId,
-                            platform: service.platform,
-                            categoryType: service.category,
-                            name: name,
+                            platform: service.socialPlatform?.slug as Platform,
+                            categoryType: service.serviceCategory?.categoryType as Category,
+                            name: name || 'Other',
                             icon: icon,
                             targetType: service.targetType,
                             priority: 0

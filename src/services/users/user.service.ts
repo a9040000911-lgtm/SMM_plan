@@ -5,7 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { User } from '@/generated/client';
+import { User } from '@prisma/client';
 import { ServiceResult } from '../types';
 import crypto from 'crypto';
 import { UserRepository } from '../repositories/user.repository';
@@ -23,6 +23,13 @@ export class UserService {
      */
     static async getById(userId: string): Promise<User | null> {
         return await UserRepository.findById(userId);
+    }
+
+    /**
+     * Gets user by Telegram ID
+     */
+    static async getByTgId(tgId: bigint): Promise<User | null> {
+        return await UserRepository.findByTgId(tgId);
     }
 
     /**

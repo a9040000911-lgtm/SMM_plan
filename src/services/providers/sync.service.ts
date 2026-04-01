@@ -5,7 +5,7 @@
  */
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
-import { Provider } from '@/generated/client';
+import { Provider } from '@prisma/client';
 import crypto from 'crypto';
 
 import { ProviderService as ProviderServiceClass } from './provider.service';
@@ -179,8 +179,33 @@ export class ServiceSyncService {
                     rawData: { ...incoming, botRequirements: incoming.botRequirements } as any,
                     dataHash: incoming.hash,
                     isActive: true,
+                    cancel: !!incoming.cancel,
+                    refill: !!incoming.refill,
                     lastSeenAt: new Date(),
                 };
+
+                if (existingService && existingService.name !== incoming.name) {
+                    const oldName = existingService.name.toLowerCase();
+                    const newName = incoming.name.toLowerCase();
+                    
+                    const isBotAlert = (newName.includes('bot') || newName.includes('боты')) && !(oldName.includes('bot') || oldName.includes('боты'));
+                    const isNoRefillAlert = (newName.includes('no refill') || newName.includes('no-refill') || newName.includes('norefill')) && !(oldName.includes('no refill') || oldName.includes('no-refill') || oldName.includes('norefill'));
+                    
+                    if (isBotAlert || isNoRefillAlert) {
+                        console.warn(`[ServiceSync] SECURITY ALERT: Provider ${provider.name} changed service ${incoming.externalId} drastically: ${existingService.name} -> ${incoming.name}`);
+                        dbData.isActive = false; // Force mute
+                        
+                        // Fire and forget log creation
+                        prisma.adminLog.create({
+                            data: {
+                                adminId: undefined,
+                                action: 'NAME_GUARD',
+                                targetId: existingService.id,
+                                details: `[NAME GUARD] Provider ${provider.name} substituted quality for API ID ${incoming.externalId}: "${existingService.name}" -> "${incoming.name}". Automatically muted.`
+                            }
+                        }).catch(console.error);
+                    }
+                }
 
                 if (!existingService) {
                     toCreate.push({ ...dbData, providerId: provider.id });
@@ -253,134 +278,149 @@ export class ServiceSyncService {
                     providerId: provider.id,
                     isActive: true,
                     priority: 1,
-                    projectId: provider.projectId // Critical for isolation
+                    projectId: provider.projectId
                 },
                 include: { providerService: true, provider: true }
             });
 
+            if (mappings.length === 0) return;
+
+            // PRE-FETCH: Load all internal services and overrides at once to avoid queries in the loop
+            const internalSvcIds = [...new Set(mappings.map(m => m.internalServiceId))];
+            const internalSvcs = await prisma.internalService.findMany({
+                where: { id: { in: internalSvcIds } },
+                include: { serviceCategory: true }
+            });
+            const internalSvcMap = new Map(internalSvcs.map(s => [s.id, s]));
+
+            const overrides = await prisma.projectServiceOverride.findMany({
+                where: { internalServiceId: { in: internalSvcIds } }
+            });
+            const overrideMap = new Map(overrides.map(o => [`${o.projectId}_${o.internalServiceId}`, o]));
+
+            const operations: any[] = [];
+            const logEntries: any[] = [];
+
             for (const mapping of mappings) {
-                try {
-                    if (mapping.providerService) {
-                        const cost = new Decimal(mapping.providerService.rawPrice);
+                if (!mapping.providerService) continue;
+                
+                const internalSvc = internalSvcMap.get(mapping.internalServiceId);
+                if (!internalSvc) continue;
 
-                        // 1. Update Global Service
-                        const internalSvc = await prisma.internalService.findUnique({
-                            where: { id: mapping.internalServiceId },
-                            select: { markup: true, pricePer1000: true, isActive: true, category: true }
+                const cost = new Decimal(mapping.providerService.rawPrice);
+                const currentPrice = new Decimal(internalSvc.pricePer1000);
+                const isZeroCost = cost.isZero();
+                
+                // 1. Calculate and Prepare Global Service Update
+                const newPrice = isZeroCost
+                    ? currentPrice
+                    : await PricingService.calculateRetailPrice(cost, {
+                        category: internalSvc.serviceCategory?.categoryType as any || 'OTHER',
+                        providerName: mapping.provider.name
+                    });
+
+                const safetyPrice = PricingService.getSafetyPrice(cost);
+                const isProviderMuted = !mapping.providerService.isActive;
+                const needsDisable = isZeroCost || currentPrice.lt(safetyPrice) || isProviderMuted;
+
+                const botReqs = (mapping.providerService.rawData as any)?.botRequirements;
+                const requirementText = botReqs?.requiresBot ? botReqs.botInstruction : null;
+
+                const existingMetadata = typeof internalSvc.metadata === 'object' && internalSvc.metadata ? internalSvc.metadata : {};
+                let targetIsActive = internalSvc.isActive;
+                let metadataUpdate: any = undefined;
+
+                if (needsDisable) {
+                    targetIsActive = false;
+                    const reason = isProviderMuted ? 'Provider service deleted/muted API' : (isZeroCost ? 'Zero cost from provider' : 'Margin below 1.5x');
+                    if (internalSvc.isActive || !(existingMetadata as any).autoDisabled) {
+                        metadataUpdate = { ...existingMetadata, autoDisabled: true, disableReason: reason };
+                        logEntries.push({
+                            action: 'AUTO_MUTE',
+                            targetId: mapping.internalServiceId,
+                            details: `Service auto-muted during sync: ${reason}`
                         });
-
-                        if (internalSvc) {
-                            const currentPrice = new Decimal(internalSvc.pricePer1000);
-
-                            // Safety Check: If cost is 0, it's likely a provider error or archived service
-                            const isZeroCost = cost.isZero();
-                            const newPrice = isZeroCost
-                                ? currentPrice
-                                : await PricingService.calculateRetailPrice(cost, {
-                                    category: internalSvc.category,
-                                    providerName: mapping.provider.name
-                                });
-
-                            const safetyPrice = PricingService.getSafetyPrice(cost);
-                            const needsDisable = isZeroCost || currentPrice.lt(safetyPrice);
-
-                            const botReqs = (mapping.providerService.rawData as any)?.botRequirements;
-                            const requirementText = botReqs?.requiresBot ? botReqs.botInstruction : null;
-
-                            await prisma.internalService.update({
-                                where: { id: mapping.internalServiceId },
-                                data: {
-                                    ...(isZeroCost ? {} : {
-                                        lastProviderPrice: cost,
-                                        providerPriceOriginal: mapping.providerService.rawPriceOriginal,
-                                        providerCurrencyOriginal: mapping.providerService.rawCurrencyOriginal,
-                                    }),
-                                    pricePer1000: newPrice,
-                                    requirements: requirementText,
-                                    isActive: needsDisable ? false : internalSvc.isActive
-                                }
-                            });
-
-                            if (needsDisable) {
-                                const reason = isZeroCost ? 'Zero cost from provider' : 'Margin below 1.5x';
-                                console.log(`[ServiceSync] DISABLED Global Service ${mapping.internalServiceId} - ${reason}`);
-
-                                await prisma.adminLog.create({
-                                    data: {
-                                        adminId: 'system-sync',
-                                        action: 'AUTO_MUTE',
-                                        targetId: mapping.internalServiceId,
-                                        details: `Service auto-muted during sync: ${reason} (Profit Guard v2)`
-                                    }
-                                });
-                            }
-                        }
-
-                        // 2. Update Project Override
-                        if (mapping.projectId) {
-                            const override = await prisma.projectServiceOverride.findUnique({
-                                where: {
-                                    projectId_internalServiceId: {
-                                        projectId: mapping.projectId,
-                                        internalServiceId: mapping.internalServiceId
-                                    }
-                                },
-                                include: { project: { select: { markup: true } } }
-                            });
-
-                            if (override) {
-                                const currentProjPrice = override.customPrice ? new Decimal(override.customPrice) : (internalSvc ? new Decimal(internalSvc.pricePer1000) : null);
-
-                                const isZeroCost = cost.isZero();
-                                const newProjPrice = isZeroCost
-                                    ? currentProjPrice
-                                    : await PricingService.calculateRetailPrice(cost, {
-                                        category: internalSvc?.category || 'OTHER',
-                                        providerName: mapping.provider.name,
-                                        projectId: mapping.projectId || undefined
-                                    });
-
-                                const safetyPrice = PricingService.getSafetyPrice(cost);
-                                const projNeedsDisable = isZeroCost || (currentProjPrice ? currentProjPrice.lt(safetyPrice) : false);
-
-                                await prisma.projectServiceOverride.update({
-                                    where: {
-                                        projectId_internalServiceId: {
-                                            projectId: mapping.projectId,
-                                            internalServiceId: mapping.internalServiceId
-                                        }
-                                    },
-                                    data: {
-                                        customPrice: newProjPrice,
-                                        isActive: projNeedsDisable ? false : override.isActive
-                                    }
-                                });
-
-                                if (projNeedsDisable) {
-                                    const reason = isZeroCost ? 'Zero cost from provider' : 'Margin below 1.5x';
-                                    console.log(`[ServiceSync] DISABLED Project Override ${mapping.projectId}/${mapping.internalServiceId} - ${reason}`);
-                                }
-                            } else {
-                                // Create default override if it doesn't exist
-                                const markupVal = internalSvc?.markup ? Number(internalSvc.markup) : 0;
-                                const multiplier = Math.max(1 + markupVal / 100, 1.5);
-                                await prisma.projectServiceOverride.create({
-                                    data: {
-                                        projectId: mapping.projectId,
-                                        internalServiceId: mapping.internalServiceId,
-                                        isActive: false, // Start disabled
-                                        customPrice: cost.mul(multiplier)
-                                    }
-                                });
-                            }
-                        }
                     }
-                } catch (svcErr) {
-                    console.error(`[ServiceSync] Failed to propagate price for ${mapping.internalServiceId}:`, svcErr);
-                    // Continue to next service
+                } else if (!internalSvc.isActive && (existingMetadata as any).autoDisabled) {
+                    targetIsActive = true;
+                    metadataUpdate = { ...existingMetadata, autoDisabled: false, disableReason: null };
+                    logEntries.push({
+                        action: 'AUTO_RECOVER',
+                        targetId: mapping.internalServiceId,
+                        details: `Service auto-recovered (provider restored service successfully)`
+                    });
+                }
+
+                operations.push(prisma.internalService.update({
+                    where: { id: mapping.internalServiceId },
+                    data: {
+                        ...(isZeroCost ? {} : {
+                            lastProviderPrice: cost,
+                            providerPriceOriginal: mapping.providerService.rawPriceOriginal,
+                            providerCurrencyOriginal: mapping.providerService.rawCurrencyOriginal,
+                        }),
+                        pricePer1000: newPrice,
+                        requirements: requirementText,
+                        isActive: targetIsActive,
+                        isCancelEnabled: !!mapping.providerService.cancel,
+                        isRefillEnabled: !!mapping.providerService.refill,
+                        ...(metadataUpdate ? { metadata: metadataUpdate } : {})
+                    }
+                }));
+
+                // 2. Prepare Project Override Update
+                if (mapping.projectId) {
+                    const overrideKey = `${mapping.projectId}_${mapping.internalServiceId}`;
+                    const override = overrideMap.get(overrideKey);
+
+                    if (override) {
+                        const currentProjPrice = override.customPrice ? new Decimal(override.customPrice) : new Decimal(internalSvc.pricePer1000);
+                        const newProjPrice = isZeroCost
+                            ? currentProjPrice
+                            : await PricingService.calculateRetailPrice(cost, {
+                                category: internalSvc.serviceCategory?.categoryType as any || 'OTHER',
+                                providerName: mapping.provider.name,
+                                projectId: mapping.projectId
+                            });
+
+                        const projNeedsDisable = isZeroCost || currentProjPrice.lt(safetyPrice);
+
+                        operations.push(prisma.projectServiceOverride.update({
+                            where: { id: override.id },
+                            data: {
+                                customPrice: newProjPrice,
+                                isActive: projNeedsDisable ? false : override.isActive
+                            }
+                        }));
+                    } else {
+                        // Create default override if missing
+                        const markupVal = Number(internalSvc.markup || 0);
+                        const multiplier = Math.max(1 + markupVal / 100, 1.5);
+                        operations.push(prisma.projectServiceOverride.create({
+                            data: {
+                                projectId: mapping.projectId,
+                                internalServiceId: mapping.internalServiceId,
+                                isActive: false,
+                                customPrice: cost.mul(multiplier)
+                            }
+                        }));
+                    }
                 }
             }
-            console.log(`[ServiceSync] ${provider.name}: Propagated prices to ${mappings.length} services.`);
+
+            // Execute in batches to keep connection pool happy
+            const CHUNK_SIZE = 100;
+            for (let i = 0; i < operations.length; i += CHUNK_SIZE) {
+                const chunk = operations.slice(i, i + CHUNK_SIZE);
+                await prisma.$transaction(chunk);
+            }
+
+            // Persist logs
+            if (logEntries.length > 0) {
+                await prisma.adminLog.createMany({ data: logEntries });
+            }
+
+            console.log(`[ServiceSync] ${provider.name}: Propagated prices to ${mappings.length} services (Batched).`);
         } catch (err) {
             console.error(`[ServiceSync] ${provider.name} propagation failed:`, err);
         }

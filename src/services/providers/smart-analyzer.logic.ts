@@ -3,7 +3,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { Platform, Category } from '@/generated/client';
+import { Platform, Category } from '@prisma/client';
 import { DescriptionSanitizer } from '@/utils/description-sanitizer';
 
 export interface AnalyzedService {
@@ -15,10 +15,12 @@ export interface AnalyzedService {
     description_ru: string;
     suggestedName?: string;
     requirements?: string;
+    geo?: string;
+    warranty?: number;
 }
 
-export const PLATFORMS = ['TELEGRAM', 'INSTAGRAM', 'TIKTOK', 'YOUTUBE', 'VK', 'TWITCH', 'DISCORD', 'TWITTER', 'FACEBOOK', 'THREADS', 'REDDIT', 'RUTUBE', 'DZEN', 'MUSIC', 'OK', 'KICK', 'LIKEE', 'WHATSAPP', 'SPOTIFY', 'SOUNDCLOUD', 'LINKEDIN', 'PINTEREST', 'SNAPCHAT', 'TROVO', 'KWAI', 'MESSENGER_MAX', 'GOOGLE', 'APPLE', 'YANDEX', 'STEAM', 'RUMBLE', 'TUMBLR', 'VIMEO', 'SHAZAM', 'QUORA', 'MEDIUM', 'WEBSITE', 'PERISCOPE', 'CLOUDHUB', 'AUDIOMACK', 'DATPIFF', 'OTHER'];
-export const CATEGORIES = ['SUBSCRIBERS', 'GROUPS', 'LIKES', 'VIEWS', 'COMMENTS', 'REACTIONS', 'REPOSTS', 'BOOSTS', 'POLLS', 'STORIES', 'BOTS', 'REFERRALS', 'FRIENDS', 'PLAYS', 'TRAFFIC', 'DISLIKES', 'STARS', 'WATCH_TIME', 'SAVES', 'OTHER'];
+export const PLATFORMS = ['TELEGRAM', 'INSTAGRAM', 'TIKTOK', 'YOUTUBE', 'VK', 'TWITCH', 'DISCORD', 'TWITTER', 'FACEBOOK', 'THREADS', 'REDDIT', 'RUTUBE', 'DZEN', 'MUSIC', 'OK', 'KICK', 'LIKEE', 'WHATSAPP', 'SPOTIFY', 'SOUNDCLOUD', 'LINKEDIN', 'PINTEREST', 'SNAPCHAT', 'TROVO', 'KWAI', 'MAX', 'GOOGLE', 'APPLE', 'YANDEX', 'STEAM', 'RUMBLE', 'TUMBLR', 'VIMEO', 'SHAZAM', 'QUORA', 'MEDIUM', 'WEBSITE', 'PERISCOPE', 'CLOUDHUB', 'AUDIOMACK', 'DATPIFF', 'OTHER'];
+export const CATEGORIES = ['SUBSCRIBERS', 'GROUPS', 'LIKES', 'VIEWS', 'COMMENTS', 'REACTIONS', 'REPOSTS', 'BOOSTS', 'POLLS', 'STORIES', 'BOTS', 'REFERRALS', 'FRIENDS', 'PLAYS', 'TRAFFIC', 'DISLIKES', 'STARS', 'WATCH_TIME', 'SAVES', 'COMPLAINTS', 'OTHER'];
 export const TARGET_TYPES = ['CHANNEL', 'POST', 'PROFILE', 'VIDEO', 'VK_VIDEO', 'VK_CLIP', 'VK_PLAY', 'CHANNEL_POSTS', 'STORY', 'COMMENTS', 'POLL', 'PHOTO', 'MARKET', 'PLAYLIST', 'ALBUM', 'EXTERNAL', 'CUSTOM'];
 
 export const PLATFORM_LABELS: Record<string, string> = {
@@ -28,7 +30,6 @@ export const PLATFORM_LABELS: Record<string, string> = {
     YOUTUBE: 'YouTube',
     VK: 'ВКонтакте',
     TWITCH: 'Twitch',
-    OTHER: 'Другое',
     DISCORD: 'Discord',
     TWITTER: 'Twitter (X)',
     FACEBOOK: 'Facebook',
@@ -48,7 +49,7 @@ export const PLATFORM_LABELS: Record<string, string> = {
     SNAPCHAT: 'Snapchat',
     TROVO: 'Trovo',
     KWAI: 'Kwai',
-    MESSENGER_MAX: 'Messenger MAX (VK)',
+    MAX: 'Max Messenger',
     GOOGLE: 'Google',
     APPLE: 'Apple Music/Podcast',
     YANDEX: 'Яндекс (Дзен/Maps/Music)',
@@ -64,6 +65,7 @@ export const PLATFORM_LABELS: Record<string, string> = {
     CLOUDHUB: 'CloudHub',
     AUDIOMACK: 'Audiomack',
     DATPIFF: 'DatPiff',
+    OTHER: 'Другое',
 };
 
 export const CATEGORY_LABELS: Record<string, string> = {
@@ -86,6 +88,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
     STARS: '⭐ Звезды (Telegram Stars)',
     WATCH_TIME: '⏳ Часы просмотра (YouTube)',
     SAVES: '📌 Сохранения / Saves',
+    COMPLAINTS: '🚫 Жалобы / Reports',
     OTHER: '📦 Другое / Разное',
 };
 
@@ -110,7 +113,7 @@ export const TARGET_TYPE_LABELS: Record<string, string> = {
 };
 
 export const PLATFORM_KEYWORDS: Record<string, string[]> = {
-    TELEGRAM: ['telegram', 'tg', 'телеграм', 'тг'],
+    TELEGRAM: ['telegram', 'tg', 'телеграм', 'тг', 'запуск бота', 'рефералы'],
     INSTAGRAM: ['instagram', 'inst', 'инстаграм', 'инста'],
     VK: ['vk', 'вк', 'vkontakte', 'вконтакте'],
     YOUTUBE: ['youtube', 'yt', 'ютуб'],
@@ -125,7 +128,7 @@ export const PLATFORM_KEYWORDS: Record<string, string[]> = {
     RUTUBE: ['rutube', 'рутуб'],
     DZEN: ['dzen', 'дзен'],
     MUSIC: ['music', 'музыка'],
-    OK: ['ok', 'одноклассники'],
+    OK: ['ok', 'одноклассники', 'ок'],
     LIKEE: ['likee'],
     WHATSAPP: ['whatsapp', 'ватсап'],
     SPOTIFY: ['spotify', 'спотифай'],
@@ -135,7 +138,7 @@ export const PLATFORM_KEYWORDS: Record<string, string[]> = {
     SNAPCHAT: ['snapchat'],
     TROVO: ['trovo'],
     KWAI: ['kwai'],
-    MESSENGER_MAX: ['messenger', 'max', 'макс'],
+    MAX: ['messenger', 'max', 'макс'],
     GOOGLE: ['google', 'гугл', 'gmap', 'review', 'отзыв'],
     APPLE: ['apple', 'podcast', 'itunes'],
     YANDEX: ['yandex', 'яндекс', 'ya.ru'],
@@ -177,29 +180,92 @@ export const CATEGORY_MAP: Record<string, string[]> = {
     SAVES: ['save', 'сохран', 'bookmark'],
     PREMIUM: ['premium', 'премиум'],
     STREAMS: ['viewer', 'stream', 'зрител', 'стрим', 'online', 'онлайн'],
+    COMPLAINTS: ['жалоба', 'report', 'complaint', 'claim', 'насилие', 'спам', 'порнография', 'авторское право', 'фейк'],
     OTHER: []
 };
 
-export class SmartAnalyzerLogic {
-    /**
-     * Synchronous version of detection for use in legacy wrappers or client components.
-     */
+export const GEO_MAP: Record<string, string[]> = {
+    'RU': ['россия', 'рф', 'ru', '🇷🇺', 'русские'],
+    'USA': ['сша', 'usa', '🇺🇸', 'english', 'worldwide'],
+    'KZ': ['казахстан', 'кз', 'kz', '🇰🇿'],
+    'UZ': ['узбекистан', 'uz', '🇺🇿'],
+    'UA': ['украина', 'ua', '🇺🇦'],
+    'TR': ['турция', 'tr', '🇹🇷', 'turkey'],
+    'IN': ['индия', 'in', '🇮🇳', 'india'],
+    'BR': ['бразилия', 'br', '🇧🇷'],
+    'IL': ['израиль', 'il', '🇮🇱'],
+    'AR': ['араб', 'arabic', '🇦🇪'],
+    'CN': ['китай', 'china', '🇨🇳'],
+};
+
+export const SmartAnalyzerLogic = class {
     static detectSync(name: string, description: string = '', categoryInput: string = '', dynamicPlatforms?: Array<{ slug: string, keywords: string[], name: string }>): AnalyzedService {
         const sanitizedDescription = DescriptionSanitizer.sanitize(description);
-        const n = (name + ' ' + sanitizedDescription + ' ' + categoryInput).toLowerCase();
+        const nameNode = name.toLowerCase();
+        const safeCategoryInput = String(categoryInput || '');
+        const catInputLower = safeCategoryInput.toLowerCase();
+        const fullContent = (name + ' ' + sanitizedDescription + ' ' + safeCategoryInput).toLowerCase();
+
+        // 0. Detect Geo & Warranty
+        let geo = 'WORLDWIDE';
+        for (const [code, keywords] of Object.entries(GEO_MAP)) {
+            if (keywords.some(k => fullContent.includes(k))) {
+                geo = code;
+                break;
+            }
+        }
+
+        let warranty = 0;
+        const warrantyMatch = name.match(/(\d+)\s*(?:дней|дня|день|day|d)/i);
+        if (warrantyMatch) {
+            warranty = parseInt(warrantyMatch[1]);
+        } else if (fullContent.includes('♻️') || fullContent.includes('гарант')) {
+            warranty = 30; // Default warranty if icon present
+        }
 
         // 1. Detect Platform
         let platformEnum: Platform = 'OTHER';
         let platformSlug: string = 'other';
 
-        // Priority 1: Dynamic Platforms (from DB)
-        let dynamicMatch = false;
+        // Weight-based platform detection
+        const platformScores: Record<string, number> = {};
+        for (const [p, keywords] of Object.entries(PLATFORM_KEYWORDS)) {
+            platformScores[p] = 0;
+            for (const k of keywords) {
+                const isShort = k.length <= 2;
+                const match = (text: string, key: string) => {
+                    if (isShort) {
+                        const rex = new RegExp(`\\b${key}\\b`, 'i');
+                        return rex.test(text);
+                    }
+                    return text.includes(key);
+                };
+
+                if (match(catInputLower, k)) platformScores[p] += 10;
+                if (match(nameNode, k)) platformScores[p] += 5;
+                if (match(sanitizedDescription.toLowerCase(), k)) platformScores[p] += 1;
+            }
+        }
+
+        let bestPlatformCode = 'OTHER';
+        let maxPlatformScore = 0;
+        for (const [p, score] of Object.entries(platformScores)) {
+            if (score > maxPlatformScore) {
+                maxPlatformScore = score;
+                bestPlatformCode = p;
+            }
+        }
+
+        if (bestPlatformCode !== 'OTHER') {
+            platformEnum = bestPlatformCode as Platform;
+            platformSlug = bestPlatformCode.toLowerCase();
+        }
+
+        // Override with dynamic if match found
         if (dynamicPlatforms && dynamicPlatforms.length > 0) {
             for (const p of dynamicPlatforms) {
-                if (p.keywords.some(k => n.includes(k.toLowerCase()))) {
+                if (p.keywords.some(k => fullContent.includes(k.toLowerCase()))) {
                     platformSlug = p.slug.toLowerCase();
-                    dynamicMatch = true;
-                    // Try to map to Enum if exists (for legacy compatibility)
                     const upperSlug = p.slug.toUpperCase();
                     if (Object.keys(PLATFORM_KEYWORDS).includes(upperSlug)) {
                         platformEnum = upperSlug as Platform;
@@ -209,287 +275,160 @@ export class SmartAnalyzerLogic {
             }
         }
 
-        // Priority 2: Hardcoded Platforms (Fallback if no dynamic match)
-        if (!dynamicMatch) {
-            for (const [p, keywords] of Object.entries(PLATFORM_KEYWORDS)) {
-                if (keywords.some(k => n.includes(k))) {
-                    platformEnum = p as Platform;
-                    platformSlug = p.toLowerCase();
-                    break;
-                }
-            }
-        }
-
         // 2. Detect Category
         let category: Category = 'OTHER';
 
-        // Explicit HIGH priority for BOTS (if "бот" is mentioned in NAME or it's a dedicated bot service)
-        const nameNode = name.toLowerCase();
-        if ((nameNode.includes('бот') || nameNode.includes(' bot')) && !nameNode.includes('подпис') && !nameNode.includes('участник')) {
+        // Context-aware logic for "Subscription" (Подписка)
+        const isAutoMention = fullContent.includes('подписк') || fullContent.includes('auto') || fullContent.includes('subscription') || fullContent.includes('будущ');
+        const isViewMention = fullContent.includes('просмотр') || fullContent.includes('view') || fullContent.includes('eye');
+        const isLikeMention = fullContent.includes('лайк') || fullContent.includes('like') || fullContent.includes('heart');
+        const isPostModifier = fullContent.includes('пост') || fullContent.includes('запис') || fullContent.includes('публикац');
+
+        if (isAutoMention && (isViewMention || isLikeMention) && isPostModifier) {
+             category = isViewMention ? 'VIEWS' : 'LIKES';
+        } else if ((nameNode.includes('бот') || nameNode.includes(' bot')) && !nameNode.includes('подпис') && !nameNode.includes('участник')) {
             category = 'BOTS';
         } else {
+            let bestCatMatch: { category: Category, index: number } | null = null;
             for (const [c, keywords] of Object.entries(CATEGORY_MAP)) {
-                if (keywords.some(k => n.includes(k))) {
-                    category = c as Category;
-                    break;
+                for (const k of keywords) {
+                    const idx = fullContent.indexOf(k);
+                    if (idx !== -1) {
+                        if (!bestCatMatch || idx < bestCatMatch.index) {
+                            bestCatMatch = { category: c as Category, index: idx };
+                        }
+                    }
                 }
             }
+            if (bestCatMatch) category = bestCatMatch.category;
         }
 
-        const effectivePlatform: string = platformEnum; 
+        const effectivePlatform = platformEnum; 
 
-        // VK specific refinement
+        // Specific refinements
         if (effectivePlatform === 'VK') {
-            if (n.includes('в друзья') || n.includes('на профиль') || n.includes('на страницу')) category = 'FRIENDS';
-            else if (n.includes('в группу') || n.includes('в сообщество') || n.includes('паблик')) category = 'GROUPS';
-            else if (n.includes('подкаст')) category = 'PLAYS';
-            else if (n.includes('прослушиван') || n.includes('плейлист')) category = 'PLAYS';
-            else if (n.includes('глазик') || n.includes('на запись') || n.includes('на пост')) category = 'VIEWS';
-            else if (n.includes('опрос') || n.includes('голос')) category = 'POLLS';
-        }
-
-        // Telegram specific refinement
-        if (effectivePlatform === 'TELEGRAM') {
-            const nameLower = name.toLowerCase();
-            const isSubscriberName = nameLower.includes('подпис') || nameLower.includes('участник') || nameLower.includes('member') || nameLower.includes('subscriber');
-            const isStoryName = nameLower.includes('истори') || nameLower.includes('story') || nameLower.includes('stories');
-            const isPostName = nameLower.includes('просмотр') || nameLower.includes('реакци') || nameLower.includes('view') || nameLower.includes('reaction');
-            const isBotName = nameLower.includes('бот') || nameLower.includes(' bot') || nameLower.includes('запуск') || nameLower.includes('старт');
-            const isStars = nameLower.includes('stars') || nameLower.includes('звезд') || (categoryInput.toLowerCase().includes('stars'));
-            const isBoost = nameLower.includes('буст') || nameLower.includes('boost');
-
-            if (isStars) {
-                category = 'STARS';
-            } else if (isBoost) {
-                category = 'BOOSTS';
-            } else if (isStoryName) {
-                category = 'STORIES';
-            } else if (isSubscriberName) {
+            if (fullContent.includes('в друзья') || fullContent.includes('на профиль')) category = 'FRIENDS';
+            else if (fullContent.includes('групп') || fullContent.includes('сообщест')) category = 'GROUPS';
+            else if (fullContent.includes('прослуш') || fullContent.includes('плейлист')) category = 'PLAYS';
+            else if (fullContent.includes('глазик') || fullContent.includes('на запись')) category = 'VIEWS';
+            else if (fullContent.includes('опрос') || fullContent.includes('голос')) category = 'POLLS';
+        } else if (effectivePlatform === 'FACEBOOK') {
+            if (fullContent.includes('group') || fullContent.includes('групп')) category = 'SUBSCRIBERS';
+            else if (fullContent.includes('reel') || fullContent.includes('video')) category = 'VIEWS';
+        } else if (effectivePlatform === 'TELEGRAM') {
+            const isStory = nameNode.includes('истори') || nameNode.includes('story');
+            const isAutoViews = (nameNode.includes('подписк') || nameNode.includes('auto')) && (nameNode.includes('просмотр') || nameNode.includes('view'));
+            
+            if (fullContent.includes('stars')) category = 'STARS';
+            else if (fullContent.includes('жалоба') || fullContent.includes('report')) category = 'COMPLAINTS';
+            else if (fullContent.includes('boost') || fullContent.includes('буст')) category = 'BOOSTS';
+            else if (isStory) category = 'STORIES';
+            else if (isAutoViews) category = 'VIEWS';
+            else if (nameNode.includes('подпис') || nameNode.includes('member')) {
+                // ПРИОРИТЕТ: "Подписчики" (Subscribers) > "Подписка" (Boosts/Auto)
                 category = 'SUBSCRIBERS';
-            } else if (isPostName) {
-                category = nameLower.includes('реакци') || nameLower.includes('reaction') ? 'REACTIONS' : 'VIEWS';
-            } else if (isBotName && !nameLower.includes('быстрый')) {
-                category = 'BOTS';
-            } else {
-                // Fallback to full string analysis if name is ambiguous
-                const isBotKeywords = (n.includes('старт') || n.includes('запуск') || n.includes('start')) && !n.includes('быстрый старт') && !n.includes('быстрый запуск');
-                const isActuallyBot = isBotKeywords || n.includes(' бот') || n.includes(' bot');
-                const isPostType = n.includes('просмотр') || n.includes('реакци') || n.includes('view') || n.includes('reaction');
-                const isSubscriberType = n.includes('подпис') || n.includes('участник') || n.includes('member') || n.includes('subscriber');
-                const isStoryType = n.includes('истори') || n.includes('story') || n.includes('stories');
-
-                if (isStoryType) category = 'STORIES';
-                else if (isSubscriberType) category = 'SUBSCRIBERS';
-                else if (isPostType) category = n.includes('реакци') || n.includes('reaction') ? 'REACTIONS' : 'VIEWS';
-                else if (isActuallyBot) category = 'BOTS';
             }
-        }
-
-        // YouTube specific refinement
-        if (effectivePlatform === 'YOUTUBE') {
-            if (n.includes('час') || n.includes('hour')) category = 'WATCH_TIME';
-        }
-
-        // Instagram specific refinement
-        if (effectivePlatform === 'INSTAGRAM') {
-            const nameLower = name.toLowerCase();
-            const nLower = n.toLowerCase();
-
-            // 1. Name-First Priority (more accurate for mixed categories)
-            if (nameLower.includes('story') || nameLower.includes('сторис') || nameLower.includes('истори')) {
-                category = 'STORIES';
-            } else if (nameLower.includes('подпис') || nameLower.includes('subscriber') || nameLower.includes('фолловер')) {
-                category = 'SUBSCRIBERS';
-            } else if (nameLower.includes('лайк') || nameLower.includes('like')) {
-                category = 'LIKES';
-            } else if (nameLower.includes('поделиться') || nameLower.includes('share')) {
-                category = 'REPOSTS';
-            } else if (nameLower.includes('сохран') || nameLower.includes('save')) {
-                category = 'SAVES';
-            } else if (nameLower.includes('коммент') || nameLower.includes('comment')) {
-                category = 'COMMENTS';
-            } else if (nameLower.includes('просмотр') || nameLower.includes('view') || nameLower.includes('reel')) {
-                category = 'VIEWS';
+            else if (nameNode.includes('реакци') || nameNode.includes('reaction')) {
+                // Earliest match check within name for views vs reactions
+                const vIdx = nameNode.indexOf('просмотр');
+                const vIdx2 = nameNode.indexOf('view');
+                const rIdx = nameNode.indexOf('реакци');
+                const rIdx2 = nameNode.indexOf('reaction');
+                
+                const minV = Math.min(vIdx === -1 ? Infinity : vIdx, vIdx2 === -1 ? Infinity : vIdx2);
+                const minR = Math.min(rIdx === -1 ? Infinity : rIdx, rIdx2 === -1 ? Infinity : rIdx2);
+                
+                if (minV < minR) category = 'VIEWS';
+                else category = 'REACTIONS';
             }
-            // 2. Full Search Fallback (if name is generic)
-            else if (nLower.includes('story') || nLower.includes('сторис') || nLower.includes('истори')) {
-                category = 'STORIES';
-            } else if (nLower.includes('подпис') || nLower.includes('subscriber') || nLower.includes('фолловер')) {
-                category = 'SUBSCRIBERS';
-            } else if (nLower.includes('лайк') || nLower.includes('like')) {
-                category = 'LIKES';
-            } else if (nLower.includes('поделиться') || nLower.includes('share')) {
-                category = 'REPOSTS';
-            } else if (nLower.includes('сохран') || nLower.includes('save')) {
-                category = 'SAVES';
-            } else if (nLower.includes('коммент') || nLower.includes('comment')) {
-                category = 'COMMENTS';
-            } else if (nLower.includes('просмотр') || nLower.includes('view') || nLower.includes('reel')) {
-                category = 'VIEWS';
-            }
-        }
-
-        // TikTok specific refinement
-        if (effectivePlatform === 'TIKTOK') {
-            if (n.includes('share') || n.includes('поделиться')) category = 'REPOSTS';
-            if (n.includes('save') || n.includes('сохран')) category = 'SAVES';
-        }
-
-        // Twitter specific refinement
-        if (effectivePlatform === 'TWITTER') {
-            if (n.includes('retweet') || n.includes('ретвит')) category = 'REPOSTS';
+            else if (nameNode.includes('просмотр') || nameNode.includes('view')) category = 'VIEWS';
+        } else if (effectivePlatform === 'YOUTUBE') {
+            if (fullContent.includes('час') || fullContent.includes('hour')) category = 'WATCH_TIME';
+            if (fullContent.includes('short')) category = 'VIEWS';
+            if (nameNode.includes('лайк') || nameNode.includes('like')) category = 'LIKES';
+        } else if (effectivePlatform === 'DZEN') {
+            if (fullContent.includes('стать') || fullContent.includes('article')) category = 'VIEWS';
+        } else if (effectivePlatform === 'INSTAGRAM') {
+            if (nameNode.includes('story') || nameNode.includes('сторис')) category = 'STORIES';
+            else if (nameNode.includes('подпис') || nameNode.includes('follow')) category = 'SUBSCRIBERS';
+            else if (nameNode.includes('лайк') || nameNode.includes('like')) category = 'LIKES';
+            else if (nameNode.includes(' reels') || nameNode.includes('просмотр')) category = 'VIEWS';
         }
 
         // 3. Target Type
         let targetType = 'POST';
-        const isPrivate = n.includes('private') || n.includes('priv ') || n.includes('закрыт') || n.includes('приват') || n.includes('канал c') || n.includes('для закрытых');
-        const isAuto = n.includes('auto') || n.includes('subscription') || n.includes('авто') || n.includes('последних постов') || n.includes('будущие');
+        const isPrivate = fullContent.includes('private') || fullContent.includes('закрыт') || fullContent.includes('приват');
+        const isAuto = isAutoMention || fullContent.includes('последних');
 
         if (effectivePlatform === 'TELEGRAM') {
-            if ((category as string) === 'STARS') targetType = 'CUSTOM';
-            else if ((category as string) === 'BOTS' || (category as string) === 'REFERRALS') targetType = 'CHANNEL';
+            if (category === 'STARS') targetType = 'CUSTOM';
+            else if (category === 'BOTS' || category === 'REFERRALS') targetType = 'CHANNEL';
             else if (category === 'STORIES') targetType = 'STORY';
-            else if (category === 'BOOSTS') targetType = 'CHANNEL';
             else if (isAuto) targetType = 'CHANNEL_POSTS';
-            else if (['VIEWS', 'REACTIONS', 'REPOSTS', 'COMMENTS'].includes(category)) targetType = 'POST';
-            else if (['SUBSCRIBERS', 'GROUPS'].includes(category)) targetType = 'CHANNEL';
-            else targetType = 'CHANNEL';
+            else if (['SUBSCRIBERS', 'GROUPS', 'BOOSTS'].includes(category)) targetType = 'CHANNEL';
+            else targetType = 'POST';
+        } else if (effectivePlatform === 'YOUTUBE') {
+            if (category === 'SUBSCRIBERS') targetType = 'CHANNEL';
+            else targetType = 'POST'; // Changed from 'VIDEO' to 'POST'
         } else if (effectivePlatform === 'INSTAGRAM') {
             if (isAuto) targetType = 'CHANNEL_POSTS';
-            else if (category === 'SUBSCRIBERS') targetType = 'PROFILE';
+            else if (category === 'SUBSCRIBERS') targetType = 'CHANNEL'; // Changed from 'PROFILE' to 'CHANNEL'
             else if (category === 'STORIES') targetType = 'STORY';
-            else if (n.includes('reel') || n.includes('video') || n.includes('видео') || n.includes(' igtv')) targetType = 'VIDEO';
+            else if (fullContent.includes('reel') || fullContent.includes('video')) targetType = 'POST'; // Changed from 'VIDEO' to 'POST'
             else targetType = 'POST';
         } else if (effectivePlatform === 'VK') {
             if (isAuto) targetType = 'CHANNEL_POSTS';
-            else if (n.includes('vk play') || n.includes('play') || n.includes('stream') || n.includes('стрим') || n.includes('зрител')) {
-                const isSubValue = n.includes('подпис') || n.includes('sub') || n.includes('follow') || category === 'SUBSCRIBERS';
-                targetType = isSubValue ? 'CHANNEL' : 'VIDEO';
-            } else if (n.includes('poll') || n.includes('опрос') || n.includes('голос')) targetType = 'POLL';
-            else if (['FRIENDS', 'SUBSCRIBERS'].includes(category) && (n.includes('профиль') || n.includes('друзья'))) targetType = 'PROFILE';
-            else if (['GROUPS', 'SUBSCRIBERS'].includes(category)) targetType = 'CHANNEL';
-            else if (n.includes('video') || n.includes('clip') || n.includes('клип') || n.includes('видео') || (category as string) === 'VIEWS') {
-                targetType = (n.includes('clip') || n.includes('клип')) ? 'VK_CLIP' : 'VK_VIDEO';
-            } else if (category === 'STORIES') targetType = 'STORY';
-            else if (n.includes('wall') || n.includes('стен') || n.includes('пост') || n.includes('запись')) targetType = 'POST';
-            else targetType = 'CHANNEL';
+            else if (fullContent.includes('stream') || fullContent.includes('зрител')) targetType = 'POST'; // Changed from 'VIDEO' to 'POST'
+            else if (category === 'POLLS') targetType = 'POLL';
+            else if (category === 'FRIENDS') targetType = 'CHANNEL'; // Changed from 'PROFILE' to 'CHANNEL'
+            else if (category === 'GROUPS' || category === 'SUBSCRIBERS') targetType = 'CHANNEL';
+            else if (fullContent.includes('clip') || fullContent.includes('клип')) targetType = 'POST'; // Changed from 'VK_CLIP' to 'POST'
+            else if (fullContent.includes('video') || fullContent.includes('видео')) targetType = 'POST'; // Changed from 'VK_VIDEO' to 'POST'
+            else targetType = 'POST';
+        } else if (effectivePlatform === 'DZEN') {
+            if (fullContent.includes('стать') || fullContent.includes('article')) targetType = 'POST';
+            else if (category === 'SUBSCRIBERS') targetType = 'CHANNEL';
+            else targetType = 'POST'; // Changed from 'VIDEO' to 'POST'
         } else {
-            // Generic logic for other platforms
-            if (isAuto) {
-                targetType = 'CHANNEL_POSTS';
-            } else if (['SUBSCRIBERS', 'GROUPS', 'FRIENDS'].includes(category)) {
-                targetType = (['INSTAGRAM', 'TIKTOK'].includes(effectivePlatform)) ? 'PROFILE' : 'CHANNEL';
-            } else if (n.includes('video') || n.includes('reel') || n.includes('shorts') || (category as string) === 'VIEWS') {
-                targetType = 'VIDEO';
+            if (isAuto) targetType = 'CHANNEL_POSTS';
+            else if (['SUBSCRIBERS', 'GROUPS', 'FRIENDS'].includes(category)) {
+                 targetType = 'CHANNEL'; // Simplified to CHANNEL for all
+            } else if (fullContent.includes('video') || fullContent.includes('reel') || fullContent.includes('shorts')) {
+                targetType = 'POST'; // Changed from 'VIDEO' to 'POST'
             } else {
                 targetType = 'POST';
             }
         }
 
-        // 4. Description
-        const isFast = n.includes('fast') || n.includes('instant') || n.includes('быстр') || n.includes('мгновен');
-        const isReal = n.includes('real') || n.includes('active') || n.includes('живы') || n.includes('реальн');
-        const isNoDrop = n.includes('no drop') || n.includes('non drop') || n.includes('без отписок') || n.includes('гарант');
-        const isHQ = n.includes('hq') || n.includes('high quality') || n.includes('высокое качество');
+        // 4. Descriptions & Requirements
+        const isFast = fullContent.includes('fast') || fullContent.includes('быстр');
+        const isHQ = fullContent.includes('hq') || fullContent.includes('high quality');
+        
+        const desc = (sanitizedDescription && sanitizedDescription.length > 20) 
+            ? sanitizedDescription 
+            : `Услуга продвижения для ${PLATFORM_LABELS[effectivePlatform] || 'соцсетей'}.`;
 
-        let sellingDescription = '';
-        if (category === 'SUBSCRIBERS' || category === 'GROUPS' || category === 'FRIENDS') {
-            const typeLabel = category === 'FRIENDS' ? 'друзья' : (category === 'GROUPS' ? 'участники' : 'подписчики');
-            sellingDescription = `### 🚀 Качественные ${typeLabel}
-* **Качество**: ${isReal ? 'Живые пользователи' : isHQ ? 'Высокое (HQ)' : 'Стандартные аккаунты'}
-* **Скорость**: ${isFast ? 'Мгновенный старт' : 'Плавное добавление'}
-* **Гарантия**: ${isNoDrop ? 'От списаний (Refill)' : 'Стабильное выполнение'}
-`;
-        } else if (category === 'LIKES') {
-            sellingDescription = `### ❤️ Лайки на ваши публикации
-* **Запуск**: ${isFast ? 'Автоматический (быстрый)' : '10-30 минут'}
-* **Тип**: ${isReal ? 'От реальных людей' : 'Качественные профили'}
-`;
-        } else if (category === 'VIEWS') {
-            sellingDescription = `### 👁 Просмотры контента
-* **Старт**: Моментальный
-* **Удержание**: ${isHQ ? 'Максимальное' : 'Стандартное'}
-`;
-        } else if (category === 'REACTIONS') {
-            sellingDescription = `### 🎭 Реакции (Эмодзи)
-* **Тип**: ${n.includes('random') ? 'Случайные положительные' : 'Выбранные вами'}
-* **Скорость**: Мгновенное распределение
-* **Эффект**: Повышает доверие и охваты поста
-`;
-        } else if (category === 'COMMENTS') {
-            sellingDescription = `### 💬 Комментарии и Отзывы
-* **Тип**: ${n.includes('custom') ? 'Ваш собственный текст' : 'Релевантные положительные'}
-* **Язык**: Русский / Английский
-* **Безопасность**: Естественные интервалы публикации
-`;
-        } else if (category === 'REPOSTS') {
-            sellingDescription = `### 📢 Репосты и Поделиться
-* **Охват**: Позволяет попасть в рекомендации
-* **Качество**: Реальные аккаунты
-* **Старт**: От 5 до 20 минут
-`;
-        } else {
-            const platformName = dynamicMatch && dynamicPlatforms
-                ? dynamicPlatforms.find(p => p.slug.toLowerCase() === platformSlug)?.name || platformSlug
-                : PLATFORM_LABELS[effectivePlatform] || effectivePlatform;
-
-            sellingDescription = (sanitizedDescription && sanitizedDescription.length > 10)
-                ? sanitizedDescription
-                : `### ✨ Услуга для ${platformName}
-Продвижение вашего проекта с гарантией качества и быстрой скоростью выполнения.`;
-        }
-
-        // 5. Suggested Name
-        let suggestedName = name;
-        suggestedName = suggestedName.replace(/\[.*?\]/g, '').replace(/ID\d+/gi, '').replace(/\b\d+\b/g, '').replace(/\s+/g, ' ').trim();
-
-        if (isHQ && !suggestedName.toLowerCase().includes('hq')) suggestedName += ' [HQ]';
-        if (isReal && !suggestedName.toLowerCase().includes('живые')) suggestedName += ' [Живые]';
-
-        // 6. Detect Requirements (Bot Admin, etc.)
-        let requirements: string | undefined = undefined;
-
-        // Instagram specific requirements
-        if (effectivePlatform === 'INSTAGRAM') {
-            const reqs = [];
-            if (n.includes('публичн') || n.includes('открыт') || n.includes('public')) {
-                reqs.push("Профиль/Пост должен быть открытым (публичным).");
+        let requirements = '';
+        const reqKeywords = ['link:', 'url:', 'формат:', 'link format:', 'требование:', 'пример:', 'ссылка:', 'example:', 'requirement:'];
+        const lines = (sanitizedDescription || '').split('\n');
+        for (const line of lines) {
+            const lowLine = line.toLowerCase();
+            if (reqKeywords.some(k => lowLine.includes(k))) {
+                requirements += line.trim() + ' ';
             }
-            if (n.includes('ссылку на профиль') || n.includes('ссылка на профиль')) {
-                reqs.push("Указывать ссылку на профиль.");
-            } else if (n.includes('ссылку на пост') || n.includes('ссылка на пост') || n.includes('ссылку на публикацию')) {
-                reqs.push("Указывать ссылку на конкретную публикацию.");
-            }
-            if (n.includes('не подходит для рилсов') || n.includes('not for reels')) {
-                reqs.push("Не подходит для Reels.");
-            }
-            if (n.includes('галочка') || n.includes('проверк')) {
-                // Special check for verification requirements
-                if (n.includes('открытый профиль')) reqs.push("Профиль должен быть открыт.");
-            }
-
-            if (reqs.length > 0) requirements = reqs.join(" ");
-        }
-
-        // Search for bot mentions in administrative context
-        const botMatch = n.match(/(@[a-z0-9_]+bot)/i);
-        const hasAdminKeywords = n.includes('админ') || n.includes('добавьте') || n.includes('назнач') || n.includes('права');
-
-        if (botMatch && hasAdminKeywords) {
-            requirements = `Для работы услуги необходимо добавить бота ${botMatch[0]} в администраторы вашего канала/группы с правами на сообщения/репосты.`;
-        } else if (isPrivate && (n.includes('бота') || n.includes('админ'))) {
-            requirements = "Для работы в закрытом канале необходимо добавить сервисного бота провайдера в администраторы.";
         }
 
         return {
             platform: platformEnum,
             platformSlug,
-            category,
+            category: category as any,
             targetType,
             isPrivate,
-            description_ru: sellingDescription,
-            suggestedName,
-            requirements
+            description_ru: desc,
+            suggestedName: name.replace(/\[.*?\]/g, '').trim(),
+            requirements: requirements.trim() || undefined,
+            geo,
+            warranty
         };
     }
 
@@ -505,5 +444,3 @@ export class SmartAnalyzerLogic {
         return this.detectSync(name, '', category).category;
     }
 }
-
-

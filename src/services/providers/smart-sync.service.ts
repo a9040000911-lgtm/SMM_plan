@@ -75,10 +75,11 @@ export class SmartSyncService {
       }
 
       // Проверка на убыточность (Loss Prevention)
-      const safetyPrice = PricingService.getSafetyPrice(syncResult.minCost || 0);
-      if (syncResult.minCost && internalService.pricePer1000.lt(safetyPrice)) {
+      const avgCostForSafety = syncResult.avgCost || new Decimal(0);
+      const safetyPrice = PricingService.getSafetyPrice(avgCostForSafety);
+      if (avgCostForSafety.gt(0) && internalService.pricePer1000.lt(safetyPrice)) {
         await prisma.internalService.update({ where: { id: serviceId }, data: { isActive: false } });
-        const alertMsg = `❌ <b>LOSS PREVENTION</b>\nУслуга: <code>${BroadcastService.escapeHtml(internalService.name)}</code>\nПричина: Себестоимость (${syncResult.minCost}₽) слишком близка к рознице (${internalService.pricePer1000}₽) после наценки.\nДействие: Услуга ОТКЛЮЧЕНА.`;
+        const alertMsg = `❌ <b>LOSS PREVENTION</b>\nУслуга: <code>${BroadcastService.escapeHtml(internalService.name)}</code>\nПричина: Средняя себестоимость (${avgCostForSafety.toFixed(4)}₽) слишком близка к рознице (${internalService.pricePer1000}₽) после наценки.\nДействие: Услуга ОТКЛЮЧЕНА.`;
         incidents.push({ type: 'LOSS_PREVENTION', msg: alertMsg, providerName: 'System' });
         alerts.push(alertMsg);
         continue;
@@ -96,7 +97,8 @@ export class SmartSyncService {
           await prisma.internalServiceMapping.update({ where: { id: currentPrimaryMapping.id }, data: { priority: 2 } });
           await prisma.internalServiceMapping.update({ where: { id: cheapestMapping.id }, data: { priority: 1 } });
 
-          const alertMsg = `🔄 <b>SMART ROTATION</b>\nУслуга: <code>${BroadcastService.escapeHtml(internalService.name)}</code>\nДействие: Переключено на <b>${BroadcastService.escapeHtml(syncResult.cheapestProvider || 'Unknown')}</b>\nВыгода: <b>${syncResult.maxCost.sub(syncResult.minCost)}₽</b> на 1000 ед.`;
+          const avgCostForCalc = syncResult.avgCost || new Decimal(0);
+          const alertMsg = `🔄 <b>SMART ROTATION</b>\nУслуга: <code>${BroadcastService.escapeHtml(internalService.name)}</code>\nДействие: Переключено на <b>${BroadcastService.escapeHtml(syncResult.cheapestProvider || 'Unknown')}</b>\nСредняя себестоимость: <b>${avgCostForCalc.toFixed(4)}₽</b> за 1000 ед.`;
           incidents.push({ type: 'SMART_ROTATION', msg: alertMsg, providerName: syncResult.cheapestProvider || 'Unknown' });
         }
       }

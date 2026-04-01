@@ -5,7 +5,7 @@
  */
 
 import { Decimal } from 'decimal.js';
-import { LedgerEntryType, Currency, Prisma } from '@/generated/client';
+import { LedgerEntryType, Currency, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { ServiceResult } from '../types';
 import { UserRepository } from '../repositories/user.repository';
@@ -36,31 +36,24 @@ export class LedgerService {
     type: LedgerEntryType,
     referenceId?: string,
     description?: string,
-    currencyOverride?: Currency
+    _currencyOverride?: Currency
   ) {
     const user = await UserRepository.findById(userId, tx);
 
     if (!user) throw new Error('User not found for ledger record');
 
-    const balanceBefore = user.balance;
-    const currency = currencyOverride || user.currency;
-
-    // Используем централизованную логику знака
-    const balanceAfter = this.isIncome(type)
-      ? balanceBefore.plus(amount)
-      : balanceBefore.minus(amount);
+    const _balanceBefore = user.balance;
 
     return await tx.ledgerEntry.create({
       data: {
         projectId: user.projectId,
         userId,
         amount,
-        currency,
-        balanceBefore,
-        balanceAfter,
-        type,
-        referenceId,
-        description
+        type: type,
+        referenceId: referenceId || `LEDGER_${Date.now()}`,
+        description,
+        balanceBefore: _balanceBefore,
+        balanceAfter: this.isIncome(type) ? _balanceBefore.plus(amount) : _balanceBefore.minus(amount)
       }
     });
   }

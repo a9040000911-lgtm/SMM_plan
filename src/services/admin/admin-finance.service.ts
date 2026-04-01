@@ -52,6 +52,9 @@ export class AdminFinanceService extends BaseAdminService {
 
             // Project isolation
             if (projectId && projectId !== 'all') {
+                if (!ctx.isGlobalAdmin && !ctx.allowedProjects.includes(projectId)) {
+                    throw new Error('Forbidden access to project');
+                }
                 where.projectId = projectId;
             } else if (!ctx.isGlobalAdmin) {
                 where.projectId = { in: ctx.allowedProjects };
@@ -111,6 +114,9 @@ export class AdminFinanceService extends BaseAdminService {
         try {
             const where: any = {};
             if (projectId && projectId !== 'all') {
+                if (!ctx.isGlobalAdmin && !ctx.allowedProjects.includes(projectId)) {
+                    throw new Error('Forbidden access to project');
+                }
                 where.projectId = projectId;
             } else if (!ctx.isGlobalAdmin) {
                 where.projectId = { in: ctx.allowedProjects };
@@ -224,6 +230,9 @@ export class AdminFinanceService extends BaseAdminService {
             const where: any = {};
             
             if (filters.projectId && filters.projectId !== 'all') {
+                if (!ctx.isGlobalAdmin && !ctx.allowedProjects.includes(filters.projectId)) {
+                    throw new Error('Forbidden access to project');
+                }
                 where.projectId = filters.projectId;
             } else if (!ctx.isGlobalAdmin) {
                 where.projectId = { in: ctx.allowedProjects };

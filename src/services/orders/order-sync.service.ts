@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
-import { OrderStatus, Order } from '@/generated/client';
+import { OrderStatus, Order } from '@prisma/client';
 import { ProviderService } from '../providers/provider.service';
 import { Decimal } from 'decimal.js';
 import { createLogger } from '@/lib/logger';
@@ -102,11 +102,17 @@ export class OrderSyncService {
 
             if (newS === 'CANCELED') {
                 this.logger.info(`[OrderSync] Order ${o.id} canceled. Trying auto-refill...`);
+                // tryAutoRefill with full order quantity (remains usually isn't accurate for full cancel, but we use the original logic)
                 const refilled = await this.tryAutoRefill(o.id);
                 if (refilled) return;
 
                 await services.OrderRefundService.handleRefund(o, newS, rem);
             } else if (newS === 'PARTIAL' && rem > 0) {
+                this.logger.info(`[OrderSync] Order ${o.id} partially finished (${rem} remains). Trying auto-refill cascade...`);
+                // tryAutoRefill but only for the remaining quantity
+                const refilled = await this.tryAutoRefill(o.id, rem);
+                if (refilled) return;
+                
                 await services.OrderRefundService.handleRefund(o, newS, rem);
             } else {
                 await this.updateOrder(o.id, newS, rem, data);
@@ -134,7 +140,7 @@ export class OrderSyncService {
      * Пытается автоматически перезаложить заказ у другого провайдера.
      * MOVED FROM OrderQueueService to break circular dependencies.
      */
-    static async tryAutoRefill(orderId: number): Promise<boolean> {
+    static async tryAutoRefill(orderId: number, remainsOverride?: number): Promise<boolean> {
         // We reuse ProviderService and other logic here.
         // Importing what we need...
         const { ConfigService } = await import('@/services/core/config.service');
@@ -184,6 +190,8 @@ export class OrderSyncService {
             return false;
         }
 
+        const qtyToOrder = remainsOverride ?? order.quantity;
+
         for (const mapping of nextMappings) {
             const providerSvc = await prisma.providerService.findUnique({
                 where: { id: mapping.providerServiceId }
@@ -202,19 +210,33 @@ export class OrderSyncService {
                 this.logger.info(`[Auto-Refill] VIP Guardian: Choosing expensive provider ${mapping.provider.name} (${costPer1000} > ${userPaidPer1000}) to ensure results.`);
             }
 
-            this.logger.info(`[Auto-Refill] Attempting restart for order ${order.id} via ${mapping.provider.name}`);
+            this.logger.info(`[Auto-Refill] Attempting restart for order ${order.id} via ${mapping.provider.name} (Qty: ${qtyToOrder})`);
 
             try {
-                const res = await ProviderService.createOrder(order, order.quantity, { providerId: mapping.providerId, providerServiceId: mapping.providerServiceId.toString() });
+                const res = await ProviderService.createOrder(order, qtyToOrder, { providerId: mapping.providerId, providerServiceId: mapping.providerServiceId.toString() });
 
                 if (res.success) {
+                    const meta = (order.metadata as Record<string, any>) || {};
+                    const providerHistory = meta.providerHistory || [];
+                    if (order.externalId && order.providerName) {
+                        providerHistory.push({
+                            externalId: order.externalId,
+                            providerName: order.providerName,
+                            status: 'CANCELED',
+                            costPrice: order.costPrice ? Number(order.costPrice) : null,
+                            timestamp: new Date().toISOString()
+                        });
+                        meta.providerHistory = providerHistory;
+                    }
+
                     await prisma.order.update({
                         where: { id: order.id },
                         data: {
                             externalId: res.externalId,
                             providerName: res.providerName,
                             status: 'PROCESSING',
-                            providerRawResponse: res.rawData || { info: 'Auto-Refill successful' }
+                            providerRawResponse: res.rawData || { info: 'Auto-Refill successful' },
+                            metadata: meta
                         }
                     });
 
@@ -223,7 +245,7 @@ export class OrderSyncService {
                     const { bot } = await import('@/services/bot/bot-registry');
 
                     if (adminId) {
-                        const loss = costPer1000.minus(userPaidPer1000).mul(order.quantity).div(1000);
+                        const loss = costPer1000.minus(userPaidPer1000).mul(qtyToOrder).div(1000);
                         const lossMsg = loss.gt(0) ? `\n⚠️ <b>Расход на лояльность:</b> <code>-${loss.toFixed(2)}₽</code> (принято решение в пользу клиента)` : '';
 
                         await bot.telegram.sendMessage(adminId,

@@ -7,29 +7,29 @@ $SERVER_IP = "89.23.98.202"
 $REMOTE_DIR = "/root/smmplan"
 $APP_CONTAINER = "smmplan-app"
 
-Write-Host "🚀 Starting Smmplan Production Deployment..." -ForegroundColor Cyan
+Write-Host "[DEPLOY] Starting Smmplan Production Deployment..." -ForegroundColor Cyan
 
 # 1. Local Build
-Write-Host "🏗️  Building Next.js application locally..." -ForegroundColor Yellow
+Write-Host "[BUILD] Building Next.js application locally..." -ForegroundColor Yellow
 npm run build
 
 # 2. Package App Assets
-Write-Host "📦 Packaging application assets..." -ForegroundColor Yellow
+Write-Host "[PKG] Packaging application assets..." -ForegroundColor Yellow
 if (Test-Path "deploy_app.tar.gz") { Remove-Item "deploy_app.tar.gz" }
 # We need standalone, static, and public
 tar -czf deploy_app.tar.gz .next/standalone .next/static public prisma package.json
 
 # 3. Package Bot Assets
-Write-Host "📦 Packaging bot assets..." -ForegroundColor Yellow
+Write-Host "[PKG] Packaging bot assets..." -ForegroundColor Yellow
 if (Test-Path "deploy_bot.tar.gz") { Remove-Item "deploy_bot.tar.gz" }
 tar -czf deploy_bot.tar.gz src prisma package.json package-lock.json tsconfig.json
 
 # 4. Transfer to Server
-Write-Host "🚚 Transferring archives to server ($SERVER_IP)..." -ForegroundColor Yellow
+Write-Host "[TRANSFER] Transferring archives to server ($SERVER_IP)..." -ForegroundColor Yellow
 scp deploy_app.tar.gz deploy_bot.tar.gz docker-compose.prod.yml Dockerfile.hybrid root@${SERVER_IP}:${REMOTE_DIR}/
 
 # 5. Remote Extraction and Restart
-Write-Host "🔧 Remote setup and container restart..." -ForegroundColor Yellow
+Write-Host "[REMOTE] Remote setup and container restart..." -ForegroundColor Yellow
 $remoteCommand = @"
     cd $REMOTE_DIR
     echo '--- Extracting App Assets ---'
@@ -47,4 +47,4 @@ $remoteCommand = @"
 
 ssh root@$SERVER_IP $remoteCommand
 
-Write-Host "✅ Deployment Complete! Site should be available at http://$SERVER_IP" -ForegroundColor Green
+Write-Host "[SUCCESS] Deployment Complete! Site should be available at http://$SERVER_IP" -ForegroundColor Green

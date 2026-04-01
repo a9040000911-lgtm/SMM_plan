@@ -10,7 +10,8 @@ import { SerializedServiceV2 } from "@/types/catalog";
 import { translateCategory } from "@/utils/translations";
 import { LinkService } from "../providers/link.service";
 import { analyzeLink } from "@/utils/link-analyzer";
-import { Platform } from "@/generated/client";
+import { Platform } from "@prisma/client";
+import { sanitizeData } from "@/utils/service-sanitizer";
 
 export class CatalogService {
     /**
@@ -23,6 +24,7 @@ export class CatalogService {
                     isActive: true,
                     OR: [
                         { providerMappings: { some: { projectId } } },
+                        { providerMappings: { some: { projectId: null } } },
                         { projectOverrides: { some: { projectId, isActive: true } } }
                     ]
                 },
@@ -31,8 +33,8 @@ export class CatalogService {
                     name: true,
                     description: true,
                     pricePer1000: true,
-                    category: true,
-                    platform: true,
+                    serviceCategory: { select: { categoryType: true } },
+                    socialPlatform: { select: { slug: true } },
                     minQty: true,
                     maxQty: true,
                     requirements: true,
@@ -45,9 +47,13 @@ export class CatalogService {
                             customName: true,
                             customDescription: true,
                             customRequirements: true,
-                            isActive: true
+                            isActive: true,
+                            customMinQty: true,
+                            customMaxQty: true
                         }
-                    }
+                    },
+                    metadata: true,
+                    numericId: true
                 },
                 orderBy: {
                     pricePer1000: 'asc',
@@ -66,23 +72,116 @@ export class CatalogService {
                     requirements: override?.customRequirements || s.requirements || "",
                     pricePer1000: finalPricePer1000,
                     pricePerUnit: pricePerUnit,
-                    category: s.category,
-                    platform: s.platform,
+                    category: s.serviceCategory?.categoryType as any || "OTHER",
+                    platform: s.socialPlatform?.slug as any || "other",
                     targetType: s.targetType,
                     isPrivate: s.isPrivate,
                     // Smart Badges Logic (Moved from Action)
                     isHot: s.name.toLowerCase().includes("premium") || s.name.toLowerCase().includes("fast"),
                     isCheap: finalPricePer1000 < 50,
                     isBest: s.name.toLowerCase().includes("garant") || s.name.toLowerCase().includes("гарант"),
-                    quality: s.name.toLowerCase().includes("hq") ? "HIGH" : "STD"
+                    quality: s.name.toLowerCase().includes("hq") ? "HIGH" : "STD",
+                    minQty: Number(override?.customMinQty || s.minQty || 1),
+                    maxQty: Number(override?.customMaxQty || s.maxQty || 1000000),
+                    qtyStep: Number((s as any).config?.qtyStep || (s as any).metadata?.qty_step || 1),
+                    numericId: (s as any).numericId?.toString()
                 };
             });
 
-            return { success: true, data: items };
+            return { success: true, data: sanitizeData(items) };
         } catch (error: any) {
             return {
                 success: false,
                 error: { code: 'CATALOG_FETCH_FAILED', message: error.message }
+            };
+        }
+    }
+    
+    /**
+     * Returns available services optionally filtered by platform.
+     */
+    static async getAvailableByPlatform(projectId: string, platform?: string | null): Promise<ServiceResult<CatalogServiceItem[]>> {
+        try {
+            const query: any = {
+                where: {
+                    isActive: true,
+                    OR: [
+                        { providerMappings: { some: { projectId } } },
+                        { providerMappings: { some: { projectId: null } } },
+                        { projectOverrides: { some: { projectId, isActive: true } } }
+                    ]
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    pricePer1000: true,
+                    serviceCategory: { select: { categoryType: true } },
+                    socialPlatform: { select: { slug: true } },
+                    minQty: true,
+                    maxQty: true,
+                    requirements: true,
+                    targetType: true,
+                    isPrivate: true,
+                    projectOverrides: {
+                        where: { projectId },
+                        select: {
+                            customPrice: true,
+                            customName: true,
+                            customDescription: true,
+                            customRequirements: true,
+                            isActive: true,
+                            customMinQty: true,
+                            customMaxQty: true
+                        }
+                    },
+                    metadata: true,
+                    numericId: true
+                },
+                orderBy: {
+                    pricePer1000: 'asc',
+                },
+            };
+
+            // Apply platform filter if provided
+            if (platform && platform.toLowerCase() !== 'all' && platform.toLowerCase() !== 'generic') {
+                query.where.socialPlatform = { slug: platform.toLowerCase() };
+            }
+
+            const services = await prisma.internalService.findMany(query) as any[];
+
+            const items: CatalogServiceItem[] = services.map(s => {
+                const override = s.projectOverrides?.[0];
+                const finalPricePer1000 = override?.customPrice ? Number(override.customPrice) : Number(s.pricePer1000);
+                const pricePerUnit = Number((finalPricePer1000 / 1000).toFixed(4));
+
+                return {
+                    id: s.id,
+                    name: override?.customName || s.name,
+                    description: override?.customDescription || s.description,
+                    requirements: override?.customRequirements || s.requirements || "",
+                    pricePer1000: finalPricePer1000,
+                    pricePerUnit: pricePerUnit,
+                    category: s.serviceCategory?.categoryType as any || "OTHER",
+                    platform: s.socialPlatform?.slug as any || "other",
+                    targetType: s.targetType,
+                    isPrivate: s.isPrivate,
+                    isHot: s.name.toLowerCase().includes("premium") || s.name.toLowerCase().includes("fast"),
+                    isCheap: finalPricePer1000 < 50,
+                    isBest: s.name.toLowerCase().includes("garant") || s.name.toLowerCase().includes("гарант"),
+                    quality: s.name.toLowerCase().includes("hq") ? "HIGH" : "STD",
+                    minQty: Number(override?.customMinQty || s.minQty || 1),
+                    maxQty: Number(override?.customMaxQty || s.maxQty || 1000000),
+                    qtyStep: Number((s as any).config?.qtyStep || (s as any).metadata?.qty_step || 1),
+                    numericId: (s as any).numericId?.toString()
+                };
+            });
+
+            return { success: true, data: sanitizeData(items) };
+        } catch (error: any) {
+            return {
+                success: false,
+                error: { code: 'CATALOG_FETCH_PLATFORM_FAILED', message: error.message }
             };
         }
     }
@@ -109,12 +208,13 @@ export class CatalogService {
                 },
                 include: {
                     serviceCategory: true,
+                    socialPlatform: true,
                     projectOverrides: {
                         where: { projectId, isActive: true },
                         include: { serviceCategory: true }
                     }
                 },
-                orderBy: [{ platform: 'asc' }, { category: 'asc' }, { pricePer1000: 'asc' }]
+                orderBy: [{ socialPlatform: { slug: 'asc' } }, { serviceCategory: { categoryType: 'asc' } }, { pricePer1000: 'asc' }]
             });
 
             const grouped: Record<string, Record<string, SerializedServiceV2[]>> = {};
@@ -128,14 +228,15 @@ export class CatalogService {
             };
 
             services.forEach((s: any) => {
-                if (!grouped[s.platform]) grouped[s.platform] = {};
+                const platformSlug = s.socialPlatform?.slug || "other";
+                if (!grouped[platformSlug]) grouped[platformSlug] = {};
 
                 const override = s.projectOverrides[0];
                 const categoryOverride = override?.serviceCategory;
 
-                const categoryDisplayName = categoryOverride?.name || s.serviceCategory?.name || translateCategory(s.category);
+                const categoryDisplayName = categoryOverride?.name || s.serviceCategory?.name || translateCategory(s.serviceCategory?.categoryType || "OTHER");
 
-                if (!grouped[s.platform][categoryDisplayName]) grouped[s.platform][categoryDisplayName] = [];
+                if (!grouped[platformSlug][categoryDisplayName]) grouped[platformSlug][categoryDisplayName] = [];
 
                 let finalPricePer1000 = toNum(s.pricePer1000);
                 let markupValue = toNum(s.markup);
@@ -157,7 +258,7 @@ export class CatalogService {
                     numericId: s.numericId,
                     name: override?.customName || s.name,
                     description: override?.customDescription || s.description || "",
-                    platform: s.platform,
+                    platform: platformSlug as any,
                     category: categoryDisplayName,
                     pricePer1000: finalPricePer1000,
                     lastProviderPrice: toNum(s.lastProviderPrice),
@@ -177,10 +278,10 @@ export class CatalogService {
                     targetType: s.targetType
                 };
 
-                grouped[s.platform][categoryDisplayName].push(serialized);
+                grouped[platformSlug][categoryDisplayName].push(serialized);
             });
 
-            return { success: true, data: grouped };
+            return { success: true, data: sanitizeData(grouped) };
         } catch (error: any) {
             return {
                 success: false,
@@ -200,7 +301,7 @@ export class CatalogService {
 
             if (!service) throw new Error('Услуга не найдена');
 
-            return { success: true, data: service };
+            return { success: true, data: sanitizeData(service) };
         } catch (error: any) {
             return { success: false, error: { code: 'SERVICE_NOT_FOUND', message: error.message } };
         }
@@ -213,14 +314,14 @@ export class CatalogService {
         try {
             const service = await prisma.internalService.findUnique({
                 where: { id: serviceId },
-                select: { platform: true, targetType: true, allowedTargetTypes: true }
+                select: { socialPlatform: { select: { slug: true } }, targetType: true, allowedTargetTypes: true }
             });
 
             if (!service) throw new Error('Услуга не найдена');
 
             const validation = LinkService.validate(
                 link,
-                service.platform as Platform,
+                service.socialPlatform?.slug as Platform || 'OTHER',
                 service.targetType,
                 service.allowedTargetTypes || undefined
             );
@@ -247,8 +348,8 @@ export class CatalogService {
                     projectId: project.id,
                     isActive: true,
                     internalService: {
-                        platform: analysis.platform,
-                        category: { in: analysis.possibleCategories },
+                        socialPlatform: { slug: analysis.platform },
+                        serviceCategory: { categoryType: { in: analysis.possibleCategories } },
                     }
                 },
                 include: { internalService: true },
@@ -257,7 +358,7 @@ export class CatalogService {
 
             return {
                 success: true,
-                data: {
+                data: sanitizeData({
                     platform: analysis.platform,
                     objectType: analysis.objectType,
                     suggestedServices: overrides.map(o => ({
@@ -266,7 +367,7 @@ export class CatalogService {
                         description: o.customDescription || o.internalService.description,
                         price: Number(o.customPrice || o.internalService.pricePer1000)
                     }))
-                }
+                })
             };
         } catch (error: any) {
             return { success: false, error: { code: 'PREMIUM_ANALYSIS_FAILED', message: error.message } };
@@ -285,21 +386,21 @@ export class CatalogService {
                 where: {
                     projectId: project.id,
                     isActive: true,
-                    ...(platform && platform !== 'all' ? { internalService: { platform: platform as any } } : {})
+                    ...(platform && platform !== 'all' ? { internalService: { socialPlatform: { slug: platform } } } : {})
                 },
-                include: { internalService: true },
+                include: { internalService: { include: { socialPlatform: true } } },
                 orderBy: { internalService: { rating: 'desc' } }
             });
 
             return {
                 success: true,
-                data: overrides.map(o => ({
+                data: sanitizeData(overrides.map(o => ({
                     id: o.internalService.id,
                     name: o.customName || o.internalService.name,
                     desc: o.customDescription || o.internalService.description,
                     price: `${Number(o.customPrice || o.internalService.pricePer1000)} ₽`,
-                    platform: o.internalService.platform
-                }))
+                    platform: o.internalService.socialPlatform?.slug || 'other'
+                })))
             };
         } catch (error: any) {
             return { success: false, error: { code: 'PREMIUM_SERVICES_FAILED', message: error.message } };

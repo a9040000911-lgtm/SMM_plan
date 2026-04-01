@@ -3,10 +3,11 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { Metadata } from "next";
+import { Metadata, ResolvingMetadata } from "next";
 import "./globals.css";
 import Script from "next/script";
 import { Providers } from "@/components/Providers";
+import { getTenantDomain, getTenantConfig } from "@/lib/tenant/server";
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { CookieBanner } from '@/components/stitch/ui/CookieBanner';
 
@@ -18,78 +19,79 @@ const jakarta = Plus_Jakarta_Sans({
 
 export const dynamic = 'force-dynamic';
 
-const siteConfig = {
+const defaultSiteConfig = {
   name: "Smmplan",
   description: "Профессиональная SMM-платформа №1 для мгновенного продвижения в Telegram, Instagram, VK и YouTube. Только качественные услуги с гарантией.",
-  url: "https://smmplan.ru", // Replace with actual production domain
-  ogImage: "https://smmplan.ru/og-image.png", // We'll need to create this asset or use a placeholder
+  url: "https://smmplan.pro",
+  ogImage: "https://smmplan.pro/og-image.png",
 };
 
-export const metadata: Metadata = {
-  title: {
-    default: siteConfig.name,
-    template: `%s | ${siteConfig.name}`,
-  },
-  description: siteConfig.description,
-  keywords: [
-    "SMM продвижение",
-    "накрутка подписчиков",
-    "купить лайки",
-    "просмотры телеграм",
-    "раскрутка инстаграм",
-    "smm услуги",
-    "продвижение вконтакте",
-    "тик ток продвижение",
-    "smmplan"
-  ],
-  authors: [
-    {
-      name: "Smmplan Team",
-      url: siteConfig.url,
+export async function generateMetadata(): Promise<Metadata> {
+  const domain = await getTenantDomain();
+  const config = await getTenantConfig();
+
+  const siteConfig = {
+    ...defaultSiteConfig,
+    name: config.name,
+    description: config.description,
+    url: `https://${domain}`,
+    ogImage: `https://${domain}/og-image.png`,
+  };
+
+  return {
+    title: {
+      default: siteConfig.name,
+      template: `%s | ${siteConfig.name}`,
     },
-  ],
-  creator: "Smmplan",
-  metadataBase: new URL(siteConfig.url),
-  openGraph: {
-    type: "website",
-    locale: "ru_RU",
-    url: siteConfig.url,
-    title: siteConfig.name,
     description: siteConfig.description,
-    siteName: siteConfig.name,
-    images: [
+    keywords: [
+      "SMM продвижение",
+      "накрутка подписчиков",
+      "smmplan",
+      config.name
+    ],
+    authors: [
       {
-        url: siteConfig.ogImage,
-        width: 1200,
-        height: 630,
-        alt: siteConfig.name,
+        name: `${config.name} Team`,
+        url: siteConfig.url,
       },
     ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: siteConfig.name,
-    description: siteConfig.description,
-    images: [siteConfig.ogImage],
-    creator: "@smmplan",
-  },
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-    apple: "/favicon.svg",
-  },
-  manifest: '/site.webmanifest',
-};
+    creator: config.name,
+    metadataBase: new URL(siteConfig.url),
+    openGraph: {
+      type: "website",
+      locale: "ru_RU",
+      url: siteConfig.url,
+      title: siteConfig.name,
+      description: siteConfig.description,
+      siteName: siteConfig.name,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: siteConfig.name,
+      description: siteConfig.description,
+    },
+    icons: {
+      icon: "/favicon.svg",
+      shortcut: "/favicon.svg",
+      apple: "/favicon.svg",
+    },
+    manifest: '/site.webmanifest',
+  };
+}
 
 
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const config = await getTenantConfig();
+  const themeClass = `theme-${config.theme}`;
+
   return (
-    <html lang="ru" suppressHydrationWarning className={jakarta.variable}>
+    <html lang="ru" suppressHydrationWarning className={`${jakarta.variable} ${themeClass}`}>
       <head>
         <Script
           src="https://telegram.org/js/telegram-web-app.js"

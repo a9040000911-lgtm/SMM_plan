@@ -20,9 +20,9 @@ export function ProjectProvidersTab({ projectId }: { projectId: string }) {
     const fetchProviders = async () => {
         setIsLoading(true);
         try {
-            const allProviders = await getProvidersAction();
+            const allProviders = await getProvidersAction() as AdminProvider[];
             // Filter only global or this project's providers
-            setProviders(allProviders.filter(p => !p.projectId || p.projectId === projectId));
+            setProviders(allProviders.filter((p: AdminProvider) => !p.projectId || p.projectId === projectId));
         } catch (e) {
             console.error(e);
         } finally {

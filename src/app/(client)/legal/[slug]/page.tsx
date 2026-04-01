@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation';
 import { getClientProjectId } from '@/utils/project-resolver';
 import { LegalPageLayout } from '@/components/stitch/legal/LegalPageLayout';
 import { CmsService } from '@/services/cms/cms.service';
+import { sanitizeHtml } from '@/utils/sanitizer';
 
 export const dynamic = 'force-dynamic';
 export default async function DynamicLegalPage({
@@ -72,7 +73,7 @@ export default async function DynamicLegalPage({
                     lastUpdated={new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
                 >
                     <div
-                        dangerouslySetInnerHTML={{ __html: fallbacks[slug].content }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(fallbacks[slug].content) }}
                         className="prose-strong:text-indigo-400 prose-headings:text-slate-900 prose-h2:mb-4 prose-p:mb-8 prose-p:text-slate-600"
                     />
                 </LegalPageLayout>
@@ -88,7 +89,7 @@ export default async function DynamicLegalPage({
             lastUpdated={new Date(document.updatedAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
         >
             <div
-                dangerouslySetInnerHTML={{ __html: document.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(document.content) }}
                 className="prose-strong:text-indigo-400 prose-headings:text-slate-900 prose-h2:mb-4 prose-p:mb-8 prose-p:text-slate-600"
             />
         </LegalPageLayout>

@@ -33,13 +33,21 @@ export async function GET(req: NextRequest) {
         internalService: {
           select: {
             name: true,
-            platform: true
+            socialPlatform: { select: { slug: true } }
           }
         }
       }
     });
 
-    return NextResponse.json({ orders });
+    const mappedOrders = orders.map(o => ({
+      ...o,
+      internalService: {
+        ...o.internalService,
+        platform: o.internalService.socialPlatform?.slug?.toUpperCase() || 'OTHER'
+      }
+    }));
+
+    return NextResponse.json({ orders: mappedOrders });
   } catch (e: any) {
     console.error('Orders List API Error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });

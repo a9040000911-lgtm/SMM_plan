@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://www.visitoai.com/en/blog/whatsapp-deep-links-complete-setup-guide",
+    "name": "WhatsApp deep links: complete setup guide - Visito",
+    "snippet": "Learn how to set-up WhatsApp deep links to increase guest engagement and direct bookings. Simple setup guide included. Missing: patterns | Show results with: patterns\n3 Sept 2025 — Learn how to set-up WhatsApp deep links to increase guest engagement and direct bookings. Simple setup guide included.",
+    "host_name": "www.visitoai.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/35995775/whatsapp-deep-link-to-a-specific-mobile-number",
+    "name": "WhatsApp deep link to a specific mobile number - Stack Overflow",
+    "snippet": "A friend of mine told me they have been using Facebook ads to post a deep link to send a whatsapp message and ask for the information about the ad via whatsapp. WhatsApp use only html to share url link by a descriptive text Whatsapp URL Schema send message to phonenumber More results from stackoverflow.com Missing: formats | Show results with: formats",
+    "host_name": "stackoverflow.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://helo.ai/resources/blog/how-to-create-whatsapp-link",
+    "name": "How to Create WhatsApp Link (wa.me) – Step-by-Step Guide - Helo.ai",
+    "snippet": "A wa.me link is WhatsApp's official short URL format for chat links. Basic format: https://wa.me/<number>. Example: https://wa.me/ ... Missing: deep patterns\n17 Dec 2025 — A wa.me link is WhatsApp's official short URL format for chat links. Basic format: https://wa.me/<number >. Example: https://wa.me/ ... Read more",
+    "host_name": "helo.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://faq.whatsapp.com/5913398998672934",
+    "name": "How to use click to chat - WhatsApp Help Center",
+    "snippet": "Use https://wa.me/whatsappphonenumber?text=urlencodedtext where whatsappphonenumber is a full phone number in international format and urlencodedtext is the URL ... Missing: deep | Show results with: deep\nUse https://wa.me/whatsappphonenumber?text=urlencodedtext where whatsappphonenumber is a full phone number in international format and urlencodedtext is the URL ... Read more",
+    "host_name": "faq.whatsapp.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.facebook.com/documentation/business-messaging/whatsapp/calling/call-button-messages-deep-links",
+    "name": "Send WhatsApp Call Button Messages and Deep Links",
+    "snippet": "The process to create a calling deep link is similar to a chat deep link⁠ , except the format for the call deep link is wa.me/call/<BUSINESS_PHONE_NUMBER>.",
+    "host_name": "developers.facebook.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.quickreply.ai/whatsapp-marketing/everything-you-need-to-know-about-whatsapp-url-links",
+    "name": "Everything You Need to Know About Whatsapp URL Links",
+    "snippet": "Since the universal format of WhatsApp link is preferred and is more trustworthy amongst consumers, we recommend using https://wa.me/<number> to ... Missing: deep | Show results with: deep\n23 Feb 2026 — Since the universal format of WhatsApp link is preferred and is more trustworthy amongst consumers, we recommend using https:// wa . me /<number> to ... Read more",
+    "host_name": "www.quickreply.ai",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://app.urlgeni.us/blog/how-to-create-a-whatsapp-deep-link-with-a-pre-populated-message",
+    "name": "How to Generate a WhatsApp Deep Link with a Pre-Populated",
+    "snippet": "This post will take you through the steps for creating a deep link to WhatsApp with a pre-populated message.",
+    "host_name": "app.urlgeni.us",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.chatdaddy.tech/blog/whatsapp-link-generator-create-free-whatsapp-chat-link",
+    "name": "Create Free WhatsApp Chat Link - ChatDaddy",
+    "snippet": "WhatsApp Chat Links are a feature offered by the app that allows users to create online links that can invite users directly into group chats or individual ... Missing: deep | Show results with: deep\nWhatsApp Chat Links are a feature offered by the app that allows users to create online links that can invite users directly into group chats or individual ... Read more",
+    "host_name": "www.chatdaddy.tech",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.pushengage.com/create-whatsapp-link",
+    "name": "How to Create WhatsApp Link for Click to Chat - PushEngage",
+    "snippet": "Learn how to create WhatsApp link for instant customer communication. Get a step-by-step guide plus the easiest WordPress solution.",
+    "host_name": "www.pushengage.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://faq.whatsapp.com/425247423114725",
+    "name": "How to link to WhatsApp from a different app",
+    "snippet": "Use https://wa.me/<number > where the <number> is a full phone number in international format. Omit any brackets, dashes, plus signs, and leading zeros when ... Read more",
+    "host_name": "faq.whatsapp.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -7,8 +7,9 @@
 
 import { useEffect, useState } from 'react';
 import { getSecurityRisksAction } from './actions';
-import { ShieldAlert, ArrowRight } from 'lucide-react';
+import { ShieldAlert, ArrowRight, Shield } from 'lucide-react';
 import Link from 'next/link';
+import { AdminTableCard } from '@/components/admin/core/admin-table-card';
 
 export default function SecurityPage() {
     const [risks, setRisks] = useState<any[]>([]);
@@ -56,8 +57,7 @@ export default function SecurityPage() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-                <div className="overflow-x-auto">
+            <AdminTableCard title="Подозрительные аккаунты" icon={Shield}>
                     <table className="w-full">
                         <thead className="bg-slate-50 border-b border-slate-100">
                             <tr>
@@ -117,8 +117,7 @@ export default function SecurityPage() {
                             )}
                         </tbody>
                     </table>
-                </div>
-            </div>
+            </AdminTableCard>
         </div>
     );
 }

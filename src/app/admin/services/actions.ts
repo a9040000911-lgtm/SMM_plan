@@ -10,6 +10,7 @@ import { getActiveProjectId } from '@/utils/admin-session';
 import { sanitizeData } from '@/utils/service-sanitizer';
 import { AdminDataService } from '@/services/admin/admin-data.service';
 import { getAdminContext } from '@/utils/admin-context';
+import { Decimal } from 'decimal.js';
 
 /**
  * Переключает статус активности услуги.
@@ -302,7 +303,9 @@ export async function getServiceCategories() {
 /**
  * Обратная совместимость для компонентов, использующих старое имя
  */
-export const getServiceCategoriesAction = getServiceCategories;
+export async function getServiceCategoriesAction() {
+  return getServiceCategories();
+}
 
 /**
  * Получает статистику наценок.
@@ -479,4 +482,50 @@ export async function bulkDeleteServicesAction(ids: string[]) {
   }
 }
 
+/**
+ * Получает все услуги для управления наценками.
+ */
+export async function getServicesAction() {
+    try {
+        await getAdminContext();
+        const prisma = (await import('@/lib/prisma')).prisma;
+        const { PricingService } = await import('@/services/finance/pricing.service');
 
+        const services = await prisma.internalService.findMany({
+            orderBy: { id: 'asc' },
+            include: {
+                providerMappings: {
+                    orderBy: { priority: 'asc' },
+                    include: {
+                        provider: true,
+                        providerService: true
+                    }
+                },
+                serviceCategory: true
+            }
+        });
+
+        const enrichedServices = await Promise.all(services.map(async (s) => {
+            const cost = Number(s.lastProviderPrice) ||
+                Number(s.providerMappings?.[0]?.providerService?.rawPrice) || 0;
+
+            let recommendedPrice = null;
+            if (cost > 0) {
+                const rec = await PricingService.calculateRetailPrice(new Decimal(cost), {
+                    category: s.serviceCategory?.categoryType as any
+                });
+                recommendedPrice = rec.toNumber();
+            }
+
+            return {
+                ...s,
+                recommendedPrice
+            };
+        }));
+
+        return sanitizeData(enrichedServices);
+    } catch (error: any) {
+        console.error('getServicesAction Error:', error);
+        throw error;
+    }
+}

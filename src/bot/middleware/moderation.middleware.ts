@@ -4,6 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
+import { redis } from '@/lib/redis';
 
 
 export const moderationMiddleware = async (ctx: any, next: any) => {
@@ -20,20 +21,33 @@ export const moderationMiddleware = async (ctx: any, next: any) => {
 
 
     try {
-        console.error(`[Moderation] TRACE user:${userId} proj:${projectId}`);
+        const cacheKey = `bot_mod:${projectId}:${userId}`;
+        let cachedData = await redis.get(cacheKey);
 
-        const user = await prisma.user.findFirst({
-            where: {
-                OR: [
-                    { projectId, tgId: BigInt(userId) },
-                    { projectId: null, tgId: BigInt(userId) }
-                ]
-            },
-            select: { isPermanentlyBanned: true, banExpiresAt: true, role: true }
-        });
+        let user: any = null;
 
-        if (user) {
-            const isTempBanned = user.banExpiresAt && user.banExpiresAt > new Date();
+        if (cachedData) {
+            user = JSON.parse(cachedData);
+        } else {
+            console.error(`[Moderation] TRACE SQL user:${userId} proj:${projectId}`);
+
+            user = await prisma.user.findFirst({
+                where: {
+                    OR: [
+                        { projectId, tgId: BigInt(userId) },
+                        { projectId: null, tgId: BigInt(userId) }
+                    ]
+                },
+                select: { isPermanentlyBanned: true, banExpiresAt: true, role: true }
+            });
+
+            // TTL 60 seconds. We only cache it briefly to absorb chat spam
+            await redis.set(cacheKey, JSON.stringify(user || {not_found: true}), 'EX', 60);
+        }
+
+        if (user && !user.not_found) {
+            const banDate = user.banExpiresAt ? new Date(user.banExpiresAt) : null;
+            const isTempBanned = banDate && banDate > new Date();
             if (user.isPermanentlyBanned || isTempBanned) {
                 console.error(`[Moderation] BAN DETECTED for ${userId}`);
 

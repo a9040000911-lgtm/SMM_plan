@@ -5,31 +5,20 @@
  */
 import axios from 'axios';
 import crypto from 'crypto';
-import { prisma } from '@/lib/prisma';
 
 export class YooKassaService {
   /**
-   * Получает учетные данные ЮKassa для конкретного проекта из БД
+   * Получает учетные данные ЮKassa для конкретного проекта через PaymentSettingsService
    */
   private static async getCredentialsForProject(projectId: string) {
-    console.log(`[YooKassa Debug] Fetching settings for project: ${projectId}`);
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { paymentSettings: true, name: true }
-    });
+    const { PaymentSettingsService } = await import('./payment-settings.service');
+    const credentials = await PaymentSettingsService.getCredentials<{ shopId: string, secretKey: string }>(projectId, 'YOOKASSA');
 
-    console.log(`[YooKassa Debug] Project found: ${project?.name}, settings:`, JSON.stringify(project?.paymentSettings));
-
-    const settings = project?.paymentSettings as any;
-    const shopId = settings?.yookassaShopId || settings?.shopId || process.env.YOOKASSA_SHOP_ID;
-    const secretKey = settings?.yookassaSecretKey || settings?.secretKey || process.env.YOOKASSA_SECRET_KEY;
-
-    if (!shopId || !secretKey) {
-      console.error(`[YooKassa Debug] Missing credentials for project ${projectId}. Settings:`, settings);
-      throw new Error(`ЮKassa не настроена для проекта ${project?.name || projectId}. Пожалуйста, настройте Shop ID и Secret Key.`);
+    if (!credentials.shopId || !credentials.secretKey) {
+      throw new Error(`ЮKassa не настроена. Пожалуйста, проверьте настройки в админ-панели.`);
     }
 
-    return Buffer.from(`${shopId}:${secretKey}`).toString('base64');
+    return Buffer.from(`${credentials.shopId}:${credentials.secretKey}`).toString('base64');
   }
 
   /**

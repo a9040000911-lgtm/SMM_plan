@@ -6,7 +6,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from "@/auth";
-
+import { prisma } from '@/lib/prisma';
 import { ChurnMonitorService } from '@/services/churn/churn-monitor.service';
 
 /**
@@ -26,7 +26,18 @@ export async function GET(
         }
 
         const { id: orderId } = await params;
-        const churnStats = await ChurnMonitorService.getOrderChurnStats(parseInt(orderId));
+        const orderIdNum = parseInt(orderId);
+        if (isNaN(orderIdNum)) {
+            return NextResponse.json({ error: 'Invalid order ID' }, { status: 400 });
+        }
+
+        // SECURITY: Verify order belongs to the authenticated user (IDOR Prevention)
+        const order = await prisma.order.findUnique({ where: { id: orderIdNum }, select: { userId: true } });
+        if (!order || order.userId !== userId) {
+            return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+        }
+
+        const churnStats = await ChurnMonitorService.getOrderChurnStats(orderIdNum);
 
         if (!churnStats) {
             return NextResponse.json({ error: 'Order not found or no churn data' }, { status: 404 });

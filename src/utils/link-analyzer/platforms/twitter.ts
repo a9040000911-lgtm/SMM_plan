@@ -3,7 +3,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import type { Platform, Category } from '@/generated/client';
+import type { Platform, Category } from '@/services/types';
 import { AnalysisResult, PlatformParser } from '../types';
 
 export const TwitterParser: PlatformParser = {

@@ -76,17 +76,21 @@ export async function handleStart(ctx: any) {
             // If it's a short code (uuid prefix), we might need to search with startsWith or similar if we don't have full ID.
             // But usually DeepLink is the full ID or a mapped code. 
             // Let's assume it's the ID prefix or full ID.
-            const potentialReferrer = await prisma.user.findFirst({
-                where: {
-                    projectId,
-                    id: { startsWith: startPayload } // Matches "start={user.id.split('-')[0]}" logic from referral.wizard.ts
-                }
-            });
+            // A standard Prisma UUID's first segment is 8 characters. We require at least 6 characters 
+            // to prevent wildcard 'startsWith' matching that funnels all organic traffic to the Admin.
+            if (startPayload.length >= 6) {
+                const potentialReferrer = await prisma.user.findFirst({
+                    where: {
+                        projectId,
+                        id: { startsWith: startPayload } // Matches "start={user.id.split('-')[0]}" logic from referral.wizard.ts
+                    }
+                });
 
-            if (potentialReferrer && potentialReferrer.tgId !== BigInt(userId)) {
-                referrerId = potentialReferrer.id;
+                if (potentialReferrer && potentialReferrer.tgId !== BigInt(userId)) {
+                    referrerId = potentialReferrer.id;
+                }
             }
-        }
+            }
 
         const newUser = await prisma.user.create({
             data: {

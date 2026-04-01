@@ -3,8 +3,14 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { Order, InternalService, User, Project } from '@/generated/client';
 import { Decimal } from 'decimal.js';
+
+// Псевдонимы для типов Prisma (чтобы не тянуть рантайм на фронт)
+type Order = any;
+type InternalService = any;
+type User = any;
+type Project = any;
+
 
 export interface DripFeedSettings {
     runs: number;
@@ -36,7 +42,7 @@ export interface OrderInitiateData {
     promoId?: string;
     isDripFeed?: boolean;
     dripFeed?: DripFeedSettings;
-    tgId?: number;
+    tgId?: number | bigint;
     username?: string;
     unitName?: string;
     isManual?: boolean;

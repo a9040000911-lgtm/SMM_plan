@@ -9,6 +9,7 @@ import { BroadcastService, TicketVerificationService } from '@/services/support'
 import { bot } from '@/services/bot/bot-registry';
 import { SessionService, UserState } from '@/services/core';
 import { escapeHtml } from '../utils/formatter';
+import { RateLimiterService } from '../utils/rate-limiter';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('SupportWizard');
@@ -19,6 +20,20 @@ export const supportWizard = new Scenes.WizardScene(
     SUPPORT_WIZARD,
     // ШАГ 1: Выбор категории проблемы
     async (ctx: any) => {
+        const tgId = ctx.from.id;
+        
+        // Anti-Spam: Blocks multiple active conversations
+        const user = await prisma.user.findUnique({ where: { tgId: BigInt(tgId) }, select: { id: true, role: true } });
+        if (user && user.role !== 'ADMIN' && user.role !== 'SEO') {
+            const openTicket = await prisma.supportTicket.findFirst({
+                where: { userId: user.id, status: 'OPEN' }
+            });
+            if (openTicket) {
+                await ctx.reply(`⚠️ <b>У вас уже есть открытое обращение (#${openTicket.id.split('-')[0].toUpperCase()}).</b>\n\nПожалуйста, дождитесь ответа службы поддержки или закройте текущий тикет в Личном кабинете сайте.`, { parse_mode: 'HTML' });
+                return ctx.scene.leave();
+            }
+        }
+
         // Проверяем, пришел ли пользователь по конкретному заказу
         const orderId = ctx.scene.state?.orderId;
         if (orderId) {

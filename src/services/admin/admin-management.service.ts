@@ -34,7 +34,6 @@ export class AdminManagementService extends BaseAdminService {
             const [revenue, orderCount, userCount, openTickets, stuckOrders, latestOrders] = await Promise.all([
                 prisma.transaction.aggregate({
                     where: {
-                        type: 'DEPOSIT',
                         status: 'COMPLETED',
                         ...(!ctx.isGlobalAdmin ? { user: { projectId: { in: ctx.allowedProjects } } } : {})
                     },
@@ -107,17 +106,17 @@ export class AdminManagementService extends BaseAdminService {
                 pageId = page?.id;
             }
 
-            const updatePromises = Object.entries(data.updates).map(([key, value]) => {
-                return prisma.cmsString.upsert({
+            let count = 0;
+            for (const [key, value] of Object.entries(data.updates)) {
+                await prisma.cmsString.upsert({
                     where: { projectId_key_pageId: { projectId: data.projectId, key, pageId: pageId || null as any } },
                     update: { value, isPublished: true },
                     create: { projectId: data.projectId, key, value, pageId: pageId || null, isPublished: true }
                 });
-            });
-
-            await Promise.all(updatePromises);
+                count++;
+            }
             
-            await this.logAction(ctx, 'UPDATE_CMS_STRINGS', `Updated ${Object.keys(data.updates).length} strings for project ${data.projectId}`, data.projectId);
+            await this.logAction(ctx, 'UPDATE_CMS_STRINGS', `Updated ${count} strings for project ${data.projectId}`, data.projectId, undefined, null, null, data.projectId);
 
             return { success: true, data: { count: Object.keys(data.updates).length } };
         } catch (error: any) {
@@ -185,6 +184,9 @@ export class AdminManagementService extends BaseAdminService {
             const data = CreateNewsContract.parse(rawData);
             if (data.projectId && !this.isAllowed(ctx, data.projectId)) {
                 return this.error('FORBIDDEN', `Forbidden access to project: ${data.projectId}`);
+            }
+            if (!data.projectId && !ctx.isGlobalAdmin) {
+                return this.error('FORBIDDEN', 'Forbidden: Only Global Admins can publish global news.');
             }
 
             const news = await prisma.news.create({
@@ -266,6 +268,9 @@ export class AdminManagementService extends BaseAdminService {
         try {
             const where: any = {};
             if (projectId && projectId !== 'all') {
+                if (!ctx.isGlobalAdmin && !ctx.allowedProjects.includes(projectId)) {
+                    throw new Error('Forbidden access to project');
+                }
                 where.OR = [{ projectId: null }, { projectId }];
             } else if (!ctx.isGlobalAdmin) {
                 where.projectId = { in: ctx.allowedProjects };
@@ -320,7 +325,12 @@ export class AdminManagementService extends BaseAdminService {
         try {
             if (!ctx.isGlobalAdmin) throw new Error('Unauthorized');
             const data = UpdateGlobalSettingsContract.parse(rawData);
-            
+            const oldSettings = await prisma.globalSetting.findMany({
+                where: { key: { in: Object.keys(data.settings) } }
+            });
+            const oldMap: Record<string, string> = {};
+            oldSettings.forEach(s => oldMap[s.key] = s.value);
+
             await this.runTransactional(async (tx) => {
                 const operations = Object.entries(data.settings).map(([key, value]) =>
                     tx.globalSetting.upsert({
@@ -331,7 +341,14 @@ export class AdminManagementService extends BaseAdminService {
                 );
                 await Promise.all(operations);
             });
-            await this.logAction(ctx, 'UPDATE_GLOBAL_SETTINGS', `Updated settings: ${Object.keys(data.settings).join(', ')}`);
+            await this.logAction(
+                ctx, 
+                'UPDATE_GLOBAL_SETTINGS', 
+                `Изменены системные настройки: ${Object.keys(data.settings).join(', ')}`,
+                null,
+                oldMap,
+                data.settings
+            );
             return { success: true, data: undefined };
         } catch (error: any) {
             return this.handleError(error, 'SETTINGS_UPDATE_FAILED');
@@ -352,6 +369,8 @@ export class AdminManagementService extends BaseAdminService {
             return this.handleError(error, 'PROJECTS_FETCH_FAILED');
         }
     }
+
+
 }
 
 

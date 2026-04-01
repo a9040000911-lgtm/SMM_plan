@@ -21,7 +21,9 @@ export function isSafeUrl(urlStr: string): boolean {
         const hostname = url.hostname.toLowerCase();
 
         // 1. Block known loopback and local hostnames
-        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname.endsWith('.local')) {
+        // MUST NEVER allow loopback in production, even with flag.
+        const isProd = process.env.NODE_ENV === 'production';
+        if (isProd && (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname.endsWith('.local'))) {
             return false;
         }
 
@@ -32,13 +34,31 @@ export function isSafeUrl(urlStr: string): boolean {
         // 169.254.0.0/16 (Link-local)
         
         // Simple regex for private IPs
-        const privateIpRegex = /^(10\.|127\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.|169\.254\.)/;
-        if (privateIpRegex.test(hostname)) {
+        const privateIpRegex = /^(10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.|169\.254\.)/;
+        if (isProd && (privateIpRegex.test(hostname) || hostname.startsWith('127.'))) {
             return false;
         }
 
-        // For absolute safety, in production one should resolve DNS and check the resulting IP.
-        // But for this panel, blocking direct IP/localhost provides significant protection.
+        // 3. [SECURITY] Block cloud metadata endpoints (AWS, GCP, Azure)
+        const cloudMetadataHosts = [
+            '169.254.169.254',          // AWS EC2 / GCP metadata
+            'metadata.google.internal', // GCP metadata v2
+            '100.100.100.200',          // Alibaba Cloud metadata
+            '169.254.169.253'           // Additional aliasing
+        ];
+        if (cloudMetadataHosts.includes(hostname)) {
+            return false;
+        }
+
+        // 4. [SECURITY] Block .internal and .test TLDs in production
+        if (isProd && (hostname.endsWith('.internal') || hostname.endsWith('.test'))) {
+            return false;
+        }
+
+        // 5. [SECURITY] Block URLs with embedded credentials (user:pass@host)
+        if (url.username || url.password) {
+            return false;
+        }
 
         return true;
     } catch (_e) {

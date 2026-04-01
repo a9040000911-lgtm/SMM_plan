@@ -214,7 +214,7 @@ export class ChurnPredictionService {
                         internalService: {
                             select: {
                                 name: true,
-                                platform: true
+                                socialPlatform: { select: { slug: true } }
                             }
                         }
                     }
@@ -273,8 +273,8 @@ export class ChurnPredictionService {
                     include: {
                         internalService: {
                             select: {
-                                platform: true,
-                                category: true,
+                                socialPlatform: { select: { slug: true } },
+                                serviceCategory: { select: { categoryType: true } },
                                 guaranteeDays: true
                             }
                         }
@@ -290,8 +290,8 @@ export class ChurnPredictionService {
             daysElapsed: s.daysElapsed,
             subscriberCount: s.subscriberCount,
             dropoffRate: Number(s.dropoffRate),
-            platform: s.order.internalService.platform,
-            category: s.order.internalService.category,
+            platform: s.order.internalService.socialPlatform?.slug || 'other',
+            category: s.order.internalService.serviceCategory?.categoryType || 'OTHER',
             warrantyDays: s.order.warrantyDays,
             initialCount: s.order.initialCount,
             snapshotDate: s.snapshotDate.toISOString()

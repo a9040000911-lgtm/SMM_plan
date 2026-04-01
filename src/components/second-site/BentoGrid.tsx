@@ -5,6 +5,7 @@
  */
 import { cn } from "@/utils/ui";
 import React from "react";
+import { SmartText } from "@/components/ui/SmartText";
 
 export const BentoGrid = ({
     className,
@@ -50,19 +51,19 @@ export const BentoItem = ({
     const cardContent = (
         <div
             className={cn(
-                "row-span-1 rounded-3xl group/bento hover:shadow-xl transition duration-200 shadow-input dark:shadow-none p-6 dark:bg-black dark:border-white/[0.2] bg-white border border-transparent flex flex-col justify-between space-y-4 shadow-sm border-zinc-100 h-full",
-                "backdrop-blur-xl bg-white/30 dark:bg-black/30 border-white/20", // Glassmorphism
+                "row-span-1 rounded-3xl group/bento hover:shadow-xl transition duration-200 shadow-input p-6.2] bg-white border border-transparent flex flex-col justify-between space-y-4 shadow-sm border-zinc-100 h-full",
+                "backdrop-blur-xl bg-white/30 border-white/20", // Glassmorphism
                 className
             )}
         >
             {header}
             <div className="group-hover/bento:translate-x-2 transition duration-200">
                 {icon}
-                <div className="font-sans font-bold text-neutral-600 dark:text-neutral-200 mb-2 mt-2">
+                <div className="font-sans font-bold text-neutral-600 mb-2 mt-2">
                     {title}
                 </div>
-                <div className="font-sans font-normal text-neutral-600 text-xs dark:text-neutral-300">
-                    {description}
+                <div className="font-sans font-normal text-neutral-600 text-xs">
+                    {typeof description === 'string' ? <SmartText text={description} /> : description}
                 </div>
             </div>
         </div>

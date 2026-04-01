@@ -67,7 +67,7 @@ export async function GET(_req: NextRequest) {
                     txId: tx.id,
                     paymentId: tx.externalId,
                     status: 'ERROR',
-                    error: err.message
+                    error: 'Sync failed'
                 });
             }
         }
@@ -78,7 +78,7 @@ export async function GET(_req: NextRequest) {
         });
     } catch (error: any) {
         console.error('[Force Sync Payments Error]', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 

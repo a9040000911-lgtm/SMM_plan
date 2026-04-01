@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://www.reddit.com/r/redditdev/comments/e62riz/how_are_reddit_urls_constructed",
+    "name": "How are reddit urls constructed? : r/redditdev",
+    "snippet": "A link to your comment would have a url consisting of the post url + /<your comment's id>? If I go to the post url with the post id instead of a ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://redcmts.com/blog/reddit-comment-formatting.html",
+    "name": "Reddit Comment Formatting Tips & Guide - REDCmts.com",
+    "snippet": "This guide covers every Reddit markdown syntax trick you need. Bold, italic, lists, blockquotes, tables, code blocks, headers, and links . Each one explained ... Read more",
+    "host_name": "redcmts.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/reddithelp/comments/1qesw45/how_do_i_format_a_hyperlink_correctly",
+    "name": "How do I format a hyperlink correctly? : r/reddithelp",
+    "snippet": "I've been trying to create hyperlinks using markdown syntax. It looks like on this subreddit there are buttons to make it easier, but on the sub ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/redditdev/comments/1ih5zwb/html_formatting_in_reddit_posts",
+    "name": "HTML formatting in Reddit Posts? : r/redditdev",
+    "snippet": "A bot would filter all new posts , look for specific tags, and format the content in a custom manner by modifying the html of the post displayed. Read more",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.quora.com/How-do-I-create-a-hyperlink-on-Reddit",
+    "name": "How to create a hyperlink on Reddit",
+    "snippet": "To insert a link you place the word you want to make a link in brackets followed by the url in parentheses. Sign up for Reddit .",
+    "host_name": "www.quora.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/learnpython/comments/4vmjuc/can_you_explain_how_the_reddit_page_url_structure",
+    "name": "Can you explain how the reddit page url structure works",
+    "snippet": "I am using requests and just want to cycle through a couple of pages after the first one. So how would I do that since the urls seem randomly generated? Read more",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/help/comments/7m8ujy/how_do_i_create_a_hyperlink_in_reddit",
+    "name": "How do I create a hyperlink in Reddit? : r/help",
+    "snippet": "I would like to show images or pictures of what I am talking about by directing people to a hyperlink . How would this be done? Read more",
+    "host_name": "www.reddit.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/redditdev/comments/rqcxnw/how_to_format_comments_correctly",
+    "name": "How to format comments correctly : r/redditdev",
+    "snippet": "Subreddits do not need hyperlinks as such. They automatically get linked . ... Ah, so, comment .reply(\"r/test \\nhttps://google.com \\n# BIG TEXT\");. Read more",
+    "host_name": "www.reddit.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/OutOfTheLoop/comments/1feeyu7/whats_up_with_redditors_posting_hyperlinks_in",
+    "name": "What's up with redditors posting hyperlinks in their",
+    "snippet": "On the user side you create an empty link with the corresponding code inside. Reddit automatically adds \" reddit .com\" or whatever to the link for ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/NewToReddit/comments/1bv2txd/seeking_help_on_how_to_add_links",
+    "name": "Seeking help on how to add links : r/NewToReddit",
+    "snippet": "Hello everyone. I'm fairly new to Reddit but I do comment a lot and I'm wondering how do I include a link in my comment?",
+    "host_name": "www.reddit.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

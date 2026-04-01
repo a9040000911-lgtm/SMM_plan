@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
-import { AchievementType, ChallengeType } from '@/generated/client';
+import { AchievementType, ChallengeType } from '@prisma/client';
 
 /**
  * Achievement System Service (Phase 10A)

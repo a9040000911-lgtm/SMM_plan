@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
-import { Prisma, OrderStatus } from '@/generated/client';
+import { Prisma, OrderStatus } from '@prisma/client';
 import { Decimal } from 'decimal.js';
 import { LedgerService } from '@/services/finance/ledger.service';
 import { bot } from '@/services/bot/bot-registry';
@@ -20,14 +20,38 @@ export class OrderRefundService {
      * Атомарный возврат средств за заказ (автоматический)
      */
     static async handleRefund(o: OrderWithRelations, newS: OrderStatus, rem: number, providerRawResponse?: any) {
-        const qty = newS === 'CANCELED' ? o.quantity : rem;
+        // Защита от багов API внешних провайдеров: remains никогда не может превышать изначальное количество заказа.
+        // Если провайдер вернет rem = 1000 для заказа на 10, мы вернем только за 10.
+        const requestedQty = newS === 'CANCELED' ? o.quantity : rem;
+        const qty = Math.min(requestedQty, o.quantity);
+        
         if (qty <= 0) return;
 
         // Расчитываем сумму к возврату пропорционально остатку
         const amtToRefund = o.totalPrice.mul(qty).div(o.quantity);
 
         await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-            // 1. АТОМАРНАЯ ПРОВЕРКА И ОБНОВЛЕНИЕ
+            // 1. Читаем актуальное состояние заказа ВНУТРИ транзакции для атомарного cap
+            const currentOrder = await tx.order.findUnique({
+                where: { id: o.id },
+                select: { id: true, refundedAmount: true, totalPrice: true, status: true }
+            });
+            if (!currentOrder) return;
+
+            // Вычисляем реальный остаток для возврата (cap)
+            const alreadyRefunded = currentOrder.refundedAmount;
+            const maxRefundable = currentOrder.totalPrice.minus(alreadyRefunded);
+
+            // Если уже возвращено всё — блокируем (защита от double refund)
+            if (maxRefundable.lte(0)) {
+                this.logger.warn(`[Refund Protection] Blocked refund for order ${o.id}: already fully refunded`);
+                return;
+            }
+
+            // Обрезаем сумму до оставшегося лимита
+            const clampedAmount = Decimal.min(amtToRefund, maxRefundable);
+
+            // 2. АТОМАРНОЕ ОБНОВЛЕНИЕ с точной суммой
             const updateResult = await tx.order.updateMany({
                 where: {
                     id: o.id,
@@ -36,7 +60,7 @@ export class OrderRefundService {
                 data: {
                     status: newS,
                     remains: rem,
-                    refundedAmount: { increment: amtToRefund },
+                    refundedAmount: { increment: clampedAmount },
                     ...(providerRawResponse ? { providerRawResponse } : {})
                 }
             });
@@ -50,14 +74,14 @@ export class OrderRefundService {
             if (!order) return;
 
             // 3. ЗАПИСЬ В LEDGER
-            await LedgerService.record(tx, order.userId, amtToRefund, 'REFUND', order.id.toString(), `Возврат за невыполненную часть заказа (#${order.id})`);
+            await LedgerService.record(tx, order.userId, clampedAmount, 'REFUND', order.id.toString(), `Возврат за невыполненную часть заказа (#${order.id})`);
 
             // 4. Обновляем баланс пользователя
             await tx.user.update({
                 where: { id: order.userId },
                 data: {
-                    balance: { increment: amtToRefund },
-                    spent: { decrement: Decimal.min(amtToRefund, order.totalPrice) }
+                    balance: { increment: clampedAmount },
+                    spent: { decrement: Decimal.min(clampedAmount, order.totalPrice) }
                 }
             });
 
@@ -67,13 +91,41 @@ export class OrderRefundService {
                     projectId: order.projectId,
                     userId: order.userId,
                     orderId: order.id,
-                    amount: amtToRefund,
+                    amount: clampedAmount,
                     type: 'REFUND',
                     provider: 'INTERNAL',
                     status: 'COMPLETED',
                     metadata: { orderId: order.id, type: 'AUTO_REFUND' }
                 }
             });
+
+            // 6. B2B Billing Refund (If applicable)
+            if (order.projectId && order.costPrice && order.costPrice.gt(0)) {
+                const project = await tx.project.findUnique({ where: { id: order.projectId }});
+                if (project?.organizationId) {
+                    const { B2BPricingService } = await import('@/services/finance/b2b-pricing.service');
+                    const { OrganizationLedgerService } = await import('@/services/finance/organization-ledger.service');
+                    
+                    const isExempt = await B2BPricingService.isBillingExempt(project.organizationId);
+                    if (!isExempt) {
+                        // Рассчитываем сумму B2B возврата пропорционально количеству невыполненных единиц, 
+                        // с учетом того, что это может быть дробная часть.
+                        // amtToB2bRefund = costPrice * (qty / order.quantity)
+                        const b2bRefundAmount = order.costPrice.mul(qty).div(order.quantity).toDecimalPlaces(2, Decimal.ROUND_FLOOR);
+                        
+                        if (b2bRefundAmount.gt(0)) {
+                            // Возвращаем средства на masterBalance Организации
+                            await OrganizationLedgerService.recordTransaction(tx, {
+                                organizationId: project.organizationId,
+                                amount: b2bRefundAmount,
+                                type: 'REFUND',
+                                description: `[B2B Auto-Refund] Partial refund for ${qty} items on Order #${order.id}`,
+                                referenceId: order.id.toString()
+                            });
+                        }
+                    }
+                }
+            }
 
             if (newS === 'CANCELED' && order.promoCodeId) {
                 await tx.userPromo.update({
@@ -106,13 +158,52 @@ export class OrderRefundService {
         if (totalToReturn.lte(0)) throw new Error('Нет средств для возврата');
 
         await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-            await tx.order.update({
-                where: { id: orderData.id },
+            // Атомарный захват для предотвращения гонки при ручном возврате (Race Condition Lock)
+            const captureLock = await tx.order.updateMany({
+                where: { 
+                    id: orderData.id,
+                    status: { not: 'CANCELED' },
+                    refundedAmount: { lt: orderData.totalPrice }
+                },
                 data: {
                     status: 'CANCELED',
                     refundedAmount: { increment: baseRefundAmount }
                 }
             });
+
+            if (captureLock.count === 0) {
+                throw new Error('Заказ уже был отменен или средства возвращены параллельным процессом.');
+            }
+
+            // 2. B2B Billing Refund (If applicable)
+            if (orderData.projectId && orderData.costPrice && orderData.costPrice.gt(0)) {
+                // Determine how much of the original cost was not yet refunded to B2B
+                const { B2BPricingService } = await import('@/services/finance/b2b-pricing.service');
+                const { OrganizationLedgerService } = await import('@/services/finance/organization-ledger.service');
+
+                const project = await tx.project.findUnique({ where: { id: orderData.projectId } });
+                
+                if (project?.organizationId) {
+                    const isExempt = await B2BPricingService.isBillingExempt(project.organizationId);
+                    if (!isExempt) {
+                        // Рассчитываем процент отрозмещенного возврата, чтобы вернуть столько же B2B Cost
+                        // baseRefundAmount - это то, что мы сейчас возвращаем Retail пользователю
+                        // Но B2B Cost (costPrice) мы должны вернуть пропорционально.
+                        const refundRatio = baseRefundAmount.div(orderData.totalPrice);
+                        const b2bRefundAmount = orderData.costPrice.mul(refundRatio).toDecimalPlaces(2, Decimal.ROUND_FLOOR);
+
+                        if (b2bRefundAmount.gt(0)) {
+                            await OrganizationLedgerService.recordTransaction(tx, {
+                                organizationId: project.organizationId,
+                                amount: b2bRefundAmount,
+                                type: 'REFUND',
+                                description: `[B2B Manual-Refund] Refund ratio ${refundRatio.mul(100).toFixed(0)}% on Order #${orderData.id}`,
+                                referenceId: orderData.id.toString()
+                            });
+                        }
+                    }
+                }
+            }
 
             if (type === 'INTERNAL') {
                 await LedgerService.record(tx, orderData.userId, totalToReturn, 'REFUND', orderData.id.toString(), `Ручной возврат средств админом (Бонус: ${addBonus})`);
@@ -140,7 +231,7 @@ export class OrderRefundService {
                 if (adminId) {
                     await tx.adminLog.create({
                         data: {
-                            adminId,
+                            adminId: adminId,
                             action: 'MANUAL_REFUND_INTERNAL',
                             targetId: orderData.id.toString(),
                             details: `Возврат ${formatAmount(totalToReturn)}₽ на баланс (Бонус: ${addBonus})`
@@ -175,7 +266,7 @@ export class OrderRefundService {
                 if (adminId) {
                     await tx.adminLog.create({
                         data: {
-                            adminId,
+                            adminId: adminId,
                             action: 'MANUAL_REFUND_EXTERNAL',
                             targetId: orderData.id.toString(),
                             details: `Возврат ${formatAmount(baseRefundAmount)}₽ на карту`

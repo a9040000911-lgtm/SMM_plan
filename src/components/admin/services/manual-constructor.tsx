@@ -17,8 +17,8 @@ import {
     deleteService
 } from '@/app/admin/services/actions';
 import { toast } from 'sonner';
-import { CATEGORY_LABELS } from '@/services/providers/smart-analyzer.logic';
-import { Platform, Category } from '@/generated/client';
+import { CATEGORY_LABELS, PLATFORMS, PLATFORM_LABELS } from '@/services/providers/smart-analyzer.logic';
+import { Platform, Category } from '@prisma/client';
 import { ServiceEditorModal } from './service-editor-modal';
 import { useDraggable, useDroppable, DndContext, useSensors, useSensor, PointerSensor } from '@dnd-kit/core';
 import { bulkMoveServicesToCategoryAction } from '@/app/admin/services/bulk-actions';
@@ -446,7 +446,7 @@ export function ManualServiceConstructor({
                                 onChange={(e) => setSelectedPlatform(e.target.value as Platform)}
                                 className="w-full px-6 py-4 bg-white border border-blue-100 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm focus:ring-4 ring-blue-500/10 outline-none transition-all cursor-pointer"
                             >
-                                {['TELEGRAM', 'INSTAGRAM', 'VK', 'TIKTOK', 'YOUTUBE', 'OTHER'].map(p => <option key={p} value={p}>{p}</option>)}
+                                {PLATFORMS.map(p => <option key={p} value={p}>{PLATFORM_LABELS[p] || p}</option>)}
                             </select>
                         </div>
                         <div className="space-y-3">

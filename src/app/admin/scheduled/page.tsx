@@ -31,7 +31,7 @@ export default async function AdminScheduledOrdersPage() {
         include: {
             user: { select: { email: true, username: true } },
             project: { select: { name: true, brandColor: true } },
-            service: { select: { name: true, platform: true } }
+            service: { select: { name: true, socialPlatform: { select: { slug: true } } } }
         }
     });
 
@@ -40,8 +40,8 @@ export default async function AdminScheduledOrdersPage() {
     return (
         <div className="p-4 sm:p-5 space-y-6">
             <AdminHeader
-                title="Расписание запусков"
-                subtitle="Контроль отложенных и цикличных задач"
+                title="Отложенные задачи"
+                subtitle="Контроль очереди Drip-feed и запланированных стартов"
             />
             <AdminScheduledOrdersUI initialOrders={serialized} />
         </div>

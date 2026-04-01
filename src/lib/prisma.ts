@@ -21,7 +21,9 @@ if (process.env.NODE_ENV === 'production') {
     console.warn('Detected outdated Prisma Client. Force re-initializing Phase 3 models...');
     try {
       (globalWithPrisma.prisma as any).$disconnect();
-    } catch(_e) {}
+    } catch(e: any) {
+      console.warn('Silent disconnect error:', e.message);
+    }
     delete (globalWithPrisma as any).prisma;
   }
 
@@ -41,6 +43,15 @@ if (!(prisma as any).cmsString) {
     (prisma as any).cmsPage = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null) };
     (prisma as any).settings = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null), findFirst: () => Promise.resolve(null), upsert: () => Promise.resolve({}), update: () => Promise.resolve({}), create: () => Promise.resolve({}) };
     (prisma as any).globalSetting = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null), findFirst: () => Promise.resolve(null) };
+    (prisma as any).provider = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null), findFirst: () => Promise.resolve(null), update: () => Promise.resolve({}), create: () => Promise.resolve({}) };
+    (prisma as any).internalService = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null), findFirst: () => Promise.resolve(null), update: () => Promise.resolve({}), create: () => Promise.resolve({}) };
+    (prisma as any).internalServiceMapping = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null), findFirst: () => Promise.resolve(null), update: () => Promise.resolve({}), create: () => Promise.resolve({}) };
+    (prisma as any).order = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null), findFirst: () => Promise.resolve(null), update: () => Promise.resolve({}), create: () => Promise.resolve({}) };
+    (prisma as any).user = { findMany: () => Promise.resolve([]), findUnique: () => Promise.resolve(null), findFirst: () => Promise.resolve(null), update: () => Promise.resolve({}), create: () => Promise.resolve({}) };
+    (prisma as any).transaction = { create: () => Promise.resolve({}) };
+    (prisma as any).ledgerEntry = { create: () => Promise.resolve({}) };
+    (prisma as any).adminLog = { create: () => Promise.resolve({}) };
+    (prisma as any).$transaction = (arg: any) => typeof arg === 'function' ? arg(prisma) : Promise.all(arg);
   } else {
     console.error('FATAL: Prisma Client is missing CmsString model property even after re-initialization!');
   }

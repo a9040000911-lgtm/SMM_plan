@@ -66,6 +66,23 @@ export function ServiceFilter({
         <option value="VK">VK</option>
         <option value="YOUTUBE">YouTube</option>
         <option value="TIKTOK">TikTok</option>
+        <option value="TWITTER">Twitter/X</option>
+        <option value="FACEBOOK">Facebook</option>
+        <option value="THREADS">Threads</option>
+        <option value="DISCORD">Discord</option>
+        <option value="REDDIT">Reddit</option>
+        <option value="LINKEDIN">LinkedIn</option>
+        <option value="PINTEREST">Pinterest</option>
+        <option value="SNAPCHAT">Snapchat</option>
+        <option value="KICK">Kick</option>
+        <option value="RUTUBE">Rutube</option>
+        <option value="DZEN">Dzen</option>
+        <option value="STEAM">Steam</option>
+        <option value="GOOGLE">Google</option>
+        <option value="TROVO">Trovo</option>
+        <option value="YANDEX">Yandex</option>
+        <option value="WEBSITE">Website</option>
+        <option value="OTHER">Другое</option>
       </select>
     </div>
   );

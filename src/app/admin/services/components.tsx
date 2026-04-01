@@ -21,7 +21,7 @@ import { formatAmount } from '@/utils/formatter';
 import { useRouter } from 'next/navigation';
 import { Decimal } from 'decimal.js';
 import { ServiceEditorModal } from '@/components/admin/services/service-editor-modal';
-import { Platform } from '@/generated/client';
+import { Platform } from '@prisma/client';
 
 interface ServiceTableProps {
     services: any[];

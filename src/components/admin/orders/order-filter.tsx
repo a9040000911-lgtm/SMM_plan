@@ -11,7 +11,7 @@ import { Search } from 'lucide-react';
 
 import { getServicesForFilter, FilterServiceItem } from '@/app/admin/orders/filter-actions';
 import { DatePicker } from '@/components/admin/ui/date-picker';
-import type { Category, Platform } from '@/generated/client';
+import type { Category, Platform } from '@prisma/client';
 import { useState, useEffect } from 'react';
 import { getActivityLabel } from '@/utils/order-utils';
 
@@ -130,41 +130,6 @@ export function OrderFilter({
         />
       )}
 
-      {/* Project Switcher */}
-      {projects.length > 0 && (
-        <div className="flex flex-wrap gap-1 items-center pb-2 mb-2 border-b border-slate-100">
-          <button
-            onClick={() => handleFilterChange('projectId', 'ALL')}
-            className={`px-2.5 py-1.5 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${initialProjectId === 'ALL'
-              ? 'bg-slate-800 text-white shadow-md shadow-slate-200'
-              : 'bg-white border border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'
-              }`}
-          >
-            Все
-          </button>
-          {projects?.filter(p => !!p).map(p => {
-            const isSelected = initialProjectId === p.id;
-            return (
-              <button
-                key={p.id}
-                onClick={() => handleFilterChange('projectId', p.id)}
-                className={`px-2.5 py-1.5 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all flex items-center gap-1.5 border`}
-                style={{
-                  backgroundColor: isSelected ? p.color : '#ffffff',
-                  color: isSelected ? '#ffffff' : '#64748b',
-                  borderColor: isSelected ? p.color : '#e2e8f0',
-                  textShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
-                }}
-              >
-                {!isSelected && (
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: p.color }} />
-                )}
-                {p.name}
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       <div className="flex flex-col gap-4">
         {/* Search Bar - Full Width */}

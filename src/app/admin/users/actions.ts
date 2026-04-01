@@ -10,7 +10,7 @@ import { redirect } from 'next/navigation';
 import { getAdminSession } from '@/utils/admin-session';
 import { AdminServices } from '@/services/admin/registry';
 import { AdminContext } from '@/services/types';
-import { Role } from '@/generated/client';
+import { Role } from '@prisma/client';
 
 export type ActionState = {
   error?: string;

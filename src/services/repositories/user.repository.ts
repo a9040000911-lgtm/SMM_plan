@@ -5,7 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { Prisma, User } from '@/generated/client';
+import { Prisma, User } from '@prisma/client';
 import { Decimal } from 'decimal.js';
 
 export class UserRepository {
@@ -25,6 +25,14 @@ export class UserRepository {
         return await db.user.findFirst({
             where: { email: email.toLowerCase(), projectId }
         });
+    }
+
+    /**
+     * Finds a user by Telegram ID.
+     */
+    static async findByTgId(tgId: bigint, tx?: Prisma.TransactionClient): Promise<User | null> {
+        const db = tx || prisma;
+        return await db.user.findUnique({ where: { tgId } });
     }
 
     /**

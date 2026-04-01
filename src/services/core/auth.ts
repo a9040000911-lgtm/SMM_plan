@@ -59,7 +59,6 @@ export async function authorizeUser(credentials: any) {
   const { getClientProjectId } = await import("@/utils/project-resolver");
   let projectId = await getClientProjectId();
 
-  // PRIORITIZE: If global admin, skip project check if needed
   const user = await prisma.user.findFirst({
     where: {
       email: credentials.email.toLowerCase(),
@@ -73,6 +72,9 @@ export async function authorizeUser(credentials: any) {
       { createdAt: 'desc' }
     ]
   });
+
+  console.log('[Auth Debug] Searching for:', credentials.email, 'Project:', projectId);
+  console.log('[Auth Debug] Found user:', user ? user.email : 'null', 'Has password:', !!user?.password);
 
   if (!user || !user.password) {
     throw new Error("User not found or password not set");

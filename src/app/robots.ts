@@ -1,31 +1,22 @@
-/**
- * (c) 2024-2026 Smmplan. All rights reserved.
- * Created by Artem (http://artmspektr.ru)
- * Unauthorized copying of this file is strictly prohibited.
- */
 import { MetadataRoute } from 'next';
+import { getTenantDomain } from '@/lib/tenant/server';
 
-export default function robots(): MetadataRoute.Robots {
-    const baseUrl = 'https://smmplan.ru';
+export default async function robots(): Promise<MetadataRoute.Robots> {
+    const domain = await getTenantDomain();
 
     return {
-        rules: [
-            {
-                userAgent: '*',
-                allow: '/',
-                disallow: [
-                    '/api/',
-                    '/dashboard/',
-                    '/admin/',
-                    '/login',
-                    '/register',
-                    '/cart',
-                    '/*?serviceId=', // Prevent crawling filtered links in catalog
-                ],
-            },
-        ],
-        sitemap: `${baseUrl}/sitemap.xml`,
+        rules: {
+            userAgent: '*',
+            allow: '/',
+            disallow: [
+                '/login',
+                '/register',
+                '/admin/',
+                '/api/',
+                '/*?search=',    // Prevent crawling duplicated catalog searches
+                '/*?platform=',  // Prevent crawling filtered query params
+            ],
+        },
+        sitemap: `https://${domain}/sitemap.xml`,
     };
 }
-
-

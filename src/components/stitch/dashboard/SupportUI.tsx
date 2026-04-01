@@ -56,11 +56,11 @@ export function SupportUI({ initialTickets: tickets }: SupportUIProps) {
     };
 
     return (
-        <div className="space-y-10 pb-20">
+        <div className="max-w-6xl mx-auto px-6 space-y-10 pb-20 pt-10">
             {/* Header / Stats Row */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div className="space-y-2">
-                    <h1 className="text-5xl font-black text-slate-950 tracking-tighter uppercase italic">
+                    <h1 className="text-5xl md:text-8xl font-black text-slate-950 tracking-tighter uppercase italic pr-2 overflow-visible leading-[0.85]">
                         Центр <span className="text-blue-600">Заботы</span>
                     </h1>
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Прямая связь с экспертами Smmplan</p>

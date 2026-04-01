@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://ok.ru",
+    "name": "Социальная сеть Одноклассники. Общение с друзьями в",
+    "snippet": "Одноклассники.ру это социальная сеть, где вы можете найти своих старых друзей . Общение, онлайн игры, подарки и открытки для друзей. Приходите в ОК, делитесь",
+    "host_name": "ok.ru",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/69005221/how-to-get-direct-video-link-from-odnoklassniki-ok-ru",
+    "name": "How to get direct video link from odnoklassniki (ok.ru)",
+    "snippet": "I want to get video direct video link from ok . ru , so i created this php script to fetch the page data and it returns json file.",
+    "host_name": "stackoverflow.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/54705226/embedding-video-on-this-site-is-forbidden-watch-on-odnoklassniki",
+    "name": "Embedding video on this site is forbidden. Watch",
+    "snippet": "I am trying to embed this code on my blogspot, after I publish I get this error - \"Embedding video on this site is forbidden. Watch on Odnoklassniki\"",
+    "host_name": "stackoverflow.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://en.wikipedia.org/wiki/Odnoklassniki",
+    "name": "Odnoklassniki",
+    "snippet": "OK . ru , is a social networking service and online video sharing website primarily in Russia and former Soviet Republics.",
+    "host_name": "en.wikipedia.org",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://gist.github.com/BlaayLock/a6e30ba9bbdd08975ba24263c67996e0",
+    "name": "odnoklassniki-post-upload-photo-api.ok.ru",
+    "snippet": "Clone using the web URL . ... #~ print ok . group .getInfo(uids='54791230327999', fields=\"UID,CITY\") #~ https://apiok. ru /dev/methods/rest/ group / group .getInfo.",
+    "host_name": "gist.github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://apiok.ru/en/ext/content",
+    "name": "Content widget",
+    "snippet": "With this widget, you can advertise any content of your group / profile on Odnoklassniki . Following content types are available for sharing by a direct link .",
+    "host_name": "apiok.ru",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ok-ru-ios.soft112.com",
+    "name": "Odnoklassniki: Social network 11.48 Free Download",
+    "snippet": "Odnoklassniki is a social network with millions of users around the world. In OK you can call friends, livestream, send stickers and gifts, find new friends ...",
+    "host_name": "ok-ru-ios.soft112.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://apify.com/easyapi/ok-ru-people-scraper",
+    "name": "OK.RU People Scraper",
+    "snippet": "9 Feb 2025 — Scrape user profiles from OK.RU (Odnoklassniki) social network based on keywords. Extract detailed user information including profile data, photos, and social ...",
+    "host_name": "apify.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://russia-promo.com/blog/promoting-your-brand-on-odnoklassniki",
+    "name": "What Is Odnoklassniki? How to Use It for Brand Promotion",
+    "snippet": "1 Aug 2025 — Learn what Odnoklassniki is and how international brands can use this Russian social network to promote products and reach audiences.",
+    "host_name": "russia-promo.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/company/odnoklassniki-ru",
+    "name": "OK.RU",
+    "snippet": "Одноклассники – одна из крупнейших социальных сетей. OK – самый высоконагруженный в мире сервис, написанный на Java.",
+    "host_name": "www.linkedin.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

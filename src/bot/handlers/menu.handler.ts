@@ -207,33 +207,56 @@ export async function showPlatformCategories(ctx: any, _link: string, analysis: 
     const services = await prisma.internalService.findMany({
         where: {
             socialPlatform: { slug: analysis.platform.toLowerCase() },
-            isActive: true
-        }
+            isActive: true,
+            categoryId: { not: null }
+        },
+        include: { serviceCategory: true }
     });
-    const cats = Array.from(new Set(services.map(s => s.category)));
+    const catsMap = new Map<string, string>();
+    for (const s of services) {
+        if (s.serviceCategory && !catsMap.has(s.serviceCategory.categoryType)) {
+            catsMap.set(s.serviceCategory.categoryType, s.serviceCategory.categoryType);
+        }
+    }
+    const cats = Array.from(catsMap.keys());
     const buttons = cats.map(cat => [Markup.button.callback(categoryNames[cat] || cat, `cat_${analysis.platform.toLowerCase()}_${cat}`)]);
     await ctx.reply('🔍 Выберите категорию:', { parse_mode: 'HTML', ...getProjectMenu(ctx.project), ...Markup.inlineKeyboard(buttons) });
 }
 
-export async function showCategoryServices(ctx: any, platform: string, category: string) {
-    const where: any = { category, isActive: true };
-    if (platform !== 'ALL') where.platform = platform;
+export async function showCategoryServices(ctx: any, platformSlug: string, categoryIdentifier: string) {
+    const where: any = { isActive: true };
+    // categoryIdentifier could be a categoryId (UUID) or categoryType (enum string)
+    if (categoryIdentifier.includes('-')) {
+        // It's a UUID categoryId
+        where.categoryId = categoryIdentifier;
+    } else {
+        // It's a categoryType enum
+        where.serviceCategory = { categoryType: categoryIdentifier };
+    }
+    if (platformSlug !== 'ALL') where.socialPlatform = { slug: platformSlug.toLowerCase() };
 
-    const services = await prisma.internalService.findMany({ where, orderBy: { pricePer1000: 'asc' } });
+    const services = await prisma.internalService.findMany({
+        where,
+        orderBy: { pricePer1000: 'asc' },
+        include: { serviceCategory: true, socialPlatform: true }
+    });
     if (services.length === 0) return ctx.reply('😔 В этой категории пока нет услуг.');
 
     const buttons = [];
     for (const s of services) {
         const price = await PricingService.getServicePrice(s.id, ctx.project.id);
-        const serviceDisplayId = formatServiceId(s.platform, s.category, s.id);
+        const platformPrefix = s.socialPlatform?.slug?.toUpperCase() || 'OTH';
+        const categoryPrefix = s.serviceCategory?.categoryType || 'OTH';
+        const serviceDisplayId = formatServiceId(platformPrefix, categoryPrefix, s.id);
         const label = `🆔 ${serviceDisplayId} | ${s.name.substring(0, 20)}... | ${formatAmount(price.mul(s.priceUnit).div(1000))}₽`;
         buttons.push([Markup.button.callback(label, `svc_${s.id}`)]);
     }
 
-    const backAction = platform === 'ALL' ? 'browse_catalog' : `browse_p_${platform}`;
+    const backAction = platformSlug === 'ALL' ? 'browse_catalog' : `browse_p_${platformSlug}`;
     buttons.push([Markup.button.callback('🔙 Назад', backAction)]);
 
-    const text = `📑 <b>${categoryNames[category] || category}</b>\n────────────────────\nВыберите тариф для заказа:`;
+    const categoryLabel = services[0]?.serviceCategory?.name || categoryNames[categoryIdentifier] || categoryIdentifier;
+    const text = `📑 <b>${categoryLabel}</b>\n────────────────────\nВыберите тариф для заказа:`;
 
     if (ctx.callbackQuery) {
         await ctx.answerCbQuery().catch(() => { });

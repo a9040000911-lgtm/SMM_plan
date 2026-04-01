@@ -198,7 +198,12 @@ export function NewOrderUI({ initialService, serviceId }: NewOrderUIProps) {
                                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-4">Итого к оплате</label>
                                     <div className="w-full h-[76px] glass-dark rounded-[2.5rem] px-8 flex items-center justify-between shadow-2xl shadow-blue-900/20 border border-white/10 group relative overflow-hidden">
                                         <div className="absolute top-0 right-0 w-32 h-full bg-blue-600/10 skew-x-[30deg] translate-x-10" />
-                                        <span className="text-3xl font-black text-white tracking-tighter tabular-nums relative z-10">{priceVal.toFixed(2)} <span className="text-blue-500 text-xl italic uppercase ml-1">₽</span></span>
+                                        <div className="flex flex-col relative z-10">
+                                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1">
+                                                ~{(initialService.pricePer1000 / 1000).toFixed(4).replace(/\.?0+$/, "")} ₽/ед.
+                                            </span>
+                                            <span className="text-3xl font-black text-white tracking-tighter tabular-nums leading-none">{priceVal.toFixed(2)} <span className="text-blue-500 text-xl italic uppercase ml-1">₽</span></span>
+                                        </div>
                                         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-xl border border-white/5 relative z-10" title={numberToWordsRu(priceVal)}>
                                             <MousePointer2 size={12} className="text-blue-400 italic" />
                                             <span className="text-[8px] font-black text-blue-200 uppercase tracking-widest">Auto Pricing</span>

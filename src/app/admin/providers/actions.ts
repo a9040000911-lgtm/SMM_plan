@@ -12,7 +12,8 @@ import { AdminDataService } from '@/services/admin/admin-data.service';
 import { AdminContext } from '@/services/types';
 import { PredictionService } from '@/services/users';
 import { FinancialSecurityService } from '@/services/security/financial-security.service';
-import { ProviderPaymentType } from '@/generated/client';
+import { ProviderPaymentType } from '@prisma/client';
+import { sanitizeData } from '@/utils/service-sanitizer';
 
 async function getCtx(): Promise<AdminContext> {
   const session = await getAdminSession();
@@ -30,7 +31,7 @@ export async function getProvidersAction() {
   const activeProjectId = await getActiveProjectId();
   const result = await AdminDataService.getProvidersWithStats(ctx, activeProjectId || undefined);
   if (!result.success) throw new Error(result.error.message);
-  return result.data;
+  return sanitizeData(result.data);
 }
 
 export async function getActiveProjectContext() {

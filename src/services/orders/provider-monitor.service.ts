@@ -8,6 +8,7 @@ import { bot } from '@/services/bot/bot-registry';
 import { SettingsService } from '@/services/core/settings.service';
 import { PredictionService } from '@/services/users/prediction.service';
 import { NotificationTemplates } from '@/bot/utils/notification-templates';
+import { escapeHtml } from '@/bot/utils/formatter';
 
 export class ProviderMonitorService {
     /**
@@ -27,7 +28,7 @@ export class ProviderMonitorService {
             const isMuted = muteUntil && new Date(muteUntil) > new Date();
 
             if (staff.length > 0 && !isMuted) {
-                const providerList = criticalProviders.map(p => `⚠️ <b>${p.providerName}</b> (осталось ~${p.daysLeft} дн.)`).join('\n');
+                const providerList = criticalProviders.map(p => `⚠️ <b>${escapeHtml(p.providerName)}</b> (осталось ~${p.daysLeft} дн.)`).join('\n');
                 const alertMsg = NotificationTemplates.FINANCE.PROVIDER_BALANCE_CRITICAL_ADMIN(providerList);
 
                 for (const s of staff) {

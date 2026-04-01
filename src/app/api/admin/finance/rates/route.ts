@@ -18,7 +18,8 @@ export async function GET() {
         const rates = await CurrencyService.getRates();
         return NextResponse.json(rates);
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error('[API] Finance Rates Error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 

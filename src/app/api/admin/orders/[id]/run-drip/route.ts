@@ -5,8 +5,6 @@
  */
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { DripFeedService } from "@/services/orders/drip-feed.service";
 import { getAdminSession } from "@/utils/admin-session";
 
 export async function POST(
@@ -23,26 +21,14 @@ export async function POST(
         const resolvedParams = await params;
         const id = resolvedParams.id;
 
-        const order = await prisma.order.findUnique({
-            where: { id: parseInt(id) }
-        });
-
-        if (!order) {
-            return NextResponse.json({ error: "Заказ не найден" }, { status: 404 });
-        }
-
-        // Force run logic
-        // We manually trigger the service
-        // We don't check schedule here, because it's FORCE run.
-
-        // processRun expects first argument as orderId string, NOT object.
-        // Based on view_file output: static async processRun(orderId: string)
-        await DripFeedService.processRun(order.id);
+        const { OrderProcessor } = await import("@/services/orders/order-processor.service");
+        // We trigger the service
+        await OrderProcessor.processDripFeedRun(parseInt(id));
 
         return NextResponse.json({ success: true, message: "Drip Run initiated manually" });
 
     } catch (error: any) {
         console.error("Force run error:", error);
-        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

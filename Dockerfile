@@ -1,14 +1,14 @@
 # (c) 2024-2026 Smmplan. All rights reserved.
 
 # STAGE 1: Deps
-FROM node:22-slim AS deps
+FROM node:20-slim AS deps
 RUN apt-get update && apt-get install -y openssl
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 
 # STAGE 2: Builder
-FROM node:22-slim AS builder
+FROM node:20-slim AS builder
 RUN apt-get update && apt-get install -y openssl
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -21,14 +21,12 @@ ENV IS_BUILD true
 
 # Patch prisma enums if needed and build
 RUN npx prisma generate
-ENV NODE_OPTIONS="--max-old-space-size=2560"
-ENV NEXT_PRIVATE_LOCAL_WEBPACK_WORKERS=1
-ENV NEXT_DISABLE_ESLINT=1
-ENV NEXT_DISABLE_TYPECHECK=1
+ENV NODE_OPTIONS="--max-old-space-size=2048"
+ENV NEXT_PRIVATE_LOCAL_WEBPACK_WORKERS=0
 RUN npm run build
 
 # STAGE 3: Runner
-FROM node:22-slim AS runner
+FROM node:20-slim AS runner
 RUN apt-get update && apt-get install -y openssl
 WORKDIR /app
 
@@ -59,7 +57,7 @@ ENV HOSTNAME "0.0.0.0"
 CMD ["npm", "start"]
 
 # STAGE 4: Bot Runner
-FROM node:22-slim AS bot-runner
+FROM node:20-slim AS bot-runner
 RUN apt-get update && apt-get install -y openssl
 WORKDIR /app
 ENV NODE_ENV production

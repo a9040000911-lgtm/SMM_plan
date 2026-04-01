@@ -9,6 +9,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, Users, Heart, Eye, MessageCircle, Zap, Rocket, Activity, Box } from "lucide-react";
 import { cn } from "@/utils/ui";
+import { SmartText } from "@/components/ui/SmartText";
 
 interface CategoryCardProps {
     category: string;
@@ -126,9 +127,9 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
                             {category}
                         </h3>
                         {description && (
-                            <p className="text-[10px] text-slate-400 font-medium mt-2 line-clamp-2 leading-relaxed uppercase tracking-wide italic">
-                                {description}
-                            </p>
+                            <div className="text-[10px] text-slate-400 font-medium mt-2 line-clamp-2 leading-relaxed uppercase tracking-wide italic">
+                                <SmartText text={description} />
+                            </div>
                         )}
                     </div>
 

@@ -6,3 +6,4 @@
 4. **Tailwind 4**: Use modern Tailwind 4 syntax (e.g., `@theme` for variables in CSS).
 5. **Rate Limiting**: All new public API routes MUST implement `checkRateLimit`.
 6. **Error Handling**: Use the global error boundary. Log critical errors on the server, but keep client messages user-friendly.
+7. **Anti-Duplication Protocol**: Перед созданием любых новых UI-компонентов, утилит или папок, агент ОБЯЗАН использовать `list_dir` и `grep_search` для поиска существующих аналогов в `src/components`, `src/lib`, `src/types`. Если компонент уже есть, агент обязан его переиспользовать/расширить. В каждом Implementation Plan агент должен писать пункт 'Проверка на дублирование'.

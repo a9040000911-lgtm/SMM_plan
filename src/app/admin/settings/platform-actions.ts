@@ -8,6 +8,7 @@
 import { AdminDataService } from '@/services/admin/admin-data.service';
 import { revalidatePath } from 'next/cache';
 import { getAdminContext } from '@/utils/admin-context';
+import { slugify } from '@/utils/slugify';
 
 export interface PlatformDTO {
     id?: string;
@@ -21,8 +22,9 @@ export interface PlatformDTO {
 export async function createPlatformAction(data: PlatformDTO) {
     try {
         const ctx = await getAdminContext();
+        const finalSlug = data.slug ? slugify(data.slug) : slugify(data.name);
         const res = await AdminDataService.upsertSocialPlatform(ctx, {
-            slug: data.slug.toLowerCase().trim(),
+            slug: finalSlug,
             name: data.name,
             nameRu: data.nameRu,
             keywords: data.keywords,
@@ -39,9 +41,10 @@ export async function createPlatformAction(data: PlatformDTO) {
 export async function updatePlatformAction(id: string, data: Partial<PlatformDTO>) {
     try {
         const ctx = await getAdminContext();
+        const finalSlug = data.slug ? slugify(data.slug) : undefined;
         const res = await AdminDataService.upsertSocialPlatform(ctx, {
             id,
-            ...(data.slug && { slug: data.slug.toLowerCase().trim() }),
+            ...(finalSlug && { slug: finalSlug }),
             ...(data.name && { name: data.name }),
             ...(data.nameRu && { nameRu: data.nameRu }),
             ...(data.keywords && { keywords: data.keywords }),

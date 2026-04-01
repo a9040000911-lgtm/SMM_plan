@@ -5,7 +5,7 @@
  */
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
-import { Platform, Category } from '@/generated/client';
+import { Platform, Category } from '@prisma/client';
 import { PricingService } from '@/services/finance/pricing.service';
 import { ServiceSyncService } from '@/services/providers/sync.service';
 
@@ -43,9 +43,8 @@ export class ServiceEngine {
                     name: providerService.name,
                     description: providerService.name,
                     geo: 'Global',
-                    platform: providerService.platform,
-                    category: providerService.category,
                     serviceCategory: { connect: { id: categoryObj.id } },
+                    ...(categoryObj.socialPlatformId ? { socialPlatform: { connect: { id: categoryObj.socialPlatformId } } } : {}),
                     pricePer1000: recommendedPrice,
                     lastProviderPrice: providerService.rawPrice,
                     isActive: true,
@@ -101,22 +100,31 @@ export class ServiceEngine {
 
             // --- MARGIN GUARD ---
             let shouldDisable = false;
+            let disableReason = '';
             for (const mapping of serviceMappings as any[]) {
                 const currentCost = mapping.providerService.rawPrice;
                 const oldCost = internalService.lastProviderPrice || new Decimal(0);
 
                 if (!currentCost.equals(oldCost) && oldCost.gt(0)) {
                     const priceDiffPercent = currentCost.sub(oldCost).div(oldCost).mul(100).toNumber();
-                    if (priceDiffPercent > 50) { // Цена выросла более чем на 50%
+                    if (Math.abs(priceDiffPercent) > 30) { // Цена выросла или упала более чем на 30%
                         shouldDisable = true;
+                        disableReason = `MARGIN_GUARD_30 (${priceDiffPercent > 0 ? '+' : ''}${priceDiffPercent.toFixed(1)}%)`;
                         break;
                     }
                 }
             }
 
             if (shouldDisable) {
-                await prisma.internalService.update({ where: { id: serviceId }, data: { isActive: false } });
-                console.warn(`[ServiceEngine] Service ${serviceId} disabled by Margin Guard.`);
+                const existingMetadata = typeof internalService.metadata === 'object' && internalService.metadata ? internalService.metadata : {};
+                await prisma.internalService.update({ 
+                    where: { id: serviceId }, 
+                    data: { 
+                        isActive: false,
+                        metadata: { ...existingMetadata, autoDisabled: true, disableReason } 
+                    } 
+                });
+                console.warn(`[ServiceEngine] Service ${serviceId} disabled by Margin Guard: ${disableReason}`);
                 continue;
             }
 

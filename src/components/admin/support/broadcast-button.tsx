@@ -48,7 +48,7 @@ export function BroadcastButton({ newsId }: { newsId: string }) {
           </p>
         </div>
         <button
-          onClick={() => router.push('/admin/content?tab=news')}
+          onClick={() => router.push('/admin/news')}
           className="px-6 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all"
         >
           Back to News

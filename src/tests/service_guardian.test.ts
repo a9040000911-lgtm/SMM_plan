@@ -48,6 +48,7 @@ describe('ServiceGuardian', () => {
 
     const mockStoredService = {
         id: 100,
+        externalId: '100',
         name: 'Instagram Followers High Quality',
         rawPrice: new Decimal(100),
         provider: {

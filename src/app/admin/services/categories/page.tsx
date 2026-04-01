@@ -8,7 +8,7 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { getActiveProjectId } from '@/utils/admin-session';
 import { CategoryManager } from '@/components/admin/services/categories/category-manager';
-import { Platform } from '@/generated/client';
+import { Platform } from '@prisma/client';
 import { AdminHeader } from '@/components/admin/core/admin-header';
 
 export const dynamic = 'force-dynamic';
@@ -59,8 +59,8 @@ export default async function CategoryManagementPage() {
     return (
         <div className="max-w-[1400px] mx-auto space-y-8">
             <AdminHeader
-                title="Управление категориями"
-                subtitle="Настройка отображения, группировка по соцсетям и управление приоритетами"
+                title="Категории услуг"
+                subtitle="Группировка по социальным сетям и настройка отображения"
                 projects={projects}
                 projectId={projectId || 'all'}
             />

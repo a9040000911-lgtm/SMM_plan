@@ -3,7 +3,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { Platform, Category } from '@/generated/client';
+import { Platform, Category } from '@/services/types';
 
 export function getLinkTips(platform: Platform, possibleCategories: Category[], objectType: string, isPrivate?: boolean): string {
   const tips: string[] = [];

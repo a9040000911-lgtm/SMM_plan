@@ -4,6 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 import { MassOrderService } from '@/services/orders/mass-order.service';
 
 /**
@@ -28,29 +29,42 @@ export async function POST(req: Request) {
         }
 
         const token = authHeader.split(' ')[1];
-        // In a real production scenario with DB migrations, we would lookup `apiKey: token`
-        // For V1 MVP, we simulate API key by expecting the actual userId or a known static token mapping.
-        // Assuming the token IS the userId for now (or validate via another service)
-        const userId = token;
-
-        // Basic validation: userId should look like an ObjectId length (24 chars) or UUID
-        if (!userId || userId.length < 10) {
+        
+        if (!token || token.length < 10) {
             return NextResponse.json({ error: 'Unauthorized: Invalid API Key format' }, { status: 401 });
         }
 
-        const body = await req.json();
+        const user = await prisma.user.findUnique({
+            where: { apiKey: token },
+            select: { id: true }
+        });
 
-        // Validate required fields
-        if (!body.serviceId || !body.link || !body.quantity) {
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized: Invalid API Key' }, { status: 401 });
+        }
+
+        const userId = user.id;
+
+        const rawBody = await req.json();
+
+        const { z } = await import('zod');
+        const v1OrderSchema = z.object({
+            serviceId: z.union([z.string(), z.number()]).transform(String),
+            link: z.string().min(1).max(2000),
+            quantity: z.union([z.number(), z.string()]).transform(Number).refine(val => !isNaN(val) && val > 0, { message: 'Invalid quantity' })
+        }).passthrough();
+
+        const parsed = v1OrderSchema.safeParse(rawBody);
+
+        if (!parsed.success) {
             return NextResponse.json({
-                error: 'Bad Request: Missing required fields (serviceId, link, quantity)'
+                error: 'Bad Request: Validation failed',
+                details: parsed.error.errors
             }, { status: 400 });
         }
 
-        const quantity = Number(body.quantity);
-        if (isNaN(quantity) || quantity <= 0) {
-            return NextResponse.json({ error: 'Bad Request: Invalid quantity' }, { status: 400 });
-        }
+        const body = parsed.data;
+        const quantity = body.quantity;
 
         // Format as mass order entry to reuse our robust validation & execution logic
         const entries = [{

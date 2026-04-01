@@ -227,7 +227,7 @@ export class AnalyticsService {
           guaranteeDays: { gt: 0 },
           // Assuming 'SUBSCRIBERS' category or similar. 
           // To be safe, we rely on guaranteeDays > 0 which implies it's churnable.
-          category: { in: ['SUBSCRIBERS', 'MEMBERS' as any, 'PARTICIPANTS' as any] }
+          serviceCategory: { categoryType: { in: ['SUBSCRIBERS', 'MEMBERS' as any, 'PARTICIPANTS' as any] } }
         }
       },
       select: {
@@ -318,7 +318,7 @@ export class AnalyticsService {
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: limit,
-      include: { internalService: { select: { name: true, platform: true } } }
+      include: { internalService: { select: { name: true, socialPlatform: { select: { slug: true } } } } }
     });
   }
 }

@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import axios from 'axios';
-import { Provider } from '@/generated/client';
+import { Provider } from '@prisma/client';
 import { IProvider, ProviderServiceData } from './base-provider';
 import { ProviderOrderResult, ProviderStatusResult } from '@/types/orders';
 import {
@@ -24,8 +24,9 @@ export class UniversalProvider implements IProvider {
   }
 
   private async makeRequest(action: string, params: any = {}) {
+    // [SECURITY]: Enforce SSRF blocking unconditionally before parsing options
     validateSafeUrl(this.config.apiUrl, `UniversalProvider(${this.config.name})`);
-    
+
     const method = (this.metadata.method || 'POST').toLowerCase();
     const requestType = this.metadata.requestType || 'form';
 
@@ -209,13 +210,51 @@ export class UniversalProvider implements IProvider {
     }
   }
 
+  async cancelOrder(externalId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const data = await this.makeRequest('cancel', { orders: externalId });
+      
+      // Standard PP Response: {"1234": "Cancel requests are submitted"}
+      // or [{"order": 1234, "cancel": "Pending"}]
+      // or "Incorrect request"
+      
+      if (typeof data === 'string' && data.toLowerCase().includes('incorrect')) {
+         return { success: false, error: 'Provider does not support cancellation via API (returned Incorrect Request)' };
+      }
+
+      const orderResult = Array.isArray(data) ? data.find((d: any) => d.order == externalId) : data[externalId];
+      if (orderResult && (orderResult.cancel === 'Pending' || typeof orderResult === 'string')) {
+         return { success: true };
+      }
+
+      if (data.error) {
+         return { success: false, error: data.error };
+      }
+
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  }
+
   async refillOrder(externalId: string): Promise<{ success: boolean; error?: string }> {
     try {
       const data = await this.makeRequest('refill', { order: externalId });
-      if (data.refill) {
-        return { success: true };
+      
+      if (typeof data === 'string' && data.toLowerCase().includes('incorrect')) {
+         return { success: false, error: 'Provider does not support refill via API' };
       }
-      return { success: false, error: data.error || 'Refill not supported or failed' };
+
+      const orderResult = Array.isArray(data) ? data.find((d: any) => d.order == externalId) : data;
+      if (orderResult && orderResult.refill) {
+         return { success: true };
+      }
+
+      if (data.error) {
+         return { success: false, error: data.error };
+      }
+
+      return { success: true };
     } catch (e: any) {
       return { success: false, error: e.message };
     }

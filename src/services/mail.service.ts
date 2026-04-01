@@ -28,17 +28,20 @@ async function getTransporter() {
 /**
  * Отправляет код подтверждения на почту
  */
-export async function send2FACodeEmail(to: string, code: string) {
+export async function send2FACodeEmail(to: string, code: string, type: 'LOGIN' | 'SETTINGS' = 'LOGIN') {
   const config = await ConfigService.getSmtpConfig();
+  const title = type === 'LOGIN' ? 'Вход в админ-панель' : 'Подтверждение изменений';
+  const actionText = type === 'LOGIN' ? 'подтверждения входа' : 'подтверждения смены критических настроек';
+
   const mailOptions = {
     from: `"SMMPLAN" <${config.user}>`,
     to: to,
-    subject: 'Код подтверждения входа (Админ-панель)',
+    subject: `Код подтверждения: ${code} (${title})`,
     text: `Ваш код подтверждения: ${code}`,
     html: `
       <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 500px;">
-        <h2 style="color: #333;">Вход в админ-панель</h2>
-        <p>Используйте этот код для подтверждения входа:</p>
+        <h2 style="color: #333;">${title}</h2>
+        <p>Используйте этот код для ${actionText}:</p>
         <div style="font-size: 32px; font-weight: bold; color: #3b82f6; letter-spacing: 5px; margin: 20px 0;">
           ${code}
         </div>
@@ -205,4 +208,34 @@ export async function sendPasswordResetEmail(to: string, code: string) {
   }
 }
 
+/**
+ * Отправляет код для быстрого входа при оформлении заказа
+ */
+export async function sendOrderAccessCodeEmail(to: string, code: string) {
+  const config = await ConfigService.getSmtpConfig();
+  const mailOptions = {
+    from: `"SMMPLAN" <${config.user}>`,
+    to: to,
+    subject: `Код доступа: ${code}`,
+    text: `Ваш код для подтверждения заказа: ${code}`,
+    html: `
+      <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 500px;">
+        <h2 style="color: #3b82f6;">Подтверждение заказа</h2>
+        <p>Используйте этот код, чтобы подтвердить свою личность и завершить оформление заказа:</p>
+        <div style="font-size: 32px; font-weight: bold; color: #1e293b; letter-spacing: 5px; margin: 20px 0; background: #f8fafc; padding: 20px; text-align: center; border-radius: 8px;">
+          ${code}
+        </div>
+        <p style="color: #666; font-size: 12px;">Код действителен в течение 10 минут. Если вы не оформляли заказ, просто проигнорируйте это письмо.</p>
+      </div>
+    `,
+  };
 
+  try {
+    const transport = await getTransporter();
+    const info = await transport.sendMail(mailOptions);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Error sending order access code email:', error);
+    return { success: false, error };
+  }
+}

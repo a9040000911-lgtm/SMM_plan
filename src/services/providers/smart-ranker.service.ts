@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
-import { Platform, Category, Provider, ProviderService } from '@/generated/client';
+import { Platform, Category, Provider, ProviderService } from '@prisma/client';
 import { PricingService } from '@/services/finance/pricing.service';
 import { TIERS, TierDefinition } from '@/configs/ranking-tiers';
 import { PLATFORM_KEYWORDS } from './smart-analyzer.logic';
@@ -222,17 +222,24 @@ export class SmartRankerService {
     const { SmartAnalyzerService } = await import('./smart-analyzer.service');
 
     await prisma.$transaction(async (tx) => {
+      // 1. Resolve logical category
       const categoryObj = await SmartAnalyzerService.resolveCategory(tx, Platform.TELEGRAM, Category.REACTIONS, 'POST', null);
+      
+      // 2. Resolve social platform
+      const platformObj = await tx.socialPlatform.findUnique({ where: { slug: 'telegram' } });
+      if (!platformObj) throw new Error('Telegram platform not found in SocialPlatform table');
 
       await tx.internalService.upsert({
         where: { id: serviceId },
         update: {
           ...serviceData,
+          socialPlatform: { connect: { id: platformObj.id } },
           serviceCategory: { connect: { id: categoryObj.id } }
         },
         create: {
           id: serviceId,
           ...serviceData,
+          socialPlatform: { connect: { id: platformObj.id } },
           serviceCategory: { connect: { id: categoryObj.id } }
         }
       });

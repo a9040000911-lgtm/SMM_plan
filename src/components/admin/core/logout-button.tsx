@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { LogOut } from 'lucide-react';
-import { logoutAction } from '@/app/admin/auth/actions';
+import { logoutAction } from '@/app/admin/login/auth-actions';
 
 export function LogoutButton() {
   return (

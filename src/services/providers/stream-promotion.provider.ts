@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import axios from 'axios';
-import { Provider } from '@/generated/client';
+import { Provider } from '@prisma/client';
 import { IProvider, ProviderServiceData } from './base-provider';
 import { ProviderOrderResult, ProviderStatusResult } from '@/types/orders';
 import { validateSafeUrl } from '@/utils/url-validator';

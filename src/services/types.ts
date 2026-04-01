@@ -4,7 +4,88 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { Platform, Category, OrderStatus, TransactionStatus } from '@/generated/client';
+
+export const Platform = {
+  TELEGRAM: 'TELEGRAM',
+  INSTAGRAM: 'INSTAGRAM',
+  VK: 'VK',
+  TIKTOK: 'TIKTOK',
+  YOUTUBE: 'YOUTUBE',
+  FACEBOOK: 'FACEBOOK',
+  TWITTER: 'TWITTER',
+  OTHER: 'OTHER',
+  DISCORD: 'DISCORD',
+  THREADS: 'THREADS',
+  REDDIT: 'REDDIT',
+  TWITCH: 'TWITCH',
+  KICK: 'KICK',
+  RUTUBE: 'RUTUBE',
+  DZEN: 'DZEN',
+  MUSIC: 'MUSIC',
+  OK: 'OK',
+  LIKEE: 'LIKEE',
+  WHATSAPP: 'WHATSAPP',
+  SPOTIFY: 'SPOTIFY',
+  SOUNDCLOUD: 'SOUNDCLOUD',
+  LINKEDIN: 'LINKEDIN',
+  PINTEREST: 'PINTEREST',
+  SNAPCHAT: 'SNAPCHAT',
+  TROVO: 'TROVO',
+  KWAI: 'KWAI',
+  MESSENGER_MAX: 'MESSENGER_MAX',
+  GOOGLE: 'GOOGLE',
+  APPLE: 'APPLE',
+  YANDEX: 'YANDEX',
+  STEAM: 'STEAM',
+  RUMBLE: 'RUMBLE',
+  TUMBLR: 'TUMBLR',
+  VIMEO: 'VIMEO',
+  SHAZAM: 'SHAZAM',
+  QUORA: 'QUORA',
+  MEDIUM: 'MEDIUM',
+  WEBSITE: 'WEBSITE',
+  PERISCOPE: 'PERISCOPE',
+  CLOUDHUB: 'CLOUDHUB',
+  AUDIOMACK: 'AUDIOMACK',
+  DATPIFF: 'DATPIFF',
+  MAX: 'MAX'
+} as const;
+export type Platform = keyof typeof Platform;
+
+export const Category = {
+  SUBSCRIBERS: 'SUBSCRIBERS',
+  LIKES: 'LIKES',
+  VIEWS: 'VIEWS',
+  REACTIONS: 'REACTIONS',
+  REPOSTS: 'REPOSTS',
+  COMMENTS: 'COMMENTS',
+  OTHER: 'OTHER',
+  BOOSTS: 'BOOSTS',
+  POLLS: 'POLLS',
+  STORIES: 'STORIES',
+  BOTS: 'BOTS',
+  REFERRALS: 'REFERRALS',
+  FRIENDS: 'FRIENDS',
+  PLAYS: 'PLAYS',
+  RECOVER: 'RECOVER',
+  PREMIUM: 'PREMIUM',
+  TRAFFIC: 'TRAFFIC',
+  DISLIKES: 'DISLIKES',
+  GROUPS: 'GROUPS',
+  STREAMS: 'STREAMS',
+  WATCH_TIME: 'WATCH_TIME',
+  SAVES: 'SAVES',
+  STARS: 'STARS',
+  COMPLAINTS: 'COMPLAINTS'
+} as const;
+export type Category = keyof typeof Category;
+
+
+export type OrderStatus =
+  | 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'PARTIAL' | 'CANCELED' | 'AWAITING_PAYMENT' | 'IN_PROGRESS';
+
+export type TransactionStatus =
+  | 'PENDING' | 'SUCCESS' | 'FAILED' | 'COMPLETED' | 'ERROR';
 
 /**
  * Standardized service response pattern to eliminate ambiguous return types.
@@ -77,12 +158,11 @@ export interface CatalogServiceItem {
   isCheap: boolean;
   isBest: boolean;
   quality: "HIGH" | "STD";
+  minQty: number;
+  maxQty: number;
+  qtyStep: number;
+  numericId?: string;
 }
 
-/**
- * Re-exporting core Enums for convenience to make this file the primary destination
- * for service-layer types and prevent importing generated client in leafs.
- */
-export { Platform, Category, OrderStatus, TransactionStatus };
 
 

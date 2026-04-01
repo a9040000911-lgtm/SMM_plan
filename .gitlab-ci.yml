@@ -1,5 +1,6 @@
 stages:
   - test
+  - integration
   - deploy
 
 variables:
@@ -8,7 +9,7 @@ variables:
 # Проверка качества кода и типизации
 lint-and-typecheck:
   stage: test
-  image: node:18-alpine
+  image: node:20-alpine
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
@@ -17,6 +18,74 @@ lint-and-typecheck:
     - npm ci
     - npm run lint
     - npx tsc --noEmit
+  only:
+    - merge_requests
+    - main
+  interruptible: true
+
+# Запуск интеграционных API тестов
+integration-tests:
+  stage: integration
+  image: node:20-alpine
+  services:
+    - name: postgres:15-alpine
+      alias: postgres
+  variables:
+    POSTGRES_DB: smmplan_test
+    POSTGRES_USER: root
+    POSTGRES_PASSWORD: rootpassword
+    DATABASE_URL: "postgresql://root:rootpassword@postgres:5432/smmplan_test?schema=public"
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+  script:
+    - npm ci
+    - npx prisma generate
+    - npx prisma db push --accept-data-loss
+    - npm run test:ci
+  only:
+    - merge_requests
+    - main
+  interruptible: true
+
+  interruptible: true
+
+# Запуск End-to-End тестов с Playwright
+e2e-tests:
+  stage: integration
+  image: mcr.microsoft.com/playwright:v1.44.0-jammy
+  services:
+    - name: postgres:15-alpine
+      alias: postgres
+    - name: redis:7-alpine
+      alias: redis
+  variables:
+    POSTGRES_DB: smmplan_e2e
+    POSTGRES_USER: root
+    POSTGRES_PASSWORD: rootpassword
+    DATABASE_URL: "postgresql://root:rootpassword@postgres:5432/smmplan_e2e?schema=public"
+    REDIS_URL: "redis://redis:6379"
+    NEXTAUTH_URL: "http://localhost:3000"
+    NEXTAUTH_SECRET: "e2e-test-secret"
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+  script:
+    - npm ci
+    - npx prisma generate
+    - npx prisma db push --accept-data-loss
+    # В Ubuntu / Jammy playwright может потребовать установки бинарников:
+    - npx playwright install --with-deps chromium
+    # Запускаем e2e тесты на chromium
+    - npx playwright test --project=chromium
+  artifacts:
+    when: always
+    paths:
+      - test-results/
+      - playwright-report/
+    expire_in: 7 days
   only:
     - merge_requests
     - main

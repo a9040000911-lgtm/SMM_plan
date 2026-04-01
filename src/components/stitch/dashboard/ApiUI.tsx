@@ -115,11 +115,11 @@ export function ApiUI({ initialApiKey }: ApiUIProps) {
     const currentMethod = API_METHODS.find(m => m.id === selectedMethod)!;
 
     return (
-        <div className="space-y-12 pb-32">
+        <div className="max-w-6xl mx-auto px-6 space-y-12 pb-32 pt-10">
             {/* Header with Key Management Card */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-10">
                 <div className="space-y-3">
-                    <h1 className="text-5xl font-black text-slate-950 tracking-tighter uppercase italic">
+                    <h1 className="text-5xl md:text-8xl font-black text-slate-950 tracking-tighter uppercase italic pr-2 overflow-visible leading-[0.85]">
                         API <span className="text-blue-600">Терминал</span>
                     </h1>
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Профессиональная интеграция ваших систем</p>

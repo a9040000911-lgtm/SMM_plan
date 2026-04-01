@@ -1,23 +1,15 @@
-const util = require('util');
-const { prisma: mockPrisma } = require('./src/lib/prisma');
+/**
+ * (c) 2024-2026 Smmplan. All rights reserved.
+ * Jest Setup — runs before each test file.
+ *
+ * This setup:
+ * 1. Mocks ESM-only packages (jose, @auth/prisma-adapter) for CJS Jest
+ * 2. Does NOT mock @prisma/client — tests use a real test database
+ * 3. Increases timeout for integration tests hitting real DB
+ */
 
-/*
-if (typeof global.TextEncoder === 'undefined') {
-    global.TextEncoder = util.TextEncoder;
-}
-if (typeof global.TextDecoder === 'undefined') {
-    global.TextDecoder = util.TextDecoder;
-}
-
-global.Request = globalThis.Request || class {};
-global.Response = globalThis.Response || class {};
-global.Headers = globalThis.Headers || class {};
-global.fetch = globalThis.fetch || (() => Promise.resolve());
-
-global.setImmediate = (callback, ...args) => {
-  return setTimeout(callback, 0, ...args);
-};
-*/
+// Increase default timeout for integration tests (real DB queries)
+jest.setTimeout(30000);
 
 // Mock jose to avoid ESM issues in Jest
 jest.mock('jose', () => ({
@@ -27,7 +19,6 @@ jest.mock('jose', () => ({
     setIssuedAt() { return this; }
     setExpirationTime() { return this; }
     sign() {
-      // Encode payload in "token" for the mock to read back
       return Promise.resolve('mock-token.' + Buffer.from(JSON.stringify(this.payload)).toString('base64'));
     }
   },
@@ -37,7 +28,6 @@ jest.mock('jose', () => ({
         const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
         return Promise.resolve({ payload });
       }
-      // Fallback for direct JSON tokens if used in tests
       const payload = JSON.parse(token);
       return Promise.resolve({ payload });
     } catch (e) {
@@ -53,12 +43,3 @@ jest.mock('jose', () => ({
     encrypt() { return Promise.resolve('mocked-encrypted'); }
   }
 }), { virtual: true });
-
-// Global mock for Prisma to ensure we always use the configured adapter
-jest.mock('@prisma/client', () => {
-  const actual = jest.requireActual('@prisma/client');
-  return {
-    ...actual,
-    PrismaClient: jest.fn().mockImplementation(() => mockPrisma),
-  };
-}, { virtual: true });

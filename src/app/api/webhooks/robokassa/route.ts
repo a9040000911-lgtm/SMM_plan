@@ -19,17 +19,19 @@ export async function POST(req: NextRequest) {
         const outSum = formData.get('OutSum') as string;
         const invId = formData.get('InvId') as string;
         const signatureValue = formData.get('SignatureValue') as string;
+        const shpTxId = formData.get('Shp_txId') as string; // UUID of Transaction
 
-        console.log(`[Robokassa Webhook] Received result for InvId: ${invId}, OutSum: ${outSum}`);
+        console.log(`[Robokassa Webhook] Received result for ${shpTxId || invId}, OutSum: ${outSum}`);
 
         if (!outSum || !invId || !signatureValue) {
             console.error('[Robokassa Webhook] Missing required parameters');
             return new NextResponse('ERR: Missing parameters', { status: 400 });
         }
 
-        // Найти транзакцию
+        // Найти транзакцию по Shp_txId (или fallback на invId, если старый заказ)
+        const targetId = shpTxId || invId;
         const transaction = await prisma.transaction.findUnique({
-            where: { id: invId },
+            where: { id: targetId },
             include: {
                 user: {
                     include: {
@@ -44,7 +46,7 @@ export async function POST(req: NextRequest) {
         });
 
         if (!transaction) {
-            console.error(`[Robokassa Webhook] Transaction not found: ${invId}`);
+            console.error(`[Robokassa Webhook] Transaction not found: ${targetId}`);
             return new NextResponse('ERR: Transaction not found', { status: 404 });
         }
 
@@ -63,7 +65,7 @@ export async function POST(req: NextRequest) {
             : robokassaSettings.password2;
 
         // Проверить подпись
-        const isValid = RobokassaService.verifySignature(outSum, invId, signatureValue, password2);
+        const isValid = RobokassaService.verifySignature(outSum, invId, signatureValue, password2, shpTxId);
 
         if (!isValid) {
             console.error('[Robokassa Webhook] Invalid signature');
@@ -74,17 +76,17 @@ export async function POST(req: NextRequest) {
         // Если Робокасса пришлет 2 хука одновременно, только один успеет зачислить бонус
         await prisma.$transaction(async (tx) => {
             const currentTx = await tx.transaction.findUnique({
-                where: { id: invId }
+                where: { id: targetId }
             });
 
             if (!currentTx || currentTx.status === 'COMPLETED') {
-                console.log(`[Robokassa Webhook] Tx ${invId} already processed or missing in tx block.`);
+                console.log(`[Robokassa Webhook] Tx ${targetId} already processed or missing in tx block.`);
                 return;
             }
 
-            // Обновить статус транзакции
-            await tx.transaction.update({
-                where: { id: invId },
+            // Атомарный захват PENDING транзакции (Race Condition Prevention)
+            const captureResult = await tx.transaction.updateMany({
+                where: { id: targetId, status: 'PENDING' },
                 data: {
                     status: 'COMPLETED',
                     metadata: {
@@ -94,6 +96,11 @@ export async function POST(req: NextRequest) {
                     }
                 }
             });
+
+            if (captureResult.count === 0) {
+                console.warn(`[Robokassa Webhook] Tx ${targetId} already processed (updateMany blocked Double-Credit).`);
+                return;
+            }
 
             // Начислить баланс пользователю
             const user = await tx.user.update({
@@ -121,7 +128,7 @@ export async function POST(req: NextRequest) {
                 }
             });
 
-            console.log(`[Robokassa Webhook] Payment processed successfully for ${invId}`);
+            console.log(`[Robokassa Webhook] Payment processed successfully for ${targetId}`);
         });
 
         // Robokassa требует ответ "OK" + InvId

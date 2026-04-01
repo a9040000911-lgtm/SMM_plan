@@ -25,12 +25,12 @@ export default async function BroadcastPage({ params }: { params: Promise<{ id: 
   const news = await getNews(id);
 
   if (!news) notFound();
-  if (news.isSent) redirect('/admin/content?tab=news');
+  if (news.isSent) redirect('/admin/cms/content?tab=news');
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center gap-4">
-        <Link href="/admin/content?tab=news" className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+        <Link href="/admin/news" className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
           <ArrowLeft size={20} className="text-slate-600" />
         </Link>
         <div>

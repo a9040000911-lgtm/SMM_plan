@@ -78,7 +78,20 @@ export class ScheduledOrderService {
             }
 
             try {
-                // 3. Initiate the real order
+                // 3. Recalculate costPrice from actual provider prices (may have changed since scheduling)
+                let liveCostPrice = scheduled.costPrice || undefined;
+                try {
+                    const service = await tx.internalService.findUnique({
+                        where: { id: scheduled.serviceId },
+                        select: { lastProviderPrice: true }
+                    });
+                    if (service?.lastProviderPrice) {
+                        const freshCost = new Decimal(service.lastProviderPrice).div(1000).mul(scheduled.quantity);
+                        liveCostPrice = freshCost;
+                    }
+                } catch (_) { /* fallback to scheduled.costPrice */ }
+
+                // 4. Initiate the real order
                 // Note: initiateOrder will also check balance and create a transaction if tx is not provided.
                 // We pass tx to keep it atomic.
                 const initiatedOrder = await OrderActivationService.initiateOrder({
@@ -88,7 +101,7 @@ export class ScheduledOrderService {
                     link: scheduled.link,
                     qty: scheduled.quantity,
                     totalPrice: scheduled.totalPrice || new Decimal(0),
-                    costPrice: scheduled.costPrice || undefined,
+                    costPrice: liveCostPrice,
                     isManual: false
                 }, tx as any);
 

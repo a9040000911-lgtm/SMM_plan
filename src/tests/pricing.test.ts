@@ -5,7 +5,7 @@
  */
 
 // SYSTEMIC FIX: Mock the generated client BEFORE any imports
-jest.mock('@/generated/client', () => ({
+jest.mock('@prisma/client', () => ({
     Platform: { TELEGRAM: 'TELEGRAM', INSTAGRAM: 'INSTAGRAM' },
     Category: { VIEWS: 'VIEWS', SUBSCRIBERS: 'SUBSCRIBERS' },
     Currency: { RUB: 'RUB', USD: 'USD' }
@@ -63,8 +63,10 @@ describe('PricingService', () => {
         test('Should apply ladder multiplier correctly', async () => {
             const cost = new Decimal(100);
             const price = await PricingService.calculateRetailPrice(cost);
-            // Default ladder for 100 is 11. Multiplier: 11 * 1.03 = 11.33. Price: 100 * 11.33 = 1133.
-            expect(price.toNumber()).toBe(1133);
+            // Default ladder for 100 is 11 (threshold 150). Base: 100 * 11 = 1100.
+            // + Gateway fee 3.5%: 1100 * 1.035 = 1138.5.
+            // Beautiful rounding (>1000): ceil(1138.5/100)*100 = 1200.
+            expect(price.toNumber()).toBe(1200);
         });
     });
 
@@ -88,7 +90,8 @@ describe('PricingService', () => {
 
             const result = await PricingService.syncInternalServicePrice(mockServiceId);
             expect(result.priceUpdated).toBe(true);
-            expect(result.newPrice!.toNumber()).toBe(1133);
+            // Same formula: 100 * 11 * 1.035 = 1138.5 → rounded 1200
+            expect(result.newPrice!.toNumber()).toBe(1200);
         });
     });
 });

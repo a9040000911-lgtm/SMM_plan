@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { formatAmount } from '@/utils/formatter';
 import { ExpenseForm } from '@/components/admin/expenses/expense-form';
+import { AdminTableCard } from '@/components/admin/core/admin-table-card';
 import { getAdminSession } from '@/utils/admin-session';
 import { AdminDataService } from '@/services/admin/admin-data.service';
 import { AdminContext } from '@/services/types';
@@ -71,13 +72,11 @@ export default async function ExpensesPage() {
           isGlobalAdmin={session.isGlobalAdmin}
         />
 
-        <div className="xl:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-            <h3 className="font-black text-slate-800 uppercase tracking-tighter flex items-center gap-2 text-sm">
-              <TrendingDown size={18} className="text-rose-500" />
-              Журнал последних трат
-            </h3>
-          </div>
+        <AdminTableCard 
+          title="Журнал последних трат" 
+          icon={TrendingDown}
+          className="xl:col-span-2"
+        >
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <tbody className="divide-y divide-slate-100">
@@ -108,7 +107,7 @@ export default async function ExpensesPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </AdminTableCard>
       </div>
     </div>
   );

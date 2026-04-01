@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMMToolbox — Аналитика конкурента</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0e1a;
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 32px;
+  }
+  
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  
+  .header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #818cf8, #c084fc, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  
+  .header p {
+    color: #94a3b8;
+    font-size: 14px;
+  }
+  
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  
+  .kpi-card {
+    background: linear-gradient(135deg, rgba(30, 35, 60, 0.8), rgba(20, 24, 45, 0.9));
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    border-radius: 16px;
+    padding: 24px;
+    backdrop-filter: blur(12px);
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+  
+  .kpi-card .label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+  
+  .kpi-card .value {
+    font-size: 26px;
+    font-weight: 800;
+    color: #f1f5f9;
+  }
+  
+  .kpi-card .sub {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 4px;
+  }
+  
+  .kpi-card.profit .value { color: #34d399; }
+  .kpi-card.revenue .value { color: #818cf8; }
+  .kpi-card.orders .value { color: #f472b6; }
+  .kpi-card.margin .value { color: #fbbf24; }
+  
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+  
+  .chart-card {
+    background: linear-gradient(135deg, rgba(30, 35, 60, 0.7), rgba(15, 18, 35, 0.9));
+    border: 1px solid rgba(99, 102, 241, 0.12);
+    border-radius: 16px;
+    padding: 24px;
+  }
+  
+  .chart-card h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #cbd5e1;
+    margin-bottom: 16px;
+  }
+  
+  .chart-card canvas {
+    width: 100% !important;
+    max-height: 380px;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 900px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  
+  table th {
+    text-align: left;
+    padding: 10px 12px;
+    color: #94a3b8;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(99,102,241,0.15);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  
+  table tr:hover td {
+    background: rgba(99, 102, 241, 0.05);
+  }
+  
+  .growth-up { color: #34d399; }
+  .growth-down { color: #f87171; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 SMMToolbox — Полная аналитика конкурента</h1>
+  <p>Данные: 1 290 105 заказов · Декабрь 2024 — Март 2026 · Наценки из парсера 497 услуг</p>
+</div>
+
+<div class="kpi-grid" id="kpiGrid"></div>
+
+<div class="charts-grid">
+  <div class="chart-card">
+    <h2>📈 Выручка и прибыль по месяцам</h2>
+    <canvas id="revenueChart"></canvas>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="chart-card">
+    <h2>📦 Количество заказов по месяцам</h2>
+    <canvas id="ordersChart"></canvas>
+  </div>
+  <div class="chart-card">
+    <h2>💰 Себестоимость vs Прибыль (доля)</h2>
+    <canvas id="marginChart"></canvas>
+  </div>
+</div>
+
+<div class="charts-grid" style="margin-top:24px">
+  <div class="chart-card">
+    <h2>📅 Выручка по дням (последние 90 дней)</h2>
+    <canvas id="dailyChart"></canvas>
+  </div>
+</div>
+
+<div class="chart-card" style="margin-top:24px">
+  <h2>📋 Детальная таблица по месяцам</h2>
+  <table id="monthTable">
+    <thead>
+      <tr>
+        <th>Месяц</th>
+        <th>Выручка</th>
+        <th>Себестоимость</th>
+        <th>Прибыль</th>
+        <th>Маржа %</th>
+        <th>Заказов</th>
+        <th>Ср. чек</th>
+        <th>Рост</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+const DATA = {
+  monthly: {
+    "2024-12": { revenue: 1367149, cost: 125305, profit: 1241844, count: 9372 },
+    "2025-01": { revenue: 3866282, cost: 341091, profit: 3525191, count: 30821 },
+    "2025-02": { revenue: 4630229, cost: 406314, profit: 4223915, count: 38395 },
+    "2025-03": { revenue: 5374721, cost: 484975, profit: 4889746, count: 51789 },
+    "2025-04": { revenue: 5601535, cost: 505917, profit: 5095618, count: 62673 },
+    "2025-05": { revenue: 6380445, cost: 532297, profit: 5848147, count: 78343 },
+    "2025-06": { revenue: 6431292, cost: 531943, profit: 5899348, count: 78791 },
+    "2025-07": { revenue: 6348635, cost: 489164, profit: 5859471, count: 84236 },
+    "2025-08": { revenue: 6018169, cost: 477042, profit: 5541127, count: 77482 },
+    "2025-09": { revenue: 5234321, cost: 397555, profit: 4836766, count: 72284 },
+    "2025-10": { revenue: 6468499, cost: 503187, profit: 5965312, count: 86331 },
+    "2025-11": { revenue: 6529950, cost: 516902, profit: 6013047, count: 86323 },
+    "2025-12": { revenue: 7237203, cost: 537943, profit: 6699260, count: 89083 },
+    "2026-01": { revenue: 5968287, cost: 473948, profit: 5494339, count: 82741 },
+    "2026-02": { revenue: 5185007, cost: 427434, profit: 4757573, count: 74385 },
+    "2026-03": { revenue: 2433835, cost: 211080, profit: 2222755, count: 35256 },
+  },
+  totalRevenue: 85075360,
+  totalCost: 6959256,
+  totalOrders: 1290105,
+};
+
+// KPIs
+const totalProfit = DATA.totalRevenue - DATA.totalCost;
+const avgMargin = ((totalProfit / DATA.totalRevenue) * 100).toFixed(1);
+const avgCheck = (DATA.totalRevenue / DATA.totalOrders).toFixed(0);
+
+document.getElementById('kpiGrid').innerHTML = `
+  <div class="kpi-card revenue">
+    <div class="label">Общая выручка</div>
+    <div class="value">${fmt(DATA.totalRevenue)} ₽</div>
+    <div class="sub">За 15 месяцев</div>
+  </div>
+  <div class="kpi-card profit">
+    <div class="label">Чистая прибыль</div>
+    <div class="value">${fmt(totalProfit)} ₽</div>
+    <div class="sub">Себестоимость: ${fmt(DATA.totalCost)} ₽</div>
+  </div>
+  <div class="kpi-card orders">
+    <div class="label">Всего заказов</div>
+    <div class="value">${DATA.totalOrders.toLocaleString('ru-RU')}</div>
+    <div class="sub">Средний чек: ${avgCheck} ₽</div>
+  </div>
+  <div class="kpi-card margin">
+    <div class="label">Средняя маржа</div>
+    <div class="value">${avgMargin}%</div>
+    <div class="sub">Рентабельность: ${((totalProfit / DATA.totalCost) * 100).toFixed(0)}%</div>
+  </div>
+`;
+
+function fmt(n) {
+  return Math.round(n).toLocaleString('ru-RU');
+}
+
+const months = Object.keys(DATA.monthly).sort();
+const labels = months.map(m => {
+  const [y, mo] = m.split('-');
+  const names = ['','Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+  return names[+mo] + ' ' + y.slice(2);
+});
+
+// Revenue + Profit chart
+new Chart(document.getElementById('revenueChart'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [
+      {
+        label: 'Выручка',
+        data: months.map(m => DATA.monthly[m].revenue),
+        backgroundColor: 'rgba(99, 102, 241, 0.6)',
+        borderColor: '#818cf8',
+        borderWidth: 1,
+        borderRadius: 6,
+        order: 2,
+      },
+      {
+        label: 'Прибыль',
+        data: months.map(m => DATA.monthly[m].profit),
+        type: 'line',
+        borderColor: '#34d399',
+        backgroundColor: 'rgba(52, 211, 153, 0.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 5,
+        pointBackgroundColor: '#34d399',
+        borderWidth: 2.5,
+        order: 1,
+      },
+      {
+        label: 'Себестоимость',
+        data: months.map(m => DATA.monthly[m].cost),
+        type: 'line',
+        borderColor: '#f87171',
+        borderDash: [5, 5],
+        tension: 0.3,
+        pointRadius: 3,
+        pointBackgroundColor: '#f87171',
+        borderWidth: 2,
+        order: 0,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { intersect: false, mode: 'index' },
+    plugins: {
+      legend: { labels: { color: '#94a3b8', font: { family: 'Inter' } } },
+      tooltip: {
+        callbacks: {
+          label: ctx => ctx.dataset.label + ': ' + fmt(ctx.parsed.y) + ' ₽'
+        }
+      }
+    },
+    scales: {
+      x: { ticks: { color: '#64748b', font: { family: 'Inter', size: 11 } }, grid: { color: 'rgba(255,255,255,0.03)' } },
+      y: {
+        ticks: {
+          color: '#64748b',
+          font: { family: 'Inter', size: 11 },
+          callback: v => (v / 1e6).toFixed(1) + 'M'
+        },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      }
+    }
+  }
+});
+
+// Orders chart
+new Chart(document.getElementById('ordersChart'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Заказов',
+      data: months.map(m => DATA.monthly[m].count),
+      backgroundColor: months.map((_, i) => {
+        const hue = 280 + i * 6;
+        return `hsla(${hue}, 70%, 65%, 0.65)`;
+      }),
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ctx.parsed.y.toLocaleString('ru-RU') + ' заказов' } }
+    },
+    scales: {
+      x: { ticks: { color: '#64748b', font: { family: 'Inter', size: 11 } }, grid: { display: false } },
+      y: {
+        ticks: {
+          color: '#64748b',
+          font: { family: 'Inter', size: 11 },
+          callback: v => (v / 1000).toFixed(0) + 'K'
+        },
+        grid: { color: 'rgba(255,255,255,0.05)' }
+      }
+    }
+  }
+});
+
+// Margin donut
+new Chart(document.getElementById('marginChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Прибыль', 'Себестоимость'],
+    datasets: [{
+      data: [totalProfit, DATA.totalCost],
+      backgroundColor: ['rgba(52, 211, 153, 0.8)', 'rgba(248, 113, 113, 0.8)'],
+      borderColor: ['#34d399', '#f87171'],
+      borderWidth: 2,
+      hoverOffset: 8,
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: '65%',
+    plugins: {
+      legend: { labels: { color: '#94a3b8', font: { family: 'Inter' } } },
+      tooltip: {
+        callbacks: {
+          label: ctx => ctx.label + ': ' + fmt(ctx.parsed) + ' ₽ (' + ((ctx.parsed / DATA.totalRevenue) * 100).toFixed(1) + '%)'
+        }
+      }
+    }
+  }
+});
+
+// Table
+const tbody = document.querySelector('#monthTable tbody');
+let prevRevenue = 0;
+for (const m of months) {
+  const d = DATA.monthly[m];
+  const margin = ((d.profit / d.revenue) * 100).toFixed(1);
+  const avgCh = (d.revenue / d.count).toFixed(0);
+  const growth = prevRevenue > 0 ? (((d.revenue - prevRevenue) / prevRevenue) * 100).toFixed(1) : '—';
+  const growthClass = growth === '—' ? '' : (+growth >= 0 ? 'growth-up' : 'growth-down');
+  const growthSign = growth === '—' ? '' : (+growth >= 0 ? '+' : '');
+  
+  tbody.innerHTML += `<tr>
+    <td style="font-weight:600">${m}</td>
+    <td>${fmt(d.revenue)} ₽</td>
+    <td>${fmt(d.cost)} ₽</td>
+    <td style="color:#34d399;font-weight:600">${fmt(d.profit)} ₽</td>
+    <td>${margin}%</td>
+    <td>${d.count.toLocaleString('ru-RU')}</td>
+    <td>${avgCh} ₽</td>
+    <td class="${growthClass}">${growthSign}${growth}%</td>
+  </tr>`;
+  prevRevenue = d.revenue;
+}
+
+// Daily chart — load from file via fetch or use embedded subset
+// Since this is a local file, we'll generate from the monthly data as daily approximation
+// For a proper version: load growth_timeline_full.json via fetch
+const dailyLabels = [];
+const dailyRevenue = [];
+const dailyProfit = [];
+
+// Generate approximate daily from monthly (for display)
+for (const m of months) {
+  const d = DATA.monthly[m];
+  const daysInMonth = m === '2026-03' ? 13 : new Date(+m.split('-')[0], +m.split('-')[1], 0).getDate();
+  const dailyRev = d.revenue / daysInMonth;
+  const dailyProf = d.profit / daysInMonth;
+  for (let day = 1; day <= daysInMonth; day++) {
+    dailyLabels.push(`${m}-${String(day).padStart(2,'0')}`);
+    dailyRevenue.push(dailyRev);
+    dailyProfit.push(dailyProf);
+  }
+}
+
+// Show last 90 days
+const last90Labels = dailyLabels.slice(-90);
+const last90Rev = dailyRevenue.slice(-90);
+const last90Prof = dailyProfit.slice(-90);
+
+new Chart(document.getElementById('dailyChart'), {
+  type: 'line',
+  data: {
+    labels: last90Labels.map(d => d.slice(5)),
+    datasets: [
+      {
+        label: 'Выручка / день',
+        data: last90Rev,
+        borderColor: '#818cf8',
+        backgroundColor: 'rgba(99, 102, 241, 0.08)',
+        fill: true,
+        tension: 0.2,
+        pointRadius: 0,
+        borderWidth: 2,
+      },
+      {
+        label: 'Прибыль / день',
+        data: last90Prof,
+        borderColor: '#34d399',
+        backgroundColor: 'rgba(52, 211, 153, 0.06)',
+        fill: true,
+        tension: 0.2,
+        pointRadius: 0,
+        borderWidth: 2,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { intersect: false, mode: 'index' },
+    plugins: {
+      legend: { labels: { color: '#94a3b8', font: { family: 'Inter' } } },
+      tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmt(ctx.parsed.y) + ' ₽' } }
+    },
+    scales: {
+      x: {
+        ticks: { color: '#64748b', font: { family: 'Inter', size: 10 }, maxTicksLimit: 15 },
+        grid: { display: false }
+      },
+      y: {
+        ticks: {
+          color: '#64748b',
+          font: { family: 'Inter', size: 11 },
+          callback: v => (v / 1000).toFixed(0) + 'K'
+        },
+        grid: { color: 'rgba(255,255,255,0.04)' }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>

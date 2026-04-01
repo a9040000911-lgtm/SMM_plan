@@ -25,16 +25,27 @@ export class AdminServiceService extends BaseAdminService {
         }
         return AdminServiceService.instance;
     }
-
     /**
      * Toggles service active status globally or in a project.
      */
     async toggleServiceStatus(ctx: AdminContext, serviceId: string, isActive: boolean): Promise<AdminServiceResult<any>> {
         return safeAdminExecute(ctx, 'TOGGLE_SERVICE_STATUS', async () => {
-            await prisma.internalService.update({
+            const oldService = await prisma.internalService.findUnique({
                 where: { id: serviceId },
-                data: { isActive }
+                select: { id: true, isActive: true, name: true, metadata: true }
             });
+
+            const existingMetadata = typeof oldService?.metadata === 'object' && oldService?.metadata ? oldService.metadata : {};
+
+            const newService = await prisma.internalService.update({
+                where: { id: serviceId },
+                data: { 
+                    isActive,
+                    metadata: { ...existingMetadata, autoDisabled: false }
+                }
+            });
+
+            await this.logAction(ctx, 'TOGGLE_SERVICE_STATUS', `Service ${newService.name} (${serviceId}) set to ${isActive ? 'active' : 'inactive'} (Manual)`, serviceId, undefined, oldService, newService);
 
             return { serviceId, isActive };
         }, serviceId);
@@ -49,8 +60,8 @@ export class AdminServiceService extends BaseAdminService {
 
             const projects = await prisma.project.findMany({ select: { id: true } });
 
-            await Promise.all(projects.map(project =>
-                prisma.projectServiceOverride.upsert({
+            for (const project of projects) {
+                await prisma.projectServiceOverride.upsert({
                     where: {
                         projectId_internalServiceId: {
                             projectId: project.id,
@@ -63,8 +74,8 @@ export class AdminServiceService extends BaseAdminService {
                         internalServiceId: serviceId,
                         isActive
                     }
-                })
-            ));
+                });
+            }
 
             await this.logAction(ctx, 'BULK_TOGGLE_SERVICE', `Service ${serviceId} bulk active: ${isActive}`, serviceId);
             return this.success({ count: projects.length });
@@ -129,18 +140,44 @@ export class AdminServiceService extends BaseAdminService {
                 }
             }
 
-            const oldService = await prisma.internalService.findUnique({
+            const oldFullService = await prisma.internalService.findUnique({
                 where: { id: serviceId },
-                select: { pricePer1000: true, markup: true, lastProviderPrice: true, category: true, platform: true }
+                include: { serviceCategory: true }
             });
 
-            if (!oldService) throw new Error('Service not found');
+            if (!oldFullService) throw new Error('Service not found');
+
+            // --- FINANCIAL SAFETY: Защита от убытков (B2B Financial Modeling Skill) ---
+            // Если админ вручную устанавливает цену, проверяем что она не убыточна
+            if (validatedData.pricePer1000 !== undefined && oldFullService.lastProviderPrice) {
+                const providerPricePer1000 = new Decimal(oldFullService.lastProviderPrice);
+                const safetyFloor = PricingService.getSafetyPrice(providerPricePer1000);
+                const manualPrice = new Decimal(validatedData.pricePer1000);
+                
+                if (manualPrice.lt(safetyFloor) && manualPrice.gt(0)) {
+                    throw new Error(
+                        `PRICE_BELOW_SAFETY_FLOOR: Цена ${manualPrice.toFixed(2)}₽ ниже минимально допустимой ${safetyFloor.toFixed(2)}₽. ` +
+                        `Себестоимость провайдера: ${providerPricePer1000.toFixed(2)}₽. ` +
+                        `Минимальная наценка должна покрывать налоги (УСН 6% + НДС 5%) и эквайринг (3.5%).`
+                    );
+                }
+                
+                // Рекомендованная цена: 400% наценка (x5)
+                const recommendedPrice = providerPricePer1000.mul(5);
+                if (manualPrice.lt(recommendedPrice)) {
+                    console.warn(
+                        `[PRICING WARNING] Услуга ${oldFullService.name} (${serviceId}): ` +
+                        `Установленная цена ${manualPrice.toFixed(2)}₽ ниже рекомендованной ${recommendedPrice.toFixed(2)}₽ (x5 от провайдера). ` +
+                        `Рекомендуемый множитель: 400%+ для премиального позиционирования.`
+                    );
+                }
+            }
 
             // Logic for automatic price calculation if markup is updated or price is missing
             if (validatedData.markup !== undefined || validatedData.pricePer1000 === undefined) {
-                if (oldService.lastProviderPrice && validatedData.markup !== undefined) {
-                    validatedData.pricePer1000 = await PricingService.calculateRetailPrice(oldService.lastProviderPrice, {
-                        category: oldService.category as any,
+                if (oldFullService.lastProviderPrice && validatedData.markup !== undefined) {
+                    validatedData.pricePer1000 = await PricingService.calculateRetailPrice(oldFullService.lastProviderPrice, {
+                        category: oldFullService.serviceCategory?.categoryType as any || 'OTHER',
                         projectId: ctx.isGlobalAdmin ? undefined : (activeProjectId || ctx.allowedProjects[0])
                     });
                 }
@@ -152,20 +189,50 @@ export class AdminServiceService extends BaseAdminService {
             if (updateData.categoryId === '') updateData.categoryId = null;
 
             const isProjectScope = activeProjectId && activeProjectId !== 'all';
+            
+            // SECURITY CHECK: If trying to update global service, must be global admin
+            if (!isProjectScope && !ctx.isGlobalAdmin) {
+                throw new Error('Forbidden: Only Global Admins can update global service settings.');
+            }
 
-            await prisma.$transaction(async (tx) => {
+            // SECURITY CHECK: If project scope, verify project access
+            if (isProjectScope) {
+                await this.checkProjectAuth(ctx, activeProjectId);
+            }
+
+            const updatedInternalService = await prisma.$transaction(async (tx) => {
                 const globalUpdateData = { ...updateData };
 
-                if (isProjectScope && updateData.categoryId !== undefined) {
-                    delete globalUpdateData.categoryId;
+                if (isProjectScope) {
+                    // When in project scope, we create/update an override instead of changing global service
+                    // Map generic fields to override specific fields
+                    const overrideData: any = {
+                        ...(updateData.pricePer1000 ? { customPrice: updateData.pricePer1000 } : {}),
+                        ...(updateData.name ? { customName: updateData.name } : {}),
+                        ...(updateData.description ? { customDescription: updateData.description } : {}),
+                        ...(updateData.minQty ? { customMinQty: updateData.minQty } : {}),
+                        ...(updateData.maxQty ? { customMaxQty: updateData.maxQty } : {}),
+                        ...(updateData.requirements ? { customRequirements: updateData.requirements } : {}),
+                        ...(updateData.markup !== undefined ? { markup: updateData.markup } : {}),
+                        ...(updateData.categoryId !== undefined ? { categoryId: updateData.categoryId } : {}),
+                    };
+
                     await tx.projectServiceOverride.upsert({
-                        where: { projectId_internalServiceId: { projectId: activeProjectId, internalServiceId: serviceId } },
-                        update: { categoryId: updateData.categoryId },
-                        create: { projectId: activeProjectId, internalServiceId: serviceId, categoryId: updateData.categoryId, isActive: true }
+                        where: { projectId_internalServiceId: { projectId: activeProjectId!, internalServiceId: serviceId } },
+                        update: overrideData,
+                        create: { 
+                            projectId: activeProjectId!, 
+                            internalServiceId: serviceId, 
+                            ...overrideData,
+                            isActive: true 
+                        }
                     });
+
+                    // We still return the global service to satisfy return type but we DID NOT change it
+                    return await tx.internalService.findUnique({ where: { id: serviceId } });
                 }
 
-                await tx.internalService.update({
+                const updated = await tx.internalService.update({
                     where: { id: serviceId },
                     data: {
                         ...(globalUpdateData as any),
@@ -174,14 +241,27 @@ export class AdminServiceService extends BaseAdminService {
                     }
                 });
 
-                // Audit
-                if (updateData.pricePer1000 && !new Decimal(updateData.pricePer1000).equals(oldService.pricePer1000)) {
-                    await this.logServiceChange(tx, serviceId, 'PRICE_CHANGE', oldService.pricePer1000.toString(), updateData.pricePer1000.toString());
+                // Audit specific critical changes using logAction on the whole service 
+                if (updateData.pricePer1000 && !new Decimal(updateData.pricePer1000).equals(oldFullService.pricePer1000)) {
+                    await this.logServiceChange(tx, serviceId, 'PRICE_CHANGE', oldFullService.pricePer1000.toString(), updateData.pricePer1000.toString());
                 }
-                if (updateData.markup !== undefined && Number(updateData.markup) !== Number(oldService.markup || 0)) {
-                    await this.logServiceChange(tx, serviceId, 'MARKUP_CHANGE', oldService.markup?.toString() || '0', updateData.markup.toString());
+                if (updateData.markup !== undefined && Number(updateData.markup) !== Number(oldFullService.markup || 0)) {
+                    await this.logServiceChange(tx, serviceId, 'MARKUP_CHANGE', oldFullService.markup?.toString() || '0', updateData.markup.toString());
                 }
+
+                return updated;
             });
+
+            await this.logAction(
+                ctx, 
+                isProjectScope ? 'UPSERT_SERVICE_OVERRIDE' : 'UPDATE_SERVICE', 
+                `Updated service ${updatedInternalService?.name || serviceId} (${serviceId}) in scope: ${activeProjectId || 'GLOBAL'}`, 
+                serviceId, 
+                undefined, // metadata
+                oldFullService, 
+                updatedInternalService,
+                activeProjectId || null // projectId for logs
+            );
 
             return { id: serviceId };
         }, serviceId);
@@ -193,8 +273,8 @@ export class AdminServiceService extends BaseAdminService {
     async getInternalServices(ctx: AdminContext, filters: { platform?: any, category?: any, search?: string, take?: number }): Promise<AdminServiceResult<any[]>> {
         try {
             const where: any = {};
-            if (filters.platform && filters.platform !== 'ALL') where.platform = filters.platform;
-            if (filters.category && filters.category !== 'ALL') where.category = filters.category;
+            if (filters.platform && filters.platform !== 'ALL') where.socialPlatform = { slug: filters.platform };
+            if (filters.category && filters.category !== 'ALL') where.serviceCategory = { categoryType: filters.category };
             if (filters.search) {
                 where.OR = [
                     { id: { contains: filters.search, mode: 'insensitive' } },
@@ -204,7 +284,7 @@ export class AdminServiceService extends BaseAdminService {
 
             const services = await prisma.internalService.findMany({
                 where,
-                select: { id: true, name: true, platform: true, category: true, isActive: true },
+                select: { id: true, name: true, socialPlatform: { select: { slug: true } }, serviceCategory: { select: { categoryType: true } }, isActive: true },
                 orderBy: { name: 'asc' },
                 take: filters.take || 100
             });
@@ -342,7 +422,7 @@ export class AdminServiceService extends BaseAdminService {
                 include: {
                     providerMappings: { include: { provider: true, providerService: true } },
                 },
-                orderBy: [{ platform: 'asc' }, { category: 'asc' }, { rating: 'desc' }]
+                orderBy: [{ socialPlatform: { slug: 'asc' } }, { serviceCategory: { categoryType: 'asc' } }, { rating: 'desc' }]
             });
             return this.success(services);
         } catch (error: any) {
@@ -368,8 +448,8 @@ export class AdminServiceService extends BaseAdminService {
                     minQty: Number(data.minQty || 10),
                     maxQty: Number(data.maxQty || 100000),
                     type: (data.type as any) || 'REGULAR',
-                    category: data.category as any,
-                    platform: data.platform as any,
+                    categoryId: data.categoryId || null,
+                    socialPlatformId: data.socialPlatformId || null,
                     targetType: (data.targetType as string) || 'ALL',
                     allowedTargetTypes: Array.isArray(data.allowedTargetTypes) ? data.allowedTargetTypes : [],
                     isActive: data.isActive === 'true' || data.isActive === true,
@@ -398,8 +478,8 @@ export class AdminServiceService extends BaseAdminService {
                     pricePer1000: new Decimal(data.pricePer1000),
                     minQty: data.minQty,
                     maxQty: data.maxQty,
-                    platform: data.platform,
-                    category: data.category,
+                    categoryId: data.categoryId || null,
+                    socialPlatformId: data.socialPlatformId || null,
                     targetType: data.targetType,
                     allowedTargetTypes: data.allowedTargetTypes || [],
                     isActive: true,
@@ -555,10 +635,10 @@ export class AdminServiceService extends BaseAdminService {
             const { SmartAnalyzerService } = await import('@/services/providers/smart-analyzer.service');
             const services = await prisma.internalService.findMany({
                 where: projectId ? { projectOverrides: { some: { projectId } } } : {},
-                select: { platform: true, category: true }
+                select: { socialPlatform: { select: { slug: true } }, serviceCategory: { select: { categoryType: true } } }
             });
 
-            const uniquePairs = Array.from(new Set(services.map(s => `${s.platform}:${s.category}`)));
+            const uniquePairs = Array.from(new Set(services.map(s => `${s.socialPlatform?.slug || 'other'}:${s.serviceCategory?.categoryType || 'OTHER'}`)));
             let count = 0;
 
             for (const pair of uniquePairs) {
@@ -629,22 +709,37 @@ export class AdminServiceService extends BaseAdminService {
     async getServicesHealthStats(_ctx: AdminContext): Promise<AdminServiceResult<any>> {
         try {
             const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-            const orders = await prisma.order.findMany({
+            
+            // Use DB aggregation instead of fetching ALL orders into memory
+            const stats = await prisma.order.groupBy({
+                by: ['internalServiceId', 'status'],
                 where: { createdAt: { gte: dayAgo } },
-                select: { internalServiceId: true, status: true, totalPrice: true, costPrice: true, quantity: true }
+                _count: { _all: true },
+                _sum: {
+                    totalPrice: true,
+                    costPrice: true,
+                    quantity: true
+                }
             });
 
             const healthMap: Record<string, any> = {};
-            orders.forEach(order => {
-                const id = order.internalServiceId;
+            
+            for (const s of stats) {
+                const id = s.internalServiceId;
+                if (!id) continue;
                 if (!healthMap[id]) healthMap[id] = { success: 0, total: 0, profit: 0 };
-                if (order.status === 'COMPLETED') healthMap[id].success += 1;
-                if (order.status !== 'PENDING') healthMap[id].total += 1;
-                if (order.status !== 'CANCELED') {
-                    const cost = order.costPrice ? Number(order.costPrice) * (order.quantity / 1000) : 0;
-                    healthMap[id].profit += Number(order.totalPrice) - cost;
+                
+                const count = s._count._all;
+                if (s.status === 'COMPLETED') healthMap[id].success += count;
+                if (s.status !== 'PENDING') healthMap[id].total += count;
+
+                if (s.status !== 'CANCELED') {
+                    const totalRev = Number(s._sum.totalPrice || 0);
+                    const totalCost = Number(s._sum.costPrice || 0);
+                    // Profit = Total Price - Cost Price (already summed by DB)
+                    healthMap[id].profit += (totalRev - totalCost);
                 }
-            });
+            }
 
             return this.success(healthMap);
         } catch (error: any) {
@@ -700,7 +795,7 @@ export class AdminServiceService extends BaseAdminService {
             if (!ctx.isGlobalAdmin) throw new Error('Unauthorized');
             await prisma.internalService.updateMany({
                 where: { id: { in: serviceIds } },
-                data: { categoryId: targetCategoryId, platform: targetPlatform as any, category: targetCategoryEnum as any }
+                data: { categoryId: targetCategoryId }
             });
             await this.logAction(ctx, 'BULK_MOVE_SERVICES', `Moved ${serviceIds.length} services to category ${targetCategoryId}`);
             return this.success(serviceIds.length);
@@ -715,11 +810,26 @@ export class AdminServiceService extends BaseAdminService {
     async bulkToggleServices(ctx: AdminContext, serviceIds: string[], isActive: boolean): Promise<AdminServiceResult<number>> {
         try {
             if (!ctx.isGlobalAdmin) throw new Error('Unauthorized');
-            await prisma.internalService.updateMany({
+            
+            const services = await prisma.internalService.findMany({
                 where: { id: { in: serviceIds } },
-                data: { isActive }
+                select: { id: true, metadata: true }
             });
-            await this.logAction(ctx, 'BULK_TOGGLE_SERVICES', `Set ${serviceIds.length} services to ${isActive ? 'active' : 'inactive'}`);
+
+            await prisma.$transaction(
+                services.map(svc => {
+                    const existingMetadata = typeof svc.metadata === 'object' && svc.metadata ? svc.metadata : {};
+                    return prisma.internalService.update({
+                        where: { id: svc.id },
+                        data: {
+                            isActive,
+                            metadata: { ...existingMetadata, autoDisabled: false }
+                        }
+                    });
+                })
+            );
+
+            await this.logAction(ctx, 'BULK_TOGGLE_SERVICES', `Set ${serviceIds.length} services to ${isActive ? 'active' : 'inactive'} (Manual)`);
             return this.success(serviceIds.length);
         } catch (error: any) {
             return this.error('BULK_TOGGLE_FAILED', error.message, error);
@@ -905,4 +1015,4 @@ export class AdminServiceService extends BaseAdminService {
     }
 }
 
-
+export const adminServiceService = AdminServiceService.getInstance();

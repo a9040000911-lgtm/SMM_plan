@@ -29,7 +29,9 @@ async function getOrder(id: string) {
     where: { id: parseInt(id) },
     include: {
       user: true,
-      internalService: true,
+      internalService: {
+        include: { socialPlatform: true, serviceCategory: true }
+      },
       subOrders: {
         include: { internalService: true }
       },
@@ -104,9 +106,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Внутренний тариф</label>
                 <div className="text-sm font-bold text-slate-800">{order.internalService.name}</div>
                 <div className="text-[10px] text-slate-500 uppercase font-black tracking-tighter">
-                  <span className="text-blue-600">{order.internalService.platform}</span>
+                  <span className="text-blue-600">{order.internalService.socialPlatform?.slug || 'OTHER'}</span>
                   <span className="mx-1">•</span>
-                  <span className="text-indigo-600">{getActivityLabel(order.internalService.category)}</span>
+                  <span className="text-indigo-600">{getActivityLabel(order.internalService.serviceCategory?.categoryType as any)}</span>
                 </div>
               </div>
               <div className="space-y-1">

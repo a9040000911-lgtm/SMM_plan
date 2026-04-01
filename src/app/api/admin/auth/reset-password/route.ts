@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
 
     // 1. ЗАПРОС КОДА
     if (action === 'request') {
+      console.log(`[AuthDebug] Requesting reset code for: "${normalizedEmail}"`);
       const user = await prisma.user.findFirst({
         where: {
           email: normalizedEmail,
@@ -29,8 +30,10 @@ export async function POST(req: NextRequest) {
       });
 
       if (!user) {
+        console.warn(`[AuthDebug] User not found or not staff: "${normalizedEmail}"`);
         return NextResponse.json({ error: 'Сотрудник с такой почтой не найден' }, { status: 404 });
       }
+      console.log(`[AuthDebug] User found: ${user.id} (Role: ${user.role})`);
 
       const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
       await redis.set(`password_reset_${normalizedEmail}`, resetCode, 'EX', 600); // 10 минут

@@ -18,7 +18,7 @@ export async function GET() {
     return NextResponse.json({
       status: 'CRITICAL',
       timestamp: new Date().toISOString(),
-      error: error.message
+      error: 'Database connection failed'
     }, { status: 500 });
   }
 }

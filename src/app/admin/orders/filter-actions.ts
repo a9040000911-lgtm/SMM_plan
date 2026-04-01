@@ -6,7 +6,7 @@
  */
 
 import { AdminDataService } from '@/services/admin/admin-data.service';
-import { Platform, Category } from '@/generated/client';
+import { Platform, Category } from '@prisma/client';
 import { getAdminContext } from '@/utils/admin-context';
 
 export interface FilterServiceItem {

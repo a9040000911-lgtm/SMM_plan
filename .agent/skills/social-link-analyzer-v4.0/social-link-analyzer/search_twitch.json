@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://help.twitch.tv/s/article/how-to-use-clips",
+    "name": "How to Create, Edit, and Share Clips - Twitch Help",
+    "snippet": "Learn how to create and manage clips, edit them for vertical formats, and share them to social media to promote and grow your channel.",
+    "host_name": "help.twitch.tv",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://link.twitch.tv/ChannelPageSetup",
+    "name": "Channel Page Setup - Twitch",
+    "snippet": "Setting up your channel page is one of the most important aspects of being a broadcaster. This article will help you to navigate the various settings ...",
+    "host_name": "link.twitch.tv",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://discuss.dev.twitch.com/t/clip-url-format-to-play-in-android/9392",
+    "name": "Clip url format to play in Android - API - Twitch Developer Forums",
+    "snippet": "Navigating to the embed_url and copying the video address does provide a usable url, such as https://clips-media-assets.twitch.tv/vod-107049351- ... Missing: patterns | Show results with: patterns",
+    "host_name": "discuss.dev.twitch.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch%3Fv%3DzJa3mzfKhaY",
+    "name": "How to Add Links to Your Twitch Channel Page - YouTube",
+    "snippet": "... Twitch channel panels to add URL links and images to your Twitch channel. Additionally, I show you how to the description of your Twitch ...",
+    "host_name": "www.youtube.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/48475925/how-would-i-get-all-links-or-clips-from-a-specific-channel-on-twitch-in-python",
+    "name": "How would I get all links, or clips, from a specific channel on Twitch",
+    "snippet": "You would either need to use something like selenium to automate a browser to get all the URLs or alternatively, requests the JSON yourself. Missing: formats | Show results with: formats",
+    "host_name": "stackoverflow.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.canva.com/twitch/templates",
+    "name": "Free Twitch templates you can customize - Canva",
+    "snippet": "Add powerful visuals into the fun and excitement of your live streaming content with Twitch layout templates you can personalize and use from Canva.",
+    "host_name": "www.canva.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://link.twitch.tv/ClipSettings",
+    "name": "Managing Clips Settings - Twitch",
+    "snippet": "To manage your Clips Settings, visit your Creator Dashboard -> Settings -> Stream. Setting Name & Link. Description. Enable Clips. Enable the creation of clips ...",
+    "host_name": "link.twitch.tv",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch%3Fv%3D0QuIDxaMfLo",
+    "name": "Grow a Twitch Channel Using Clips - Part: 1 HOW - YouTube",
+    "snippet": "A deep dive into different methods of creating clips of your livestream and posting them on social media to grow on twitch in 2025. Missing: link | Show results with: link",
+    "host_name": "www.youtube.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch%3Fv%3DFKACt19Aqi8",
+    "name": "Customize your Twitch channel in 2025 - Step by step - YouTube",
+    "snippet": "... Twitch channel tips and tricks Twitch: https://www.twitch.tv/gaellevel Twitter: https://twitter.com/Level_Photo #Twitch #streaming #twitchtips. Missing: formats | Show results with: formats",
+    "host_name": "www.youtube.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.twitch.tv/docs/embed/video-and-clips",
+    "name": "Embedding Video and Clips - Twitch Developers",
+    "snippet": "You can embed live streams, video on demand (VOD), and clips in a website. Embedded video windows must be at least 400x300 pixels. Missing: patterns | Show results with: patterns",
+    "host_name": "dev.twitch.tv",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

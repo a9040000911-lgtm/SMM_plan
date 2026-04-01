@@ -28,10 +28,11 @@ import {
   Scale
 } from 'lucide-react';
 import { LogoutButton } from '@/components/admin/core/logout-button';
-import { prisma } from '@/lib/prisma';
 import { AdminUser } from '@/types/admin';
 import { Locale, dictionaries } from '@/i18n/dictionaries';
 import { SidebarNav } from './sidebar-nav';
+import { UserService } from '@/services/users/user.service';
+import { ProjectService } from '@/services/core/project.service';
 
 export async function Sidebar() {
   const cookieStore = await cookies();
@@ -60,9 +61,9 @@ export async function Sidebar() {
     {
       title: t.nav_sections.marketing,
       items: [
-        { id: 'marketing', name: 'Сайт и Контент', href: '/admin/content', icon: Newspaper },
+        { id: 'marketing', name: 'Сайт и Контент', href: '/admin/cms/content', icon: Newspaper },
         { id: 'promocodes', name: t.promocodes, href: '/admin/promo-codes', icon: Tag },
-        { id: 'reviews', name: 'Отзывы', href: '/admin/marketing/reviews', icon: MessageSquare },
+        { id: 'reviews', name: 'Отзывы', href: '/admin/reviews', icon: MessageSquare },
         { id: 'advocacy', name: t.advocacy, href: '/admin/advocacy/nps', icon: Award },
       ]
     },
@@ -79,7 +80,7 @@ export async function Sidebar() {
       items: [
         { id: 'support', name: t.support, href: '/admin/support', icon: MessageSquare },
         { id: 'kb', name: t.knowledge_base, href: '/admin/knowledge-base', icon: BookOpen },
-        { id: 'bugs', name: t.bug_reports, href: '/admin/bug-reports', icon: Bug },
+        { id: 'bugs', name: t.bug_reports, href: '/admin/support/bug-reports', icon: Bug },
       ]
     },
     {
@@ -106,9 +107,7 @@ export async function Sidebar() {
         const tgId = sessionUser.tgId ? BigInt(sessionUser.tgId) : BigInt(0);
 
         if (tgId > BigInt(0)) {
-          const dbUser = await prisma.user.findUnique({
-            where: { tgId: tgId }
-          });
+          const dbUser = await UserService.getByTgId(tgId);
 
           if (dbUser) {
             user = {
@@ -129,7 +128,7 @@ export async function Sidebar() {
   }
 
   const activeProjectId = cookieStore.get('active_project_id')?.value || null;
-  const projects = await prisma.project.findMany({ select: { id: true, name: true } });
+  const projects = await ProjectService.getAllProjects();
   const activeProject = projects.find(p => p.id === activeProjectId);
 
   const roleNames: Record<string, string> = {

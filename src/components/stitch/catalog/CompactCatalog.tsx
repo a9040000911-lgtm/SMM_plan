@@ -7,10 +7,7 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Info, Layout, ArrowRight, Filter, ChevronRight, Star, Flame, ShieldCheck, TrendingUp, Sparkles } from 'lucide-react';
-import {
-    FaTwitch, FaTwitter,
-    FaDiscord, FaReddit, FaWhatsapp, FaSpotify, FaOdnoklassniki, FaSoundcloud, FaLinkedin, FaPinterest, FaSnapchatGhost
-} from "react-icons/fa";
+
 import { cn } from "@/utils/ui";
 import { BrandIcon } from '../ui/BrandIcon';
 import { SerializedServiceV2 } from "@/types/catalog";
@@ -25,30 +22,50 @@ interface CompactCatalogProps {
 
 // Icon Mapping per Platform
 const PLATFORM_MAP: Record<string, { label: string; icon: React.ReactNode }> = {
-    'TELEGRAM': { label: 'Telegram', icon: <BrandIcon name="telegram" size={24} className="text-[#24A1DE]" /> },
-    'INSTA': { label: 'Instagram', icon: <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500">IG</div> },
-    'VK': { label: 'ВКонтакте', icon: <BrandIcon name="vk" size={24} className="text-[#0077FF]" /> },
-    'TIK': { label: 'TikTok', icon: <BrandIcon name="tiktok" size={24} className="text-[#000000]" /> },
-    'YOU': { label: 'YouTube', icon: <BrandIcon name="youtube" size={24} className="text-[#FF0000]" /> },
-    'LIKEE': { label: 'Likee', icon: <BrandIcon name="likee" size={24} className="text-[#FF0069]" /> },
-    'TWITCH': { label: 'Twitch', icon: <FaTwitch size={24} color="#9146FF" /> },
-    'TWITTER': { label: 'Twitter', icon: <FaTwitter size={24} color="#1DA1F2" /> },
-    'FACEBOOK': { label: 'Facebook', icon: <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500">FB</div> },
-    'DISCORD': { label: 'Discord', icon: <FaDiscord size={24} color="#5865F2" /> },
-    'REDDIT': { label: 'Reddit', icon: <FaReddit size={24} color="#FF4500" /> },
-    'WHATSAPP': { label: 'WhatsApp', icon: <FaWhatsapp size={24} color="#25D366" /> },
-    'SPOTIFY': { label: 'Spotify', icon: <FaSpotify size={24} color="#1DB954" /> },
-    'OK': { label: 'Одноклассники', icon: <FaOdnoklassniki size={24} color="#EE8208" /> },
-    'SOUNDCLOUD': { label: 'SoundCloud', icon: <FaSoundcloud size={24} color="#FF5500" /> },
-    'LINKEDIN': { label: 'LinkedIn', icon: <FaLinkedin size={24} color="#0A66C2" /> },
-    'PINTEREST': { label: 'Pinterest', icon: <FaPinterest size={24} color="#E60023" /> },
-    'SNAPCHAT': { label: 'Snapchat', icon: <FaSnapchatGhost size={24} color="#FFFC00" /> },
+    'TELEGRAM': { label: 'Telegram', icon: <BrandIcon name="telegram" size={24} colorMode="original" /> },
+    'INSTA': { label: 'Instagram', icon: <BrandIcon name="instagram" size={24} colorMode="original" /> },
+    'VK': { label: 'ВКонтакте', icon: <BrandIcon name="vk" size={24} colorMode="original" /> },
+    'TIK': { label: 'TikTok', icon: <BrandIcon name="tiktok" size={24} colorMode="original" /> },
+    'YOU': { label: 'YouTube', icon: <BrandIcon name="youtube" size={24} colorMode="original" /> },
+    'LIKEE': { label: 'Likee', icon: <BrandIcon name="likee" size={24} colorMode="original" /> },
+    'TWITCH': { label: 'Twitch', icon: <BrandIcon name="twitch" size={24} colorMode="original" /> },
+    'TWITTER': { label: 'Twitter', icon: <BrandIcon name="twitter" size={24} colorMode="original" /> },
+    'FACEBOOK': { label: 'Facebook', icon: <BrandIcon name="facebook" size={24} colorMode="original" /> },
+    'DISCORD': { label: 'Discord', icon: <BrandIcon name="discord" size={24} colorMode="original" /> },
+    'REDDIT': { label: 'Reddit', icon: <BrandIcon name="reddit" size={24} colorMode="original" /> },
+    'WHATSAPP': { label: 'WhatsApp', icon: <BrandIcon name="whatsapp" size={24} colorMode="original" /> },
+    'SPOTIFY': { label: 'Spotify', icon: <BrandIcon name="spotify" size={24} colorMode="original" /> },
+    'OK': { label: 'Одноклассники', icon: <BrandIcon name="ok" size={24} colorMode="original" /> },
+    'SOUNDCLOUD': { label: 'SoundCloud', icon: <BrandIcon name="soundcloud" size={24} colorMode="original" /> },
+    'LINKEDIN': { label: 'LinkedIn', icon: <BrandIcon name="linkedin" size={24} colorMode="original" /> },
+    'PINTEREST': { label: 'Pinterest', icon: <BrandIcon name="pinterest" size={24} colorMode="original" /> },
+    'SNAPCHAT': { label: 'Snapchat', icon: <BrandIcon name="snapchat" size={24} colorMode="original" /> },
+    'THREADS': { label: 'Threads', icon: <BrandIcon name="threads" size={24} colorMode="original" /> },
+    'KICK': { label: 'Kick', icon: <BrandIcon name="kick" size={24} colorMode="original" /> },
+    'RUTUBE': { label: 'Rutube', icon: <BrandIcon name="rutube" size={24} colorMode="original" /> },
+    'DZEN': { label: 'Дзен', icon: <BrandIcon name="dzen" size={24} colorMode="original" /> },
+    'MUSIC': { label: 'Музыка', icon: <BrandIcon name="soundcloud" size={24} colorMode="original" /> },
+    'MAX': { label: 'Max', icon: <BrandIcon name="max" size={24} colorMode="original" /> },
+    'X': { label: 'X (Twitter)', icon: <BrandIcon name="twitter" size={24} colorMode="original" /> },
+    'APP_STORE': { label: 'App Store', icon: <BrandIcon name="appstore" size={24} colorMode="original" /> },
+    'GOOGLE_PLAY': { label: 'Google Play', icon: <BrandIcon name="googleplay" size={24} colorMode="original" /> },
+    'STEAM': { label: 'Steam', icon: <BrandIcon name="steam" size={24} colorMode="original" /> },
+    'GOOGLE': { label: 'Google', icon: <BrandIcon name="google" size={24} colorMode="original" /> },
+    'TROVO': { label: 'Trovo', icon: <BrandIcon name="trovo" size={24} colorMode="original" /> },
+    'YANDEX': { label: 'Яндекс', icon: <BrandIcon name="yandex" size={24} colorMode="original" /> },
+    'WEBSITE': { label: 'Web-сайт', icon: <BrandIcon name="web" size={24} colorMode="original" /> },
     'OTHER': { label: 'Другое', icon: <Sparkles size={24} className="text-slate-400" /> },
 };
 
 // Helper to get platform info for labels
 const getPlatformInfo = (p: string) => {
-    const key = Object.keys(PLATFORM_MAP).find(k => p.toUpperCase().includes(k));
+    const platforms = Object.keys(PLATFORM_MAP);
+    // 1. Try exact match first (prevents "YANDEX" matching "X")
+    let key = platforms.find(k => p.toUpperCase() === k);
+    // 2. Fallback to includes only if no exact match
+    if (!key) {
+        key = platforms.find(k => p.toUpperCase().includes(k) || k.includes(p.toUpperCase()));
+    }
     const label = translatePlatform(p);
     return key ? { ...PLATFORM_MAP[key], label } : { label, icon: <Sparkles size={24} className="text-slate-400" /> };
 };
@@ -111,41 +128,50 @@ export function CompactCatalog({ groupedServices, isLoggedIn }: CompactCatalogPr
     return (
         <div className="flex flex-col gap-12">
 
-            {/* 1. Platform Navigation (Compact & Responsive) */}
-            <div className="w-full max-w-full overflow-hidden">
-                <div className="flex items-center justify-start md:justify-center gap-2 overflow-x-auto no-scrollbar py-4 px-4 bg-blue-50/60 rounded-[2.5rem] border border-blue-100/50 backdrop-blur-md w-full snap-x snap-mandatory after:content-[''] after:shrink-0 after:w-1">
-                    {platforms.map(p => {
-                        const isActive = selectedPlatform === p;
-                        const pInfo = getPlatformInfo(p);
-                        return (
-                            <button
-                                key={p}
-                                onClick={() => {
-                                    setSelectedPlatform(p);
-                                    setSearchQuery("");
-                                }}
-                                className={cn(
-                                    "group relative flex items-center justify-center rounded-2xl transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden shrink-0",
-                                    isActive
-                                        ? "bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] px-5 py-3 gap-3 ring-1 ring-slate-200 scale-105 z-10"
-                                        : "bg-transparent p-3 hover:bg-slate-100 text-slate-500 scale-100"
-                                )}
-                            >
-                                <div className="shrink-0 transition-transform duration-300 group-hover:scale-110">
-                                    {pInfo.icon}
-                                </div>
+            {/* 1. Platform Navigation (Two Balanced Rows) */}
+            <div className="w-full max-w-full">
+                <div className="flex flex-col gap-2 md:gap-3 py-6 px-4 md:px-8 bg-blue-50/60 rounded-[3rem] border border-blue-100/50 backdrop-blur-md w-full shadow-sm">
+                    {(() => {
+                        const mid = Math.ceil(platforms.length / 2);
+                        const rows = [platforms.slice(0, mid), platforms.slice(mid)];
+                        
+                        return rows.map((row, rowIdx) => (
+                            <div key={rowIdx} className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
+                                {row.map(p => {
+                                    const isActive = selectedPlatform === p;
+                                    const pInfo = getPlatformInfo(p);
+                                    return (
+                                        <button
+                                            key={p}
+                                            onClick={() => {
+                                                setSelectedPlatform(p);
+                                                setSearchQuery("");
+                                            }}
+                                            className={cn(
+                                                "group relative flex items-center justify-center rounded-2xl transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden shrink-0",
+                                                isActive
+                                                    ? "bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] px-5 py-3 gap-3 ring-1 ring-slate-200 scale-105 z-10"
+                                                    : "bg-transparent p-3 hover:bg-slate-100 text-slate-500 scale-100"
+                                            )}
+                                        >
+                                            <div className="shrink-0 transition-transform duration-300 group-hover:scale-110">
+                                                {pInfo.icon}
+                                            </div>
 
-                                <div className={cn(
-                                    "transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden flex flex-col justify-center",
-                                    isActive ? "w-auto max-w-[200px] opacity-100 ml-1" : "w-0 max-w-0 opacity-0 ml-0"
-                                )}>
-                                    <span className="text-[15px] font-black tracking-tight text-slate-800 whitespace-nowrap">
-                                        {pInfo.label}
-                                    </span>
-                                </div>
-                            </button>
-                        );
-                    })}
+                                            <div className={cn(
+                                                "transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden flex flex-col justify-center",
+                                                isActive ? "w-auto max-w-[200px] opacity-100 ml-1" : "w-0 max-w-0 opacity-0 ml-0"
+                                            )}>
+                                                <span className="text-[15px] font-black tracking-tight text-slate-800 whitespace-nowrap">
+                                                    {pInfo.label}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ));
+                    })()}
                 </div>
             </div>
 
@@ -230,7 +256,7 @@ export function CompactCatalog({ groupedServices, isLoggedIn }: CompactCatalogPr
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: idx * 0.04 }}
                                     className={cn(
-                                        "group relative p-10 border rounded-[3.5rem] transition-all flex flex-col justify-between overflow-hidden cursor-default",
+                                        "group relative p-6 md:p-10 border rounded-[2rem] md:rounded-[3.5rem] transition-all flex flex-col justify-between overflow-hidden cursor-default min-h-fit",
                                         service.isHot
                                             ? "bg-gradient-to-br from-orange-500 to-rose-600 border-orange-400 shadow-[0_20px_40px_-15px_rgba(249,115,22,0.5)] hover:shadow-[0_40px_80px_-20px_rgba(249,115,22,0.8)]"
                                             : "bg-white border-slate-100 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.06)] hover:border-blue-100"
@@ -264,8 +290,8 @@ export function CompactCatalog({ groupedServices, isLoggedIn }: CompactCatalogPr
                                                     <div className={cn("px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shrink-0", service.isHot ? "bg-white text-orange-600" : "bg-slate-100 text-slate-500")}>
                                                         {service.quality === "HIGH" ? "Premium" : "Stable"}
                                                     </div>
-                                                    <div className={cn("px-3 py-1.5 rounded-[0.6rem] text-[13px] font-mono font-black shrink-0 border shadow-sm", service.isHot ? "bg-white/20 text-white border-white/30" : "bg-slate-50 text-slate-800 border-slate-200")}>
-                                                        ID: {service.numericId}
+                                                    <div className={cn("px-3 py-1.5 rounded-[0.6rem] text-[11px] md:text-[13px] font-mono font-black shrink-0 border shadow-sm", service.isHot ? "bg-white/20 text-white border-white/30" : "bg-slate-50 text-slate-800 border-slate-200")}>
+                                                        ID: {service.numericId || service.id.slice(-4).toUpperCase()}
                                                     </div>
                                                 </div>
                                                 {searchQuery && (
@@ -279,12 +305,12 @@ export function CompactCatalog({ groupedServices, isLoggedIn }: CompactCatalogPr
                                             </div>
                                         </div>
 
-                                        <h3 className={cn("text-xl font-black mb-6 leading-[1.15] transition-colors decoration-2 underline-offset-4 z-10 relative mt-8 md:mt-10", service.isHot ? "text-white group-hover:text-blue-50 decoration-white/30" : "text-slate-900 group-hover:text-blue-600 decoration-blue-600/30")}>
+                                        <h3 className={cn("text-lg md:text-xl font-black mb-4 md:mb-6 leading-[1.15] transition-colors decoration-2 underline-offset-4 z-10 relative mt-6 md:mt-10", service.isHot ? "text-white group-hover:text-blue-50 decoration-white/30" : "text-slate-900 group-hover:text-blue-600 decoration-blue-600/30")}>
                                             {service.name}
                                         </h3>
 
-                                        <div className="mb-10 flex-1 relative z-10">
-                                            <p className={cn("text-xs font-medium leading-relaxed italic border-l-4 pl-6 transition-all duration-500 line-clamp-4", service.isHot ? "text-orange-100 border-white/20 group-hover:border-white" : "text-slate-400 border-blue-500/20 group-hover:border-blue-500")}>
+                                        <div className="mb-6 md:mb-10 flex-1 relative z-10 text-pretty">
+                                            <p className={cn("text-xs font-medium leading-relaxed italic border-l-4 pl-4 md:pl-6 transition-all duration-500 line-clamp-3 md:line-clamp-4", service.isHot ? "text-orange-100 border-white/20 group-hover:border-white" : "text-slate-400 border-blue-500/20 group-hover:border-blue-500")}>
                                                 {service.description || "Премиальная услуга с гарантированным результатом. Оптимизирована для роста охватов и вовлеченности."}
                                             </p>
                                         </div>

@@ -37,7 +37,9 @@ export class IntelligenceEngine {
                         urlObj.pathname = '/boost' + (urlObj.pathname.startsWith('/') ? '' : '/') + urlObj.pathname;
                     }
                     formatted = urlObj.toString();
-                } catch (_e) {}
+                } catch (e: any) {
+                    console.warn('[IntelligenceEngine] Failed to format Telegram link:', e.message);
+                }
             }
         }
 
@@ -50,7 +52,9 @@ export class IntelligenceEngine {
                 }
                 urlObj.searchParams.set('boost', '');
                 formatted = urlObj.toString().replace('boost=', 'boost');
-            } catch (_e) {}
+            } catch (e: any) {
+                console.warn('[IntelligenceEngine] Failed to format SocRocket link:', e.message);
+            }
         }
 
         return formatted;

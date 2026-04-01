@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { activateServiceInProject } from '@/app/admin/services/actions';
 import { toast } from 'sonner';
-import { Platform } from '@/generated/client';
+import { Platform } from '@prisma/client';
 
 interface ServiceLibraryModalProps {
     isOpen: boolean;

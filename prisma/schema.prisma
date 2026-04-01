@@ -58,6 +58,8 @@ model Project {
   transactions            Transaction[]
   users                   User[]
   staff                   User[]                   @relation("StaffProjects")
+  organizationId          String?
+  organization            Organization?            @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   @@map("Project")
 }
@@ -192,6 +194,7 @@ model User {
   userPromos           UserPromo[]
   accessibleProjects   Project[]             @relation("StaffProjects")
   adminLogs            AdminLog[]            @relation("AdminToLog")
+  ownedOrganizations   Organization[]        @relation("OrganizationOwner")
 
   @@unique([projectId, earlyBirdRank])
   @@map("User")
@@ -442,8 +445,8 @@ model UserPromo {
 
 model InternalService {
   id                       String                   @id
-  platform                 Platform
-  category                 Category
+  platform                 Platform                 @default(OTHER)
+  category                 Category                 @default(OTHER)
   name                     String
   description              String
   geo                      String
@@ -489,6 +492,8 @@ model InternalService {
   scheduledOrders          ScheduledOrder[]
   curatorNote              String?
   changeLogs               ServiceChangeLog[]
+  isCancelEnabled          Boolean                  @default(false)
+  isRefillEnabled          Boolean                  @default(false)
 
   @@map("InternalService")
 }
@@ -545,6 +550,8 @@ model ProviderService {
   lastSeenAt          DateTime                 @default(now())
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
+  cancel              Boolean                  @default(false)
+  refill              Boolean                  @default(false)
   mappings            InternalServiceMapping[]
   provider            Provider                 @relation(fields: [providerId], references: [id], onDelete: Cascade)
   socialPlatform      SocialPlatform?          @relation(fields: [socialPlatformId], references: [id])
@@ -665,13 +672,13 @@ model Session {
 
 model AdminLog {
   id        String   @id @default(uuid())
-  adminId   String
+  adminId   String?
   action    String
   targetId  String?
   details   String
   metadata  Json?
   createdAt DateTime @default(now())
-  admin     User     @relation("AdminToLog", fields: [adminId], references: [id])
+  admin     User?    @relation("AdminToLog", fields: [adminId], references: [id])
 
   @@map("AdminLog")
 }
@@ -1077,6 +1084,7 @@ enum Category {
   WATCH_TIME
   SAVES
   STARS
+  COMPLAINTS
 }
 
 enum BugSeverity {
@@ -1132,13 +1140,13 @@ enum ProviderPaymentType {
 }
 
 model CmsPage {
-  id        String     @id @default(uuid())
+  id        String      @id @default(uuid())
   projectId String
   slug      String
   title     String
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   blocks    CmsBlock[]
   strings   CmsString[]
 
@@ -1191,4 +1199,44 @@ model MediaAsset {
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("MediaAsset")
+}
+
+enum OrgLedgerType {
+  TOPUP
+  REFUND
+  SERVICE_COST
+  ADJUSTMENT
+}
+
+model Organization {
+  id            String                    @id @default(uuid())
+  name          String
+  ownerId       String
+  masterBalance Decimal                   @default(0.00) @db.Decimal(20, 2)
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  owner         User                      @relation("OrganizationOwner", fields: [ownerId], references: [id])
+  projects      Project[]
+  ledgerEntries OrganizationLedgerEntry[]
+  customB2BMarkup Decimal?                @db.Decimal(10, 2)
+
+  @@map("Organization")
+}
+
+model OrganizationLedgerEntry {
+  id             String        @id @default(uuid())
+  organizationId String
+  amount         Decimal       @db.Decimal(20, 2)
+  currency       Currency      @default(RUB)
+  balanceBefore  Decimal       @db.Decimal(20, 2)
+  balanceAfter   Decimal       @db.Decimal(20, 2)
+  type           OrgLedgerType
+  referenceId    String?
+  description    String?
+  createdAt      DateTime      @default(now())
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([createdAt])
+  @@map("OrganizationLedgerEntry")
 }

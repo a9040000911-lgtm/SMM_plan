@@ -5,7 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { Prisma, Transaction, TransactionStatus } from '@/generated/client';
+import { Prisma, Transaction, TransactionStatus } from '@prisma/client';
 import { Decimal } from 'decimal.js';
 
 export class TransactionRepository {

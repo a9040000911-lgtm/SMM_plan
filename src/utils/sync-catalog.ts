@@ -3,7 +3,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { Platform, Category } from '@/generated/client';
+import { Platform, Category } from '@prisma/client';
 
 import { prisma } from '../lib/prisma';
 import { TelegramCatalog } from '../configs/catalog/telegram';
@@ -100,8 +100,7 @@ async function syncCatalog() {
             where: { id: item.id },
             update: {
               slug: item.slug,
-              platform: platform,
-              category: item.category,
+              socialPlatform: { connect: { slug: platform.toLowerCase() } },
               serviceCategory: { connect: { id: categoryObj.id } },
               targetType: item.targetType || 'ALL',
               name: item.name,
@@ -119,8 +118,7 @@ async function syncCatalog() {
             create: {
               id: item.id,
               slug: item.slug,
-              platform: platform,
-              category: item.category,
+              socialPlatform: { connect: { slug: platform.toLowerCase() } },
               serviceCategory: { connect: { id: categoryObj.id } },
               targetType: item.targetType || 'ALL',
               name: item.name,

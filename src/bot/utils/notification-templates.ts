@@ -30,9 +30,9 @@ export const NotificationTemplates = {
             `Service: ${escapeHtml(serviceName)}\n` +
             `ID: <code>${escapeHtml(serviceId)}</code>\n\n` +
             `❌ <b>Провайдер резко поднял цены!</b>\n` +
-            `• Текущая закупка: <b>${liveUnit}₽/шт.</b>\n` +
-            `• Ваша цена: <b>${myUnit}₽/шт.</b>\n` +
-            `• Требуемый мин: <b>${reqUnit}₽/шт.</b>\n\n` +
+            `• Текущая закупка: <b>${escapeHtml(liveUnit)}₽/шт.</b>\n` +
+            `• Ваша цена: <b>${escapeHtml(myUnit)}₽/шт.</b>\n` +
+            `• Требуемый мин: <b>${escapeHtml(reqUnit)}₽/шт.</b>\n\n` +
             `<i>Услуга была ОТКЛЮЧЕНА автоматически для предотвращения убытков.</i>`,
         CANCELLED_USER_GENERIC: (orderId: number | string) =>
             `⚠️ <b>Ошибка при запуске заказа</b>\n\n` +
@@ -41,7 +41,7 @@ export const NotificationTemplates = {
             `<i>Пожалуйста, попробуйте выбрать другую аналогичную услугу или обратитесь в поддержку для уточнения деталей.</i>`,
 
         PARTIAL_USER_GENERIC: (orderId: number | string, statusLabel: string) =>
-            `❌ <b>Заказ: ${statusLabel}</b>\n\n` +
+            `❌ <b>Заказ: ${escapeHtml(statusLabel)}</b>\n\n` +
             `Заказ <code>#${orderId}</code> был выполнен частично или отменен из-за программного ограничения.\n\n` +
             `💰 <b>Средства за невыполненную часть возвращены на ваш баланс.</b>`,
 

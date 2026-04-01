@@ -1,38 +1,52 @@
 /**
  * (c) 2024-2026 Smmplan. All rights reserved.
- * Created by Artem (http://artmspektr.ru)
- * Unauthorized copying of this file is strictly prohibited.
+ * PromoService — Unit Tests
  */
+jest.mock('@/lib/prisma', () => ({
+    prisma: {
+        promoCode: { findUnique: jest.fn(), findFirst: jest.fn(), update: jest.fn(), create: jest.fn() },
+        userPromo: { findUnique: jest.fn(), findFirst: jest.fn(), create: jest.fn(), update: jest.fn() },
+        settings: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), update: jest.fn(), create: jest.fn() },
+        globalSetting: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
+    },
+}));
+jest.mock('@/lib/logger', () => ({ createLogger: () => ({ info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() }) }));
 
-import { PromoService } from '@/services/users';
+import { PromoService } from './promo.service';
 import { prisma } from '@/lib/prisma';
 
-jest.mock('@/lib/prisma', () => ({
-  prisma: {
-    promoCode: { findUnique: jest.fn(), findFirst: jest.fn() },
-    userPromo: { count: jest.fn(), create: jest.fn(), findFirst: jest.fn() },
-    transaction: { count: jest.fn() },
-    user: { findUnique: jest.fn(), update: jest.fn() }
-  }
-}));
+describe('PromoService', () => {
+    beforeEach(() => jest.clearAllMocks());
 
-describe('Promo Service', () => {
-  test('should validate existing active promo', async () => {
-    (prisma.promoCode.findFirst as jest.Mock).mockResolvedValue({ code: 'TEST', isActive: true });
-    (prisma.userPromo.count as jest.Mock).mockResolvedValue(0);
+    describe('validatePromo', () => {
+        it('returns invalid for empty code', async () => {
+            const result = await PromoService.validatePromo('', 'user1');
+            expect(result.valid).toBe(false);
+        });
 
-    const res = await PromoService.validatePromo('TEST', 'user-1');
-    expect(res.valid).toBe(true);
-  });
+        it('returns invalid if promo not found', async () => {
+            (prisma.promoCode.findFirst as jest.Mock).mockResolvedValue(null);
+            const result = await PromoService.validatePromo('NOTEXIST', 'user1');
+            expect(result.valid).toBe(false);
+            expect(result.error).toContain('не найден');
+        });
 
-  test('should fail if promo already used by user', async () => {
-    (prisma.promoCode.findFirst as jest.Mock).mockResolvedValue({ code: 'TEST', isActive: true });
-    (prisma.userPromo.count as jest.Mock).mockResolvedValue(1);
+        it('returns valid for a good promo code', async () => {
+            (prisma.promoCode.findFirst as jest.Mock).mockResolvedValue({
+                id: 'p1', code: 'GOODCODE', isActive: true, discountPercent: 15, projectId: null
+            });
+            (prisma.userPromo.findUnique as jest.Mock).mockResolvedValue(null);
+            const result = await PromoService.validatePromo('GOODCODE', 'user1');
+            expect(result.valid).toBe(true);
+            expect(result.promo?.discountPercent).toBe(15);
+        });
 
-    const res = await PromoService.validatePromo('TEST', 'user-1');
-    expect(res.valid).toBe(false);
-    expect(res.error).toBe('Уже использован');
-  });
+        it('returns invalid if user used it', async () => {
+            (prisma.promoCode.findFirst as jest.Mock).mockResolvedValue({ id: 'p1', code: 'GOODCODE', isActive: true });
+            (prisma.userPromo.findUnique as jest.Mock).mockResolvedValue({ usedAt: new Date() });
+            const result = await PromoService.validatePromo('GOODCODE', 'user1');
+            expect(result.valid).toBe(false);
+            expect(result.error).toContain('Уже использован');
+        });
+    });
 });
-
-

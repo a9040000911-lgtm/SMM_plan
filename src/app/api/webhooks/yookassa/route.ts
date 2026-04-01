@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { confirmPayment } from '@/services/orders/order-processor.service';
 import ipRangeCheck from 'ip-range-check';
+import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // Official YooKassa IP subnets for webhooks
 const YOOKASSA_IP_SUBNETS = [
@@ -53,21 +55,88 @@ export async function POST(req: NextRequest) {
 
             if (isSimulation) {
                 console.log(`[Webhook] Simulation mode detected. Bypassing API verification for ${paymentId}`);
-                await confirmPayment(paymentId);
+                if (object.metadata?.type === 'B2B_TOPUP') {
+                    const { OrganizationLedgerService } = await import('@/services/finance/organization-ledger.service');
+                    await prisma.$transaction(async (tx) => {
+                        await OrganizationLedgerService.recordTransaction(tx, {
+                            organizationId: object.metadata.organization_id,
+                            amount: Number(object.amount.value),
+                            type: 'TOPUP',
+                            description: `[B2B Topup] Simulation Payment ${paymentId}`,
+                            referenceId: paymentId
+                        });
+                    });
+                } else {
+                    await confirmPayment(paymentId);
+                }
                 return NextResponse.json({ status: 'ok', simulated: true });
             }
 
             // SECURITY HARDENING: Re-verify status directly from YooKassa API
             const { PaymentService } = await import('@/services/finance/payment.service');
-            const verification = await PaymentService.getPaymentStatus(paymentId);
+            
+            // If B2B, force credentials to system config
+            let verificationCredentials = undefined;
+            if (object.metadata?.type === 'B2B_TOPUP') {
+                const { ConfigService } = await import('@/services/core/config.service');
+                const sysConfig = await ConfigService.getPaymentConfig();
+                verificationCredentials = { shopId: sysConfig.shopId, secretKey: sysConfig.secretKey };
+            }
+
+            const verification = await PaymentService.getPaymentStatus(paymentId, verificationCredentials);
 
             if (verification.success && verification.status === 'succeeded') {
                 console.log(`[Webhook] Status verified via API: ${paymentId}`);
-                const result = await confirmPayment(paymentId);
-                if (result) {
-                    console.log(`[Webhook] Order confirmed for payment: ${paymentId}`);
+                
+                // SECURITY HARDENING: Trust ONLY verification.raw data to prevent Webhook Spoofing
+                const verifiedMetadata = verification.raw?.metadata || {};
+                const verifiedAmount = verification.raw?.amount?.value;
+
+                if (verifiedMetadata.type === 'B2B_TOPUP') {
+                    // It's a B2B Account Topup
+                    const { OrganizationLedgerService } = await import('@/services/finance/organization-ledger.service');
+                    
+                    // Duplicate Topup Prevention using Database Locks
+                    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+                        // Атомарный ROW-LEVEL Lock на сущность Организации
+                        await tx.organization.update({
+                            where: { id: verifiedMetadata.organization_id },
+                            data: { updatedAt: new Date() }
+                        });
+
+                        const existingTopup = await tx.organizationLedgerEntry.findFirst({
+                            where: { referenceId: paymentId, type: 'TOPUP' }
+                        });
+
+                        if (existingTopup) {
+                            console.warn(`[Webhook] Blocked concurrent/duplicate B2B Topup for payment: ${paymentId}`);
+                            return;
+                        }
+
+                        await OrganizationLedgerService.recordTransaction(tx, {
+                            organizationId: verifiedMetadata.organization_id,
+                            amount: Number(verifiedAmount),
+                            type: 'TOPUP',
+                            description: `[B2B Topup] Payment ${paymentId}`,
+                            referenceId: paymentId
+                        });
+                        console.log(`[Webhook] B2B Topup confirmed for organization: ${verifiedMetadata.organization_id}`);
+                    });
                 } else {
-                    console.warn(`[Webhook] Could not confirm order (duplicates?): ${paymentId}`);
+                    // It's a standard Retail Payment — with idempotency check
+                    const existingTx = await prisma.transaction.findFirst({
+                        where: { externalId: paymentId, status: 'COMPLETED' }
+                    });
+                    if (existingTx) {
+                        console.warn(`[Webhook] Blocked duplicate retail payment confirmation: ${paymentId}`);
+                    } else {
+                        const result = await confirmPayment(paymentId);
+                        if (result) {
+                            console.log(`[Webhook] Order confirmed for payment: ${paymentId}`);
+                        } else {
+                            console.warn(`[Webhook] Could not confirm order: ${paymentId}`);
+                        }
+                    }
                 }
             } else {
                 console.error(`[Webhook] SECURITY ALERT: Status verification failed for ${paymentId}. Event was succeeded but API says ${verification.status}`);

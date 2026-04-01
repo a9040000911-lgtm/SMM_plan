@@ -17,6 +17,7 @@ import {
 import { formatAmount } from '@/utils/formatter';
 import { Decimal } from 'decimal.js';
 import { smartSearch } from '@/utils/smart-search';
+import { AdminTableCard } from '@/components/admin/core/admin-table-card';
 
 export default function MarkupManagerPage() {
     const [services, setServices] = useState<any[]>([]);
@@ -51,14 +52,12 @@ export default function MarkupManagerPage() {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch('/api/admin/services');
-            if (res.ok) {
-                const data = await res.json();
-                setServices(data.map((s: any) => ({
-                    ...s,
-                    recommendation: s.recommendedPrice
-                })));
-            }
+            const { getServicesAction } = await import('@/app/admin/services/actions');
+            const data = await getServicesAction();
+            setServices(data.map((s: any) => ({
+                ...s,
+                recommendation: s.recommendedPrice
+            })));
         } catch (error) {
             console.error('Failed to load data:', error);
         } finally {
@@ -83,18 +82,9 @@ export default function MarkupManagerPage() {
     const handleApplyOne = async (serviceId: string, newPrice: number) => {
         setIsUpdating(true);
         try {
-            const res = await fetch('/api/admin/services/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: serviceId,
-                    data: { pricePer1000: newPrice }
-                })
-            });
-
-            if (res.ok) {
-                setServices(prev => prev.map(s => s.id === serviceId ? { ...s, pricePer1000: newPrice } : s));
-            }
+            const { updateService } = await import('@/app/admin/services/actions');
+            await updateService(serviceId, { pricePer1000: newPrice });
+            setServices(prev => prev.map(s => s.id === serviceId ? { ...s, pricePer1000: newPrice } : s));
         } catch (_e) {
             alert('Ошибка при сохранении');
         } finally {
@@ -228,7 +218,7 @@ export default function MarkupManagerPage() {
                 </select>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-[3rem] overflow-hidden shadow-2xl relative">
+            <AdminTableCard title="Расчет маржинальности" icon={Database} className="shadow-2xl">
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-slate-900 text-white border-b border-white/5 text-[10px] uppercase tracking-widest font-black">
@@ -324,7 +314,7 @@ export default function MarkupManagerPage() {
                         <p className="text-slate-400 font-bold uppercase tracking-widest">Услуги не найдены</p>
                     </div>
                 )}
-            </div>
+            </AdminTableCard>
 
             <div className="fixed bottom-8 right-8 z-50">
                 <div className="bg-slate-900 border border-white/10 rounded-2xl p-4 shadow-2xl text-white flex items-center gap-6">

@@ -9,6 +9,10 @@ import { revalidatePath } from 'next/cache';
 import { getAdminSession } from '@/utils/admin-session';
 import { AdminServices } from '@/services/admin/registry';
 import { AdminContext } from '@/services/types';
+import { z } from 'zod';
+
+const OrderIdSchema = z.number().int().positive();
+const OrderIdsArraySchema = z.array(z.number().int().positive());
 
 async function getCtx(): Promise<AdminContext> {
     const session = await getAdminSession();
@@ -24,7 +28,11 @@ async function getCtx(): Promise<AdminContext> {
 /**
  * Синхронизирует конкретный заказ с API провайдера
  */
-export async function syncOrderAction(orderId: number) {
+export async function syncOrderAction(rawOrderId: number) {
+    const parsed = OrderIdSchema.safeParse(rawOrderId);
+    if (!parsed.success) return { success: false, error: 'Invalid order ID' };
+    const orderId = parsed.data;
+
     const ctx = await getCtx();
     if (!['ADMIN', 'SUPPORT', 'SEO'].includes(ctx.role)) {
         return { success: false, error: 'Unauthorized' };
@@ -43,7 +51,11 @@ export async function syncOrderAction(orderId: number) {
 /**
  * Ручной возврат средств за заказ на баланс пользователя
  */
-export async function refundOrderAction(orderId: number) {
+export async function refundOrderAction(rawOrderId: number) {
+    const parsed = OrderIdSchema.safeParse(rawOrderId);
+    if (!parsed.success) return { success: false, error: 'Invalid order ID' };
+    const orderId = parsed.data;
+
     const ctx = await getCtx();
     if (!['ADMIN', 'SUPPORT'].includes(ctx.role)) {
         return { success: false, error: 'Unauthorized' };
@@ -62,7 +74,11 @@ export async function refundOrderAction(orderId: number) {
 /**
  * Принудительное переключение заказа на другого провайдера
  */
-export async function failoverOrderAction(orderId: number) {
+export async function failoverOrderAction(rawOrderId: number) {
+    const parsed = OrderIdSchema.safeParse(rawOrderId);
+    if (!parsed.success) return { success: false, error: 'Invalid order ID' };
+    const orderId = parsed.data;
+
     const ctx = await getCtx();
     if (ctx.role !== 'ADMIN') {
         return { success: false, error: 'Unauthorized' };
@@ -86,7 +102,11 @@ export async function failoverOrderAction(orderId: number) {
 /**
  * Массовое обновление статусов
  */
-export async function bulkUpdateStatusAction(orderIds: number[]) {
+export async function bulkUpdateStatusAction(rawOrderIds: number[]) {
+    const parsed = OrderIdsArraySchema.safeParse(rawOrderIds);
+    if (!parsed.success) return { success: false, error: 'Invalid order IDs array' };
+    const orderIds = parsed.data;
+
     const ctx = await getCtx();
     if (!['ADMIN', 'SUPPORT', 'SEO'].includes(ctx.role)) {
         return { success: false, error: 'Unauthorized' };
@@ -101,7 +121,11 @@ export async function bulkUpdateStatusAction(orderIds: number[]) {
 /**
  * Массовая отмена и возврат
  */
-export async function bulkCancelOrdersAction(orderIds: number[]) {
+export async function bulkCancelOrdersAction(rawOrderIds: number[]) {
+    const parsed = OrderIdsArraySchema.safeParse(rawOrderIds);
+    if (!parsed.success) return { success: false, error: 'Invalid order IDs array' };
+    const orderIds = parsed.data;
+
     const ctx = await getCtx();
     if (ctx.role !== 'ADMIN') {
         return { success: false, error: 'Unauthorized' };

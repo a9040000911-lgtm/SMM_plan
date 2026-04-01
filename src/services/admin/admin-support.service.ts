@@ -29,12 +29,16 @@ export class AdminSupportService extends BaseAdminService {
      */
     async closeTicket(ctx: AdminContext, ticketId: string): Promise<AdminServiceResult<any>> {
         try {
-            await prisma.supportTicket.update({
+            const oldTicket = await prisma.supportTicket.findUnique({ where: { id: ticketId } });
+            if (!oldTicket) throw new Error('Ticket not found');
+            await this.checkProjectAuth(ctx, oldTicket.projectId);
+
+            const updated = await prisma.supportTicket.update({
                 where: { id: ticketId },
                 data: { status: 'CLOSED' }
             });
 
-            await this.logAction(ctx, 'TICKET_CLOSE', `Closed support ticket ${ticketId}`);
+            await this.logAction(ctx, 'TICKET_CLOSE', `Closed support ticket ${ticketId}`, ticketId, undefined, oldTicket, updated, oldTicket.projectId);
             return this.success({ ticketId });
         } catch (error: any) {
             return this.error('TICKET_CLOSE_FAILED', error.message, error);
@@ -51,6 +55,7 @@ export class AdminSupportService extends BaseAdminService {
                 select: { tgId: true, projectId: true }
             });
             if (!user) throw new Error('User not found');
+            await this.checkProjectAuth(ctx, user.projectId);
             return this.success({ tgId: user.tgId?.toString(), projectId: user.projectId });
         } catch (error: any) {
             return this.error('USER_TG_INFO_FAILED', error.message, error);
@@ -63,17 +68,19 @@ export class AdminSupportService extends BaseAdminService {
     async updateSupportNotes(ctx: AdminContext, rawData: any): Promise<AdminServiceResult<any>> {
         try {
             const data = UpdateSupportNotesContract.parse(rawData);
-            const user = await prisma.user.findUnique({ where: { id: data.userId }, select: { projectId: true } });
+            const user = await prisma.user.findUnique({ where: { id: data.userId }, select: { projectId: true, supportNotes: true } });
             
             if (!user) throw new Error('User not found');
             if (!this.isAllowed(ctx, user.projectId)) {
                 return this.error('FORBIDDEN', `Forbidden access to project: ${user.projectId}`);
             }
 
-            await prisma.user.update({
+            const updated = await prisma.user.update({
                 where: { id: data.userId },
                 data: { supportNotes: data.notes }
             });
+
+            await this.logAction(ctx, 'UPDATE_SUPPORT_NOTES', `Updated support notes for user ${data.userId}`, data.userId, undefined, { notes: user.supportNotes }, { notes: updated.supportNotes }, user.projectId);
             return this.success({ userId: data.userId });
         } catch (error: any) {
             return this.error('SUPPORT_NOTES_UPDATE_FAILED', error.message, error);
@@ -97,6 +104,7 @@ export class AdminSupportService extends BaseAdminService {
      */
     async createSupportTemplate(ctx: AdminContext, rawData: any): Promise<AdminServiceResult<any>> {
         try {
+            if (!ctx.isGlobalAdmin) return this.error('FORBIDDEN', 'Only Global Admins can manage logic templates.');
             const data = CreateSupportTemplateContract.parse(rawData);
             const template = await prisma.supportTemplate.create({ data });
             await this.logAction(ctx, 'CREATE_SUPPORT_TEMPLATE', `Created template ${data.title}`);
@@ -111,6 +119,7 @@ export class AdminSupportService extends BaseAdminService {
      */
     async updateSupportTemplate(ctx: AdminContext, id: string, data: { title: string; content: string }): Promise<AdminServiceResult<any>> {
         try {
+            if (!ctx.isGlobalAdmin) return this.error('FORBIDDEN', 'Only Global Admins can manage logic templates.');
             await prisma.supportTemplate.update({ where: { id }, data });
             await this.logAction(ctx, 'UPDATE_SUPPORT_TEMPLATE', `Updated template ${id}`);
             return this.success({});
@@ -124,6 +133,7 @@ export class AdminSupportService extends BaseAdminService {
      */
     async deleteSupportTemplate(ctx: AdminContext, id: string): Promise<AdminServiceResult<any>> {
         try {
+            if (!ctx.isGlobalAdmin) return this.error('FORBIDDEN', 'Only Global Admins can manage logic templates.');
             await prisma.supportTemplate.delete({ where: { id } });
             await this.logAction(ctx, 'DELETE_SUPPORT_TEMPLATE', `Deleted template ${id}`);
             return this.success({});
@@ -137,6 +147,7 @@ export class AdminSupportService extends BaseAdminService {
      */
     async createSupportMacro(ctx: AdminContext, rawData: any): Promise<AdminServiceResult<any>> {
         try {
+            if (!ctx.isGlobalAdmin) return this.error('FORBIDDEN', 'Only Global Admins can manage logic macros.');
             const data = CreateSupportMacroContract.parse(rawData);
             const macro = await prisma.supportMacro.create({ 
                 data: {
@@ -157,6 +168,7 @@ export class AdminSupportService extends BaseAdminService {
      */
     async deleteSupportMacro(ctx: AdminContext, id: string): Promise<AdminServiceResult<any>> {
         try {
+            if (!ctx.isGlobalAdmin) return this.error('FORBIDDEN', 'Only Global Admins can manage logic macros.');
             await prisma.supportMacro.delete({ where: { id } });
             await this.logAction(ctx, 'DELETE_MACRO', `Deleted macro ${id}`);
             return this.success({});
@@ -303,8 +315,14 @@ export class AdminSupportService extends BaseAdminService {
             const skip = (page - 1) * limit;
 
             const userConditions: any = {};
-            if (projectId) userConditions.projectId = projectId;
-            else if (!ctx.isGlobalAdmin) userConditions.projectId = { in: ctx.allowedProjects };
+            if (projectId) {
+                if (!ctx.isGlobalAdmin && !ctx.allowedProjects.includes(projectId)) {
+                    throw new Error('Forbidden access to project');
+                }
+                userConditions.projectId = projectId;
+            } else if (!ctx.isGlobalAdmin) {
+                userConditions.projectId = { in: ctx.allowedProjects };
+            }
 
             if (search) {
                 userConditions.OR = [

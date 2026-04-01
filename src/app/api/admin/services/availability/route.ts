@@ -26,7 +26,7 @@ export async function POST(req: Request) {
         // 0. Get service data first
         const service = await prisma.internalService.findUnique({
             where: { id: serviceId },
-            select: { platform: true, category: true, targetType: true }
+            select: { socialPlatform: { select: { slug: true } }, serviceCategory: { select: { categoryType: true } }, targetType: true }
         });
         if (!service) return NextResponse.json({ error: 'Service not found' }, { status: 404 });
 
@@ -43,13 +43,13 @@ export async function POST(req: Request) {
                     const existingCat = await tx.serviceCategory.findFirst({
                         where: {
                             projectId: project.id,
-                            platform: service.platform,
-                            categoryType: service.category
+                            platform: service.socialPlatform?.slug as any,
+                            categoryType: service.serviceCategory?.categoryType as any
                         }
                     });
 
                     if (!existingCat) {
-                        await SmartAnalyzerService.resolveCategory(tx, service.platform, service.category, service.targetType, project.id);
+                        await SmartAnalyzerService.resolveCategory(tx, service.socialPlatform?.slug, service.serviceCategory?.categoryType as any, service.targetType, project.id);
                     }
                 }
 
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true });
     } catch (error: any) {
         console.error('Failed to update service availability:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 

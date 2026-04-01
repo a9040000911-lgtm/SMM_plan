@@ -46,8 +46,8 @@ export default function AdminDashboard() {
   return (
     <div className="p-4 sm:p-8 space-y-8">
       <AdminHeader
-        title="Dashboard"
-        subtitle="Аналитика и быстрый доступ к управлению"
+        title="Дашборд"
+        subtitle="Сводная активность и ключевые метрики платформы"
       />
       <div className="flex items-center justify-end">
         <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100">
@@ -88,7 +88,7 @@ export default function AdminDashboard() {
             <ChevronRight size={16} className="text-slate-300 group-hover:text-emerald-500 transition-colors" />
           </div>
           <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Клиенты</div>
-          <div className="text-2xl font-bold text-slate-900">{stats.userCount || stats.totalMatchingUsers || stats.allUsersCount || 0}</div>
+          <div className="text-2xl font-bold text-slate-900">{stats.userCount ?? 0}</div>
         </Link>
 
                 <Link href="/admin/support" className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group active:scale-[0.98]">
@@ -158,7 +158,17 @@ export default function AdminDashboard() {
                           order.status === 'PROCESSING' || order.status === 'IN_PROGRESS' ? "bg-blue-50 text-blue-600 border border-blue-100" :
                             "bg-slate-50 text-slate-500 border border-slate-100"
                     )}>
-                      {order.status}
+                      {
+                        (({
+                          'PENDING': 'Ожидает',
+                          'PROCESSING': 'В обработке',
+                          'IN_PROGRESS': 'Выполняется',
+                          'COMPLETED': 'Завершён',
+                          'PARTIAL': 'Частично',
+                          'CANCELED': 'Отменён',
+                          'ERROR': 'Ошибка'
+                        } as Record<string, string>)[order.status] ?? order.status)
+                      }
                     </div>
                     <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono tracking-tighter">
                       <span>#{order.id}</span>

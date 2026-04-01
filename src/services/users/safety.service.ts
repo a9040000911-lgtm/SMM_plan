@@ -107,6 +107,17 @@ export class SafetyService {
     } catch (e: any) {
       console.error('[Margin Guard] Failed to fetch live price during order:', e);
 
+      // Notify admin about provider unavailability if requested
+      const config = await ConfigService.getTelegramConfig();
+      if (config.adminId) {
+        try {
+          await bot.telegram.sendMessage(config.adminId, 
+            `⚠️ <b>ВНИМАНИЕ: Провайдер недоступен</b>\n\nНе удалось получить актуальную цену для услуги <b>${service.name}</b> (${serviceId}).\nОшибка: ${e.message}\n\nСистема блокирует заказ для безопасности.`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (_notifyErr) { /* ignore */ }
+      }
+
       // [RESILIENCE] Fallback to cached price if provider is unreachable or disabled
       if (service.lastProviderPrice && !service.lastProviderPrice.equals(0)) {
         console.warn(`[Margin Guard] Falling back to cached price for ${serviceId}: ${service.lastProviderPrice}`);

@@ -157,30 +157,33 @@ export class LoyaltyService {
 
     static async checkAndRollbackRewards(tx: any, userId: string, currentSpent: number, refundAmount: number) {
         const newSpent = currentSpent - refundAmount;
-        const logs = await tx.loyaltyLog.findMany({
-            where: { userId, trigger: { startsWith: 'SPEND_GTE' } }
+        const logs = await tx.systemLog.findMany({
+            where: { userId, type: 'LOYALTY' }
         });
 
         for (const log of logs) {
-            const threshold = parseFloat(log.trigger.split(':')[1]);
+            const metadata = log.metadata as any;
+            if (!metadata?.trigger || !metadata.trigger.startsWith('SPEND_GTE')) continue;
+
+            const threshold = parseFloat(metadata.trigger.split(':')[1]);
             if (newSpent < threshold) {
-                if (log.reward.startsWith('BALANCE:+')) {
-                    const amount = parseFloat(log.reward.split('+')[1]);
+                if (metadata.reward.startsWith('BALANCE:+')) {
+                    const amount = parseFloat(metadata.reward.split('+')[1]);
                     await tx.user.update({
                         where: { id: userId },
                         data: { balance: { decrement: amount } }
                     });
                     const { LedgerService } = await import('@/services/finance/ledger.service');
                     const Decimal = (await import('decimal.js')).Decimal;
-                    await LedgerService.record(tx, userId, new Decimal(amount), 'MANUAL_ADJUSTMENT', log.id, `Откат бонуса лояльности: ${log.reward}`);
-                } else if (log.reward.startsWith('PROMO:')) {
-                    const code = log.reward.split(':')[1];
+                    await LedgerService.record(tx, userId, new Decimal(amount), 'MANUAL_ADJUSTMENT', log.id, `Откат бонуса лояльности: ${metadata.reward}`);
+                } else if (metadata.reward.startsWith('PROMO:')) {
+                    const code = metadata.reward.split(':')[1];
                     await tx.promoCode.updateMany({
                         where: { code, projectId: log.projectId },
                         data: { isActive: false }
                     });
                 }
-                await tx.loyaltyLog.delete({ where: { id: log.id } });
+                await tx.systemLog.delete({ where: { id: log.id } });
             }
         }
     }

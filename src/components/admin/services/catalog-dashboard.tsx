@@ -16,7 +16,7 @@ import {
 import { getIcon } from './icon-selector';
 import { smartSearch } from '@/utils/smart-search';
 // import { PLATFORMS, PLATFORM_LABELS, CATEGORIES } from '@/services/providers/smart-analyzer.service'; // Not used in this version
-import { Platform } from '@/generated/client';
+import { Platform } from '@prisma/client';
 import { CategoryEditor } from './category-editor';
 import { ServiceEditorModal } from './service-editor-modal';
 import { toggleServiceStatus, updateService, enhanceCategoryDescriptionsAction } from '@/app/admin/services/actions';

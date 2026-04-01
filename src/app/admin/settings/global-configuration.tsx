@@ -37,6 +37,9 @@ export function GlobalConfiguration({ project, settingsMap }: { project: any, se
     const paymentConfig = (project.paymentSettings as any) || {};
     const botConfig = (project.config as any) || {};
 
+    const [yookassaInherit, setYookassaInherit] = useState(!!paymentConfig.yookassa?.useGlobal);
+    const [robokassaInherit, setRobokassaInherit] = useState(!!paymentConfig.robokassa?.useGlobal);
+
     const handleSubmit = async (formData: FormData) => {
         setError(null);
         startTransition(async () => {
@@ -96,6 +99,54 @@ export function GlobalConfiguration({ project, settingsMap }: { project: any, se
                 <input type="hidden" name="projectId" value={project.id} />
 
                 <SettingsTabs>
+                    {/* B2B BILLING STATUS IDENTIFIER */}
+                    {project.organization && (
+                        <div className={`p-5 rounded-2xl border ${project.organization.owner?.isGlobalAdmin ? 'bg-indigo-50/50 border-indigo-200' : 'bg-emerald-50/50 border-emerald-200'} shadow-sm flex items-center justify-between mb-8`}>
+                            <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${project.organization.owner?.isGlobalAdmin ? 'bg-indigo-100' : 'bg-emerald-100'}`}>
+                                    <Globe size={20} className={project.organization.owner?.isGlobalAdmin ? 'text-indigo-600' : 'text-emerald-600'} />
+                                </div>
+                                <div>
+                                    <h4 className="font-black text-slate-800 tracking-tight">
+                                        Организация: {project.organization.name}
+                                    </h4>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${project.organization.owner?.isGlobalAdmin ? 'bg-indigo-500/10 text-indigo-700' : 'bg-emerald-500/10 text-emerald-700'}`}>
+                                            {project.organization.owner?.isGlobalAdmin ? 'ГЛОБАЛЬНЫЙ ВЛАДЕЛЕЦ' : 'ФРАНЧАЙЗИ'}
+                                        </span>
+                                        <span className="text-[10px] text-slate-500 font-medium">
+                                            {project.organization.owner?.isGlobalAdmin 
+                                                ? 'SaaS Биллинг: ОТКЛЮЧЕН (Безлимит)' 
+                                                : `B2B Баланс: ${Number(project.organization.masterBalance).toFixed(2)} RUB`}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {!project.organization.owner?.isGlobalAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        const amount = window.prompt("Введите сумму пополнения B2B баланса (RUB):");
+                                        const num = Number(amount);
+                                        if (num && num > 0) {
+                                            const { topUpB2BBalanceAction } = await import('@/app/admin/settings/global-settings-actions');
+                                            const res = await topUpB2BBalanceAction(num, project.organizationId);
+                                            if (res.success && res.confirmationUrl) {
+                                                window.location.href = res.confirmationUrl;
+                                            } else {
+                                                alert(res.error || "Ошибка инициализации платежа");
+                                            }
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-wider rounded-xl transition-colors shadow-sm"
+                                >
+                                    Пополнить B2B Баланс
+                                </button>
+                            )}
+                        </div>
+                    )}
+
                     {/* TAB 1: GENERAL */}
                     <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden p-8 space-y-8">
                         <h3 className="flex items-center gap-2 font-black uppercase text-xs tracking-widest text-slate-400 mb-6">
@@ -142,58 +193,83 @@ export function GlobalConfiguration({ project, settingsMap }: { project: any, se
 
                         {/* YooKassa Settings */}
                         <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl space-y-4">
-                            <h4 className="font-bold text-emerald-800 flex items-center gap-2">
-                                YooKassa Credentials
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center justify-between">
+                                <h4 className="font-bold text-emerald-800 flex items-center gap-2">
+                                    YooKassa Credentials
+                                </h4>
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        name="yookassa_useGlobal"
+                                        checked={yookassaInherit}
+                                        onChange={(e) => setYookassaInherit(e.target.checked)}
+                                        className="w-4 h-4 rounded border-emerald-200 text-emerald-600 focus:ring-emerald-500"
+                                    />
+                                    <span className="text-[10px] font-black uppercase text-emerald-600/70 group-hover:text-emerald-700 transition-colors">Использовать Глобальные</span>
+                                </label>
+                            </div>
+
+                            <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 transition-opacity ${yookassaInherit ? 'opacity-50 pointer-events-none' : ''}`}>
                                 <div className="space-y-1">
                                     <label className="block mb-2 text-[10px] font-black uppercase tracking-wider text-emerald-600/70">Shop ID</label>
-                                    <input name="yookassa_shopId" defaultValue={paymentConfig.yookassa?.shopId || paymentConfig.shopId || ''} className="input-field bg-white" placeholder="xxxxxx" />
+                                    <input name="yookassa_shopId" defaultValue={paymentConfig.yookassa?.shopId || paymentConfig.shopId || ''} className="input-field bg-white" placeholder="xxxxxx" disabled={yookassaInherit} />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="block mb-2 text-[10px] font-black uppercase tracking-wider text-emerald-600/70">Secret Key</label>
-                                    <input name="yookassa_secretKey" defaultValue={paymentConfig.yookassa?.secretKey || paymentConfig.secretKey || ''} type="password" className="input-field bg-white" placeholder="live_..." />
+                                    <input name="yookassa_secretKey" defaultValue={paymentConfig.yookassa?.secretKey || paymentConfig.secretKey || ''} type="password" className="input-field bg-white" placeholder="live_..." disabled={yookassaInherit} />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="block mb-2 text-[10px] font-black uppercase tracking-wider text-emerald-600/70">Test Shop ID</label>
-                                    <input name="yookassa_testShopId" defaultValue={paymentConfig.yookassa?.testShopId || ''} className="input-field bg-white" placeholder="test_xxxxxx" />
+                                    <input name="yookassa_testShopId" defaultValue={paymentConfig.yookassa?.testShopId || ''} className="input-field bg-white" placeholder="test_xxxxxx" disabled={yookassaInherit} />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="block mb-2 text-[10px] font-black uppercase tracking-wider text-emerald-600/70">Test Secret Key</label>
-                                    <input name="yookassa_testSecretKey" defaultValue={paymentConfig.yookassa?.testSecretKey || ''} type="password" className="input-field bg-white" placeholder="test_..." />
+                                    <input name="yookassa_testSecretKey" defaultValue={paymentConfig.yookassa?.testSecretKey || ''} type="password" className="input-field bg-white" placeholder="test_..." disabled={yookassaInherit} />
                                 </div>
                             </div>
                         </div>
 
                         {/* Robokassa Settings */}
                         <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl space-y-4">
-                            <h4 className="font-bold text-blue-800 flex items-center gap-2">
-                                Robokassa Credentials
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center justify-between">
+                                <h4 className="font-bold text-blue-800 flex items-center gap-2">
+                                    Robokassa Credentials
+                                </h4>
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        name="robokassa_useGlobal"
+                                        checked={robokassaInherit}
+                                        onChange={(e) => setRobokassaInherit(e.target.checked)}
+                                        className="w-4 h-4 rounded border-blue-200 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="text-[10px] font-black uppercase text-blue-600/70 group-hover:text-blue-700 transition-colors">Использовать Глобальные</span>
+                                </label>
+                            </div>
+                            <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 transition-opacity ${robokassaInherit ? 'opacity-50 pointer-events-none' : ''}`}>
                                 <div className="space-y-1">
                                     <label className="block mb-2 text-[10px] font-black uppercase tracking-wider text-blue-600/70">Merchant Login</label>
-                                    <input name="robokassa_merchantLogin" defaultValue={paymentConfig.robokassa?.merchantLogin || ''} className="input-field bg-white" placeholder="your_shop_name" />
+                                    <input name="robokassa_merchantLogin" defaultValue={paymentConfig.robokassa?.merchantLogin || ''} className="input-field bg-white" placeholder="your_shop_name" disabled={robokassaInherit} />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="block mb-2 text-[10px] font-black uppercase tracking-wider text-blue-600/70">Password #1</label>
-                                    <input name="robokassa_password1" defaultValue={paymentConfig.robokassa?.password1 || ''} type="password" className="input-field bg-white" placeholder="Для формирования подписи" />
+                                    <input name="robokassa_password1" defaultValue={paymentConfig.robokassa?.password1 || ''} type="password" className="input-field bg-white" placeholder="Для формирования подписи" disabled={robokassaInherit} />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="block mb-2 text-[10px] font-black uppercase tracking-wider text-blue-600/70">Password #2</label>
-                                    <input name="robokassa_password2" defaultValue={paymentConfig.robokassa?.password2 || ''} type="password" className="input-field bg-white" placeholder="Для проверки результата" />
+                                    <input name="robokassa_password2" defaultValue={paymentConfig.robokassa?.password2 || ''} type="password" className="input-field bg-white" placeholder="Для проверки результата" disabled={robokassaInherit} />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="block mb-2 text-[10px] font-black uppercase tracking-wider text-blue-600/70">Test Password #1</label>
-                                    <input name="robokassa_testPassword1" defaultValue={paymentConfig.robokassa?.testPassword1 || ''} type="password" className="input-field bg-white" placeholder="Тестовый #1" />
+                                    <input name="robokassa_testPassword1" defaultValue={paymentConfig.robokassa?.testPassword1 || ''} type="password" className="input-field bg-white" placeholder="Тестовый #1" disabled={robokassaInherit} />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="block mb-2 text-[10px] font-black uppercase tracking-wider text-blue-600/70">Test Password #2</label>
-                                    <input name="robokassa_testPassword2" defaultValue={paymentConfig.robokassa?.testPassword2 || ''} type="password" className="input-field bg-white" placeholder="Тестовый #2" />
+                                    <input name="robokassa_testPassword2" defaultValue={paymentConfig.robokassa?.testPassword2 || ''} type="password" className="input-field bg-white" placeholder="Тестовый #2" disabled={robokassaInherit} />
                                 </div>
                             </div>
                             <div className="text-xs text-blue-600/60 bg-blue-50 p-3 rounded-xl">
-                                <strong>Result URL:</strong> https://yourdomain.com/api/webhooks/robokassa
+                                <strong>Result URL:</strong> https://{project.domain}/api/webhooks/robokassa
                             </div>
                         </div>
 
@@ -350,7 +426,60 @@ export function GlobalConfiguration({ project, settingsMap }: { project: any, se
                         </div>
                     </div>
 
-                    {/* TAB 6: LEGAL */}
+                    {/* TAB 6: AI SIMULATOR */}
+                    <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden p-8 space-y-8">
+                        <h3 className="flex items-center gap-2 font-black uppercase text-xs tracking-widest text-slate-400 mb-6">
+                            <Sparkles size={16} /> ИИ Симулятор Роста
+                        </h3>
+                        <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                             <p className="text-[11px] text-blue-700 leading-relaxed font-medium">
+                                <b>Конфигурация тарифов:</b> Вы можете настроить коэффициенты цены и описания стратегий. Используйте формат JSON.
+                                Любые изменения здесь мгновенно обновят калькулятор на главной странице.
+                             </p>
+                        </div>
+                        <div className="space-y-4">
+                            <label className="text-xs font-black text-slate-500 uppercase tracking-wider block mb-2">Настройки стратегий (JSON)</label>
+                            <textarea
+                                name="growth_simulator_config"
+                                rows={15}
+                                defaultValue={JSON.stringify(botConfig.growthSimulator || [
+                                    { 
+                                        id: 'LITE', 
+                                        label: 'ORGANIC LITE', 
+                                        badge: 'Бюджетно',
+                                        description: 'Плавный старт для новых аккаунтов. Минимальные риски, базовая скорость.',
+                                        pricePerUnit: 0.08,
+                                        multipliers: { views: 1.5, reactions: 0.1 },
+                                        serviceOverrides: { sub: "", view: "", reaction: "" },
+                                        features: ['Безопасная скорость', 'Базовая поддержка', 'Гарантия 30 дней']
+                                    },
+                                    { 
+                                        id: 'PRO', 
+                                        label: 'AI-STRATEGY 2026', 
+                                        badge: 'Smart Choice',
+                                        description: 'Оптимальный микс: подписчики + просмотры + реакции. Идеально для бизнеса.',
+                                        pricePerUnit: 0.15,
+                                        multipliers: { views: 2.0, reactions: 0.2 },
+                                        serviceOverrides: { sub: "", view: "", reaction: "" },
+                                        features: ['AI-Таргетинг', 'Smart Fragmentation', 'Приоритет 24/7', 'Высокое удержание']
+                                    },
+                                    { 
+                                        id: 'ELITE', 
+                                        label: 'ELITE EVOLUTION', 
+                                        badge: 'Максимум',
+                                        description: 'Максимальный охват и премиальные аккаунты. Для тех, кто хочет в ТОП.',
+                                        pricePerUnit: 0.35,
+                                        multipliers: { views: 4.0, reactions: 0.5 },
+                                        serviceOverrides: { sub: "", view: "", reaction: "" },
+                                        features: ['VIP-Аккаунты', 'Мгновенный виральный эффект', 'Персональный менеджер', 'Anti-Drop Pro']
+                                    }
+                                ], null, 2)}
+                                className="w-full bg-slate-950 text-emerald-400 border border-slate-800 rounded-2xl p-6 text-[11px] font-mono focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all min-h-[350px] resize-y shadow-inner"
+                            />
+                        </div>
+                    </div>
+
+                    {/* TAB 7: LEGAL */}
                     <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden p-8 space-y-8">
                         <div className="flex items-center justify-between">
                             <h3 className="flex items-center gap-2 font-black uppercase text-xs tracking-widest text-slate-400">

@@ -5,7 +5,7 @@
  */
 import { LinkService } from '@/services/providers';
 import { prisma } from '@/lib/prisma';
-import type { Platform, Category } from '@/generated/client';
+import type { Platform, Category } from '@prisma/client';
 import { Decimal } from 'decimal.js';
 
 // Mock Prisma
@@ -43,14 +43,14 @@ describe('Bot Integration Logic', () => {
 
     // 3. Logic: Find Services based on analysis
     const mockServices = [
-      { id: 'svc1', name: 'Test Service', pricePer1000: new Decimal(100), category: 'SUBSCRIBERS' as Category }
+      { id: 'svc1', name: 'Test Service', pricePer1000: new Decimal(100), serviceCategory: { categoryType: 'SUBSCRIBERS' } }
     ];
     mockedPrisma.internalService.findMany.mockResolvedValue(mockServices);
 
     const foundServices = await prisma.internalService.findMany({
       where: {
-        platform: analysis?.platform,
-        category: { in: analysis?.possibleCategories }
+        socialPlatform: { slug: analysis?.platform?.toLowerCase() },
+        serviceCategory: { categoryType: { in: analysis?.possibleCategories } }
       }
     });
 

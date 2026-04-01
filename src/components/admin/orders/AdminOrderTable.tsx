@@ -20,6 +20,7 @@ import { OrderInformationCell } from '@/components/admin/orders/order-informatio
 import { UserQuickView } from '@/components/admin/users/user-quick-view';
 import { CopyButton } from '@/components/admin/core/copy-button';
 import { InlineSyncButton } from '@/components/admin/providers/inline-sync-button';
+import { InlineOrderActions } from '@/components/admin/orders/inline-order-actions';
 
 export function AdminOrderTable({ orders }: { orders: any[] }) {
   return (
@@ -118,12 +119,7 @@ export function AdminOrderTable({ orders }: { orders: any[] }) {
 
               <td className="px-4 py-6 align-top text-right">
                 <div className="flex items-center justify-end gap-1.5">
-                  <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
-                    <Edit2 size={16} />
-                  </button>
-                  <button className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all">
-                    <Trash2 size={16} />
-                  </button>
+                  <InlineOrderActions orderId={order.id} status={order.status} />
                   <InlineSyncButton orderId={order.id} />
                   <Link href={`/admin/orders/${order.id}`} className="p-2 text-slate-400 hover:bg-slate-200 rounded-xl transition-colors">
                     <ChevronRight size={18} />

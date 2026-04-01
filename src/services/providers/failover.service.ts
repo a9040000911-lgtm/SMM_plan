@@ -5,7 +5,7 @@
  */
 import { prisma } from '@/lib/prisma';
 import { ProviderService } from './provider.service';
-import { OrderStatus } from '@/generated/client';
+import { OrderStatus } from '@prisma/client';
 
 export class FailoverService {
     /**
@@ -31,14 +31,29 @@ export class FailoverService {
 
         console.log(`[Failover] Запуск переключения для заказа ${orderId} (Текущий провайдер: ${order.providerName})`);
 
-        // 1. Пытаемся отменить текущий внешний заказ
-        try {
-            if (order.externalId && order.providerName) {
-                await ProviderService.cancelOrder(order);
-                console.log(`[Failover] Предыдущий заказ ${order.externalId} отменен (или отправлен запрос на отмену)`);
+        // 1. Пытаемся отменить текущий внешний заказ (КРИТИЧНАЯ ЗАЩИТА ОТ DOUBLE-SPEND)
+        if (order.externalId && order.providerName) {
+            try {
+                const cancelResult = await ProviderService.cancelOrder(order as any);
+                if (!cancelResult || !cancelResult.success) {
+                    console.warn(`[Failover] Отмена заказа ${order.externalId} у провайдера ${order.providerName} не подтверждена. Переключение прервано для избежания двойного списания средств.`);
+                    
+                    await prisma.adminLog.create({
+                        data: {
+                            adminId: adminId || null,
+                            action: 'FAILOVER_ABORTED',
+                            details: `Заказ #${orderId} (Ext: ${order.externalId}) завис в PENDING у ${order.providerName}, но API не поддерживает авто-отмену. Требуется ручная отмена через тикет провайдеру перед ручным перезапуском.`
+                        }
+                    });
+                    
+                    // ПРЕРЫВАЕМ ФЕЙЛОВЕР: Нельзя создавать заказ у второго провайдера, если первый может его внезапно включить
+                    return { success: false, error: 'Provider cancellation not supported or failed. Manual intervention required.' };
+                }
+                console.log(`[Failover] Предыдущий заказ ${order.externalId} отменен (подтверждено API)`);
+            } catch (e: any) {
+                console.warn(`[Failover] Ошибка сети при отмене заказа у провайдера: ${e.message}. Переключение прервано.`);
+                return { success: false, error: `Cancellation network error: ${e.message}` };
             }
-        } catch (e: any) {
-            console.warn(`[Failover] Не удалось отменить заказ у провайдера: ${e.message}`);
         }
 
         // 2. Ищем следующий маппинг
@@ -76,6 +91,19 @@ export class FailoverService {
             if (result.success) {
                 const provider = await prisma.provider.findUnique({ where: { id: nextMapping.providerId } });
 
+                const meta = (order.metadata as Record<string, any>) || {};
+                const providerHistory = meta.providerHistory || [];
+                if (order.externalId && order.providerName) {
+                    providerHistory.push({
+                        externalId: order.externalId,
+                        providerName: order.providerName,
+                        status: order.status,
+                        costPrice: order.costPrice ? Number(order.costPrice) : null,
+                        timestamp: new Date().toISOString()
+                    });
+                    meta.providerHistory = providerHistory;
+                }
+
                 // 4. Обновляем заказ в БД
                 await prisma.order.update({
                     where: { id: order.id },
@@ -83,14 +111,15 @@ export class FailoverService {
                         externalId: result.externalId,
                         providerName: provider?.name || 'Unknown',
                         status: 'PENDING', // Сбрасываем статус на Pending
-                        updatedAt: new Date()
+                        updatedAt: new Date(),
+                        metadata: meta
                     }
                 });
 
                 // 5. Логируем действие админа или системы
                 await prisma.adminLog.create({
                     data: {
-                        adminId: adminId || 'system',
+                        adminId: adminId || null,
                         action: 'ORDER_FAILOVER',
                         details: `Order #${orderId} switched from ${order.providerName} to ${provider?.name}. New External ID: ${result.externalId}`
                     }

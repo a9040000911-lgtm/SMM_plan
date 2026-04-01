@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { Platform, Category } from '@/generated/client';
+import { Platform, Category } from '@prisma/client';
 import { analyzeLink } from '@/utils/analyzer';
 
 export type TargetType =

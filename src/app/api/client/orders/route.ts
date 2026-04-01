@@ -13,10 +13,11 @@ import bcrypt from 'bcryptjs';
 import { PaymentService } from '@/services/finance';
 import { sendCredentialsEmail } from '@/services/mail.service';
 import { Decimal } from 'decimal.js';
-import { LedgerService } from '@/services/finance/ledger.service';
+import { UnifiedNotificationService } from '@/services/core/notification.service';
 
 import { LinkService } from '@/services/providers';
 import { OrderQueueService } from '@/services/orders/order-queue.service';
+import { checkRateLimit, getRealIp } from '@/services/core/rate-limiter';
 
 interface BatchItem {
     serviceId: string;
@@ -42,8 +43,8 @@ export async function GET(req: NextRequest) {
 
         // Pagination
         const url = new URL(req.url);
-        const page = parseInt(url.searchParams.get('page') || '1');
-        const limit = parseInt(url.searchParams.get('limit') || '10');
+        const page = Math.max(parseInt(url.searchParams.get('page') || '1'), 1);
+        const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '10'), 1), 100); // SECURITY: Cap at 100 to prevent OOM DoS
         const skip = (page - 1) * limit;
 
         const [orders, total] = await Promise.all([
@@ -62,7 +63,13 @@ export async function GET(req: NextRequest) {
                     remains: true,
                     createdAt: true,
                     internalService: {
-                        select: { name: true, category: true, platform: true }
+                        select: {
+                            name: true,
+                            isCancelEnabled: true,
+                            isRefillEnabled: true,
+                            serviceCategory: { select: { categoryType: true } },
+                            socialPlatform: { select: { slug: true } }
+                        }
                     }
                 }
             }),
@@ -76,8 +83,10 @@ export async function GET(req: NextRequest) {
                 id: o.id,
                 publicId: encodePublicId(o.id),
                 serviceName: o.internalService.name,
-                category: o.internalService.category,
-                platform: o.internalService.platform,
+                category: o.internalService.serviceCategory?.categoryType || 'OTHER',
+                platform: o.internalService.socialPlatform?.slug?.toUpperCase() || 'OTHER',
+                isCancelEnabled: o.internalService.isCancelEnabled || false,
+                isRefillEnabled: o.internalService.isRefillEnabled || false,
                 link: o.link,
                 quantity: o.quantity,
                 price: o.totalPrice,
@@ -99,11 +108,43 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
-        const body = await req.json();
+        // Rate Limit Protection
+        const ip = getRealIp(req);
+        const rl = await checkRateLimit('api', ip);
+        if (!rl.success) {
+            return NextResponse.json(
+                { error: 'Слишком много запросов. Пожалуйста, подождите.' },
+                { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.reset - Date.now()) / 1000)) } }
+            );
+        }
+
+        const rawBody = await req.json();
+        
+        // [SECURITY] Zod Schema Validation
+        const { clientCheckoutSchema, safeParse } = await import('@/lib/schemas/api');
+        const parsed = safeParse(clientCheckoutSchema, rawBody);
+        
+        if (!parsed.success) {
+            return NextResponse.json({ error: parsed.error }, { status: 400 });
+        }
+        
+        const body = parsed.data as any;
+
+        // --- OMNI-INPUT: Convert links array to items array ---
+        if (body.links && Array.isArray(body.links) && body.links.length > 0 && !body.items) {
+            body.items = body.links.map((link: string) => ({
+                serviceId: body.serviceId,
+                link,
+                quantity: body.quantity,
+                isDripFeed: body.isDripFeed,
+                runs: body.runs,
+                interval: body.interval
+            }));
+        }
 
         // --- BATCH PROCESSING ---
-        if (body.items && Array.isArray(body.items) && body.items.length > 0) {
-            const items = body.items;
+        const items = body.items || body.batch;
+        if (items && Array.isArray(items) && items.length > 0) {
             const projectId = await getClientProjectId();
             if (!projectId) return NextResponse.json({ error: "Context missing" }, { status: 400 });
 
@@ -119,15 +160,34 @@ export async function POST(req: NextRequest) {
             } else {
                 if (!userEmail) return NextResponse.json({ error: 'Email required' }, { status: 400 });
                 const existing = await prisma.user.findFirst({ where: { email: userEmail.toLowerCase(), projectId } });
-                if (existing) userId = existing.id;
-                else {
-                    const password = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
-                    const hashedPassword = await bcrypt.hash(password, 10);
+                
+                if (existing) {
+                    // SECURITY: Always require authentication for existing users
+                    const { password, magicCode } = body;
+                    if (password) {
+                        const isValid = await bcrypt.compare(password, existing.password || '');
+                        if (!isValid) return NextResponse.json({ error: 'Неверный пароль' }, { status: 401 });
+                        userId = existing.id;
+                    } else if (magicCode) {
+                        const { CheckoutAuthService } = await import('@/services/core/checkout-auth.service');
+                        const verify = await CheckoutAuthService.verifyCode(userEmail, magicCode, projectId);
+                        if (!verify.success) return NextResponse.json({ error: verify.error || 'Неверный код' }, { status: 401 });
+                        userId = existing.id;
+                    } else {
+                        // HARDENED: Always require auth for existing accounts to prevent Account Takeover
+                        return NextResponse.json({ 
+                            error: 'USER_EXISTS', 
+                            message: 'Для этого email уже существует аккаунт. Пожалуйста, введите пароль или запросите код из письма для подтверждения личности.' 
+                        }, { status: 409 });
+                    }
+                } else {
+                    const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+                    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
                     const newUser = await prisma.user.create({
                         data: { email: userEmail.toLowerCase(), password: hashedPassword, username: userEmail.split('@')[0], projectId, balance: 0 }
                     });
                     userId = newUser.id;
-                    await sendCredentialsEmail(userEmail, password);
+                    await sendCredentialsEmail(userEmail, generatedPassword);
                 }
             }
 
@@ -148,7 +208,8 @@ export async function POST(req: NextRequest) {
                             ...(isNumericSid ? [{ numericId: parseInt(serviceId) }] : [])
                         ],
                         isActive: true
-                    }
+                    },
+                    include: { socialPlatform: true }
                 });
 
                 if (!service) return NextResponse.json({ error: `Service ${serviceId} not found` }, { status: 404 });
@@ -158,7 +219,8 @@ export async function POST(req: NextRequest) {
                 }
 
                 // Batch Link Validation
-                const validation = LinkService.validate(link, service.platform, service.targetType, service.allowedTargetTypes);
+                const svcPlatformEnum = (service.socialPlatform?.slug?.toUpperCase() || 'OTHER') as import('@prisma/client').Platform;
+                const validation = LinkService.validate(link, svcPlatformEnum, service.targetType, service.allowedTargetTypes);
                 if (!validation.isValid) {
                     return NextResponse.json({ error: `Item ${service.name}: ${validation.error || 'Invalid link'}` }, { status: 400 });
                 }
@@ -178,6 +240,9 @@ export async function POST(req: NextRequest) {
             if (session) {
                 const user = await prisma.user.findUnique({ where: { id: userId } });
                 if (user && user.balance.gte(totalBatchPrice)) {
+                    const balanceBefore = user.balance;
+                    const balanceAfter = user.balance.minus(totalBatchPrice);
+                    
                     // Pay from balance (Atomic)
                     await prisma.$transaction(async (tx) => {
                         const updated = await tx.user.updateMany({
@@ -189,7 +254,18 @@ export async function POST(req: NextRequest) {
                             throw new Error('Недостаточно средств на балансе.');
                         }
 
-                        await LedgerService.record(tx, userId, totalBatchPrice, 'WITHDRAWAL', undefined, `Оплата пакета заказов (${preparedOrders.length} шт.)`);
+                        const referenceId = `BATCH_PAY_${userId}_${Date.now()}`;
+                        await tx.ledgerEntry.create({
+                             data: {
+                                 projectId, userId,
+                                 amount: totalBatchPrice,
+                                 referenceId,
+                                 type: 'WITHDRAWAL',
+                                 balanceBefore,
+                                 balanceAfter,
+                                 description: `Оплата пакета заказов (${preparedOrders.length} шт.)`
+                             }
+                        });
 
                         for (const p of preparedOrders) {
                             const order = await tx.order.create({
@@ -209,27 +285,12 @@ export async function POST(req: NextRequest) {
                                 }
                             });
 
-                            await tx.transaction.create({
+                            await tx.adminLog.create({
                                 data: {
-                                    projectId,
-                                    userId,
-                                    orderId: order.id,
-                                    amount: p.price,
-                                    type: 'ORDER_PAYMENT',
-                                    provider: 'INTERNAL',
-                                    status: 'COMPLETED'
-                                }
-                            });
-
-                            await tx.transaction.create({
-                                data: {
-                                    projectId,
-                                    userId,
-                                    orderId: order.id,
-                                    amount: p.price,
-                                    type: 'NEW_ORDER',
-                                    provider: 'INTERNAL',
-                                    status: 'COMPLETED'
+                                    adminId: userId,
+                                    action: "CREATE_BATCH",
+                                    targetId: order.id.toString(),
+                                    details: `Заказ создан в пакете. Сервис: ${p.service.name}`
                                 }
                             });
                         }
@@ -269,9 +330,9 @@ export async function POST(req: NextRequest) {
                 data: {
                     projectId, userId,
                     amount: totalBatchPrice,
-                    type: 'DEPOSIT',
                     provider: 'YOOKASSA',
                     status: 'PENDING',
+                    type: 'DEPOSIT',
                     metadata: {
                         orderIds: createdOrderIds,
                         source: 'WEB_BATCH'
@@ -303,15 +364,29 @@ export async function POST(req: NextRequest) {
 
             await prisma.transaction.update({ where: { id: tx.id }, data: { externalId: paymentRes.paymentId } });
 
+            // 7. Return response with Magic Token for Guests
+            const { signMagicToken } = await import('@/services/core/magic-auth');
+            const loginToken = await signMagicToken({
+                userId,
+                tgId: '',
+                projectId
+            });
+
             return NextResponse.json({
                 success: true,
                 requiresPayment: true,
-                paymentUrl: paymentRes.confirmationUrl
+                paymentUrl: paymentRes.confirmationUrl,
+                loginToken
             });
         }
 
         // --- EXISTING SINGLE ORDER LOGIC ---
-        const { serviceId, link, quantity, email, isDripFeed, runs, interval, scheduleTime, repeatInterval } = body;
+        const { 
+            serviceId, link, quantity, email, 
+            isDripFeed, runs, interval, 
+            scheduleTime, repeatInterval,
+            password, magicCode // Added for seamless auth
+        } = body;
 
         const projectId = await getClientProjectId();
         if (!projectId) return NextResponse.json({ error: "Context missing" }, { status: 400 });
@@ -328,7 +403,9 @@ export async function POST(req: NextRequest) {
         // Drip Feed Validation
         if (isDripFeed) {
             if (!runs || runs < 2) return NextResponse.json({ error: 'Количество запусков должно быть не менее 2' }, { status: 400 });
+            if (runs > 100) return NextResponse.json({ error: 'Максимум 100 запусков в drip-feed' }, { status: 400 });
             if (!interval || interval < 1) return NextResponse.json({ error: 'Интервал должен быть не менее 1 минуты' }, { status: 400 });
+            if (interval > 1440) return NextResponse.json({ error: 'Максимальный интервал — 1440 минут (24 часа)' }, { status: 400 });
         }
 
         // 1. Resolve User
@@ -341,16 +418,41 @@ export async function POST(req: NextRequest) {
         } else {
             if (!email) return NextResponse.json({ error: 'Email required for guest order' }, { status: 400 });
             const existing = await prisma.user.findFirst({ where: { email: email.toLowerCase(), projectId } });
+            
             if (existing) {
-                return NextResponse.json({ error: 'Пользователь с таким email уже существует. Пожалуйста, войдите в аккаунт.' }, { status: 409 });
+                // SECURITY: Always require authentication for existing users
+                if (password) {
+                    const isValid = await bcrypt.compare(password, existing.password || '');
+                    if (!isValid) return NextResponse.json({ error: 'Неверный пароль' }, { status: 401 });
+                    userId = existing.id;
+                } else if (magicCode) {
+                    const { CheckoutAuthService } = await import('@/services/core/checkout-auth.service');
+                    const verify = await CheckoutAuthService.verifyCode(email, magicCode, projectId);
+                    if (!verify.success) return NextResponse.json({ error: verify.error || 'Неверный код' }, { status: 401 });
+                    userId = existing.id;
+                } else {
+                    // HARDENED: Always require auth for existing accounts to prevent Account Takeover
+                    return NextResponse.json({ 
+                        error: 'USER_EXISTS', 
+                        message: 'Для этого email уже существует аккаунт. Пожалуйста, введите пароль или запросите код из письма для подтверждения личности.' 
+                    }, { status: 409 });
+                }
+            } else {
+                // New user creation
+                const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+                const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+                const newUser = await prisma.user.create({
+                    data: { 
+                        email: email.toLowerCase(), 
+                        password: hashedPassword, 
+                        username: email.split('@')[0], 
+                        projectId, 
+                        balance: 0 
+                    }
+                });
+                await sendCredentialsEmail(email, generatedPassword);
+                userId = newUser.id;
             }
-            const password = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
-            const hashedPassword = await bcrypt.hash(password, 10);
-            const newUser = await prisma.user.create({
-                data: { email: email.toLowerCase(), password: hashedPassword, username: email.split('@')[0], projectId, balance: 0 }
-            });
-            await sendCredentialsEmail(email, password);
-            userId = newUser.id;
         }
 
         // 2. Fetch Service with Flexible Lookup
@@ -362,7 +464,8 @@ export async function POST(req: NextRequest) {
                     ...(isNumericSid ? [{ numericId: parseInt(serviceId) }] : [])
                 ],
                 isActive: true
-            }
+            },
+            include: { socialPlatform: true }
         });
 
         if (!service) return NextResponse.json({ error: 'Service not found' }, { status: 404 });
@@ -372,7 +475,8 @@ export async function POST(req: NextRequest) {
         }
 
         // 3. Link Validation
-        const validation = LinkService.validate(link, service.platform, service.targetType, service.allowedTargetTypes);
+        const singleSvcPlatformEnum = (service.socialPlatform?.slug?.toUpperCase() || 'OTHER') as import('@prisma/client').Platform;
+        const validation = LinkService.validate(link, singleSvcPlatformEnum, service.targetType, service.allowedTargetTypes);
         if (!validation.isValid) {
             return NextResponse.json({ error: validation.error || 'Invalid link for this service' }, { status: 400 });
         }
@@ -409,6 +513,9 @@ export async function POST(req: NextRequest) {
         if (session) {
             const user = await prisma.user.findUnique({ where: { id: userId } });
             if (user && user.balance.gte(totalPrice)) {
+                const balanceBefore = user.balance;
+                const balanceAfter = user.balance.minus(totalPrice);
+                
                 await prisma.$transaction(async (tx) => {
                     const updated = await tx.user.updateMany({
                         where: { id: userId, balance: { gte: totalPrice } },
@@ -419,7 +526,18 @@ export async function POST(req: NextRequest) {
                         throw new Error('Недостаточно средств на балансе.');
                     }
 
-                    await LedgerService.record(tx, userId, totalPrice, 'WITHDRAWAL', undefined, `Оплата заказа: ${service.name}`);
+                    const referenceId = `ORDER_PAY_${userId}_${Date.now()}`;
+                    await tx.ledgerEntry.create({
+                         data: {
+                             projectId, userId,
+                             amount: totalPrice,
+                             referenceId,
+                             type: 'WITHDRAWAL',
+                             balanceBefore,
+                             balanceAfter,
+                             description: `Оплата заказа: ${service.name}`
+                         }
+                    });
 
                     const order = await tx.order.create({
                         data: {
@@ -433,33 +551,20 @@ export async function POST(req: NextRequest) {
                         }
                     });
 
-                    await tx.transaction.create({
+                    await tx.adminLog.create({
                         data: {
-                            projectId,
-                            userId,
-                            orderId: order.id,
-                            amount: totalPrice,
-                            type: 'ORDER_PAYMENT',
-                            provider: 'INTERNAL',
-                            status: 'COMPLETED'
-                        }
-                    });
-
-                    await tx.transaction.create({
-                        data: {
-                            projectId,
-                            userId,
-                            orderId: order.id,
-                            amount: totalPrice,
-                            type: 'NEW_ORDER',
-                            provider: 'INTERNAL',
-                            status: 'COMPLETED'
+                            adminId: userId,
+                            action: "CREATE",
+                            targetId: order.id.toString(),
+                            details: `Заказ создан. Сервис: ${service.name}`
                         }
                     });
                 });
                 // Trigger asynchronous non-blocking background queue execution instantly
+                // 2026: Notify via Unified Service (MAX -> TG -> Email)
                 process.nextTick(() => {
                     OrderQueueService.processPendingOrders().catch(e => console.error('[Single OrderQueue Error]', e));
+                    UnifiedNotificationService.notifyAdmin(projectId, `🆕 <b>Новый заказ!</b>\nПользователь: ${user.email}\nСумма: ${totalPrice}₽`).catch(e => console.error('[Notification Error]', e));
                 });
                 return NextResponse.json({ success: true, requiresPayment: false });
             }
@@ -481,7 +586,7 @@ export async function POST(req: NextRequest) {
         // 5. Create Transaction
         const tx = await prisma.transaction.create({
             data: {
-                projectId, userId, amount: totalPrice, type: 'DEPOSIT', provider: 'YOOKASSA', status: 'PENDING',
+                projectId, userId, amount: totalPrice, provider: 'YOOKASSA', status: 'PENDING', type: 'DEPOSIT',
                 metadata: { orderId: order.id, serviceId, qty: quantity, link, projectId, source: 'WEB' }
             }
         });
@@ -506,7 +611,20 @@ export async function POST(req: NextRequest) {
 
         await prisma.transaction.update({ where: { id: tx.id }, data: { externalId: paymentRes.paymentId } });
 
-        return NextResponse.json({ success: true, requiresPayment: true, paymentUrl: paymentRes.confirmationUrl });
+        // 6. Return response with optional magic login token
+        const { signMagicToken } = await import('@/services/core/magic-auth');
+        const loginToken = await signMagicToken({
+            userId,
+            tgId: '', // We don't have TG ID here easily, but it's not strictly required for web session
+            projectId
+        });
+
+        return NextResponse.json({ 
+            success: true, 
+            requiresPayment: true, 
+            paymentUrl: paymentRes.confirmationUrl,
+            loginToken // Frontend will use this to call signIn('credentials', { magicToken: loginToken })
+        });
 
     } catch (_e) {
         console.error('[Create Order Error]', _e);

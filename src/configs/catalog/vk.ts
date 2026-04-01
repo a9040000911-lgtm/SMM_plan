@@ -3,7 +3,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { Category } from '@/generated/client';
+import { Category } from '@prisma/client';
 
 export interface CatalogService {
   id: string;

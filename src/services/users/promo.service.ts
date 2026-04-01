@@ -13,7 +13,7 @@ export class PromoService {
   /**
    * Выдает промокод пользователю
    */
-  static async issuePromo(userId: string, tgId: number, percent: number, reason: string, projectId?: string | null, tx?: any) {
+  static async issuePromo(userId: string, tgId: number | bigint, percent: number, reason: string, projectId?: string | null, tx?: any) {
     const db = tx || prisma;
     const code = `PROMO${percent}-${Math.random().toString(36).substring(7).toUpperCase()}`;
 
@@ -23,6 +23,7 @@ export class PromoService {
           code,
           discountPercent: percent,
           description: reason,
+          projectId: projectId || null,
         }
       });
 
@@ -35,7 +36,7 @@ export class PromoService {
 
       const { BotRegistry } = await import('@/services/bot/bot-registry');
       await BotRegistry.get(projectId).telegram.sendMessage(
-        tgId,
+        tgId.toString(),
         `🎁 <b>Вам начислен промокод на скидку ${percent}%!</b>\n\n` +
         `Код: <code>${code}</code>\n` +
         `Причина: ${reason}\n\n` +
@@ -53,18 +54,25 @@ export class PromoService {
   /**
    * Проверяет промокод
    */
-  static async validatePromo(code: string, userId: string) {
+  static async validatePromo(code: string, userId: string, projectId?: string | null) {
+    const whereClause: any = { code: code.toUpperCase(), isActive: true };
+    if (projectId) {
+      whereClause.OR = [{ projectId: projectId }, { projectId: null }];
+    }
+
     const promo = await prisma.promoCode.findFirst({
-      where: { code: code.toUpperCase(), isActive: true }
+      where: whereClause
     });
 
     if (!promo) return { valid: false, error: 'Промокод не найден' };
 
-    const usageCount = await prisma.userPromo.count({
-      where: { userId, promoCodeId: promo.id, usedAt: { not: null } }
+    const userPromo = await prisma.userPromo.findUnique({
+      where: { userId_promoCodeId: { userId, promoCodeId: promo.id } }
     });
 
-    if (usageCount > 0) return { valid: false, error: 'Уже использован' };
+    if (userPromo && userPromo.usedAt) {
+      return { valid: false, error: 'Уже использован' };
+    }
 
     return { valid: true, promo };
   }
@@ -72,7 +80,7 @@ export class PromoService {
   /**
    * Триггер: Новый клиент (5%)
    */
-  static async checkNewClient(userId: string, tgId: number, tx?: any) {
+  static async checkNewClient(userId: string, tgId: number | bigint, tx?: any) {
     const db = tx || prisma;
     const existing = await db.userPromo.findFirst({
       where: { userId, promoCode: { discountPercent: 5 } }
@@ -86,7 +94,7 @@ export class PromoService {
   /**
    * Триггер: Пополнение на 2000+ (10%)
    */
-  static async checkLargeDeposit(userId: string, tgId: number, amount: number, tx?: any) {
+  static async checkLargeDeposit(userId: string, tgId: number | bigint, amount: number, tx?: any) {
     const db = tx || prisma;
     if (amount >= 2000) {
       const user = await db.user.findUnique({ where: { id: userId }, select: { projectId: true } });
@@ -97,7 +105,7 @@ export class PromoService {
   /**
    * Триггер: Траты 10000+ (10%)
    */
-  static async checkLoyaltySpend(userId: string, tgId: number, totalSpent: Decimal | number, tx?: any) {
+  static async checkLoyaltySpend(userId: string, tgId: number | bigint, totalSpent: Decimal | number, tx?: any) {
     // Deprecated for automation rules
     await this.processAutomationRules('SPEND_GTE', { userId, tgId, value: new Decimal(totalSpent) as any }, tx);
   }
@@ -105,7 +113,7 @@ export class PromoService {
   /**
    * Process dynamic automation rules for rewards
    */
-  static async processAutomationRules(trigger: string, context: { userId: string, tgId?: number, value: Decimal | number, projectId?: string }, tx?: any) {
+  static async processAutomationRules(trigger: string, context: { userId: string, tgId?: number | bigint, value: Decimal | number, projectId?: string }, tx?: any) {
     const db = tx || prisma;
     const value = new Decimal(context.value);
     const rules = await db.settings.findFirst({
@@ -127,10 +135,10 @@ export class PromoService {
         if (rule.trigger !== trigger) continue;
         if (value.lt(rule.conditionValue)) continue;
 
-        // Idempotency Check using LoyaltyLog
-        const logId = `${trigger}:${rule.conditionValue}`;
-        const existingLog = await db.loyaltyLog.findFirst({
-          where: { userId: context.userId, trigger: logId }
+        // Idempotency Check using SystemLog
+        const logAction = `${trigger}:${rule.conditionValue}`;
+        const existingLog = await db.systemLog.findFirst({
+          where: { userId: context.userId, type: 'LOYALTY', action: logAction }
         });
 
         if (existingLog) continue;
@@ -140,10 +148,10 @@ export class PromoService {
           const promoCode = await this.issuePromo(context.userId, 0, rule.rewardValue, `${rule.description} (Auto)`, context.projectId, db);
 
           if (promoCode) {
-            await this.createLoyaltyLog(context.userId, context.projectId, logId, `PROMO:${promoCode}`, rule.rewardValue, db); // Using rewardValue as approximation of value, though for promo it's %
+            await this.createLoyaltyLog(context.userId, context.projectId, logAction, `PROMO:${promoCode}`, rule.rewardValue, db); // Using rewardValue as approximation of value, though for promo it's %
             if (context.tgId) {
               const { BotRegistry } = await import('@/services/bot/bot-registry');
-              await BotRegistry.get(context.projectId).telegram.sendMessage(context.tgId, `🎁 <b>Бонус!</b>\nВы получили промокод за достижение: ${rule.description}`, { parse_mode: 'HTML' }).catch(() => { });
+              await BotRegistry.get(context.projectId).telegram.sendMessage(context.tgId.toString(), `🎁 <b>Бонус!</b>\nВы получили промокод за достижение: ${rule.description}`, { parse_mode: 'HTML' }).catch(() => { });
             }
           }
 
@@ -153,11 +161,11 @@ export class PromoService {
             data: { balance: { increment: rule.rewardValue } }
           });
 
-          await this.createLoyaltyLog(context.userId, context.projectId, logId, `BALANCE:+${rule.rewardValue}`, rule.rewardValue, db);
+          await this.createLoyaltyLog(context.userId, context.projectId, logAction, `BALANCE:+${rule.rewardValue}`, rule.rewardValue, db);
 
           if (context.tgId) {
             const { BotRegistry } = await import('@/services/bot/bot-registry');
-            await BotRegistry.get(context.projectId).telegram.sendMessage(context.tgId, `🎉 <b>Бонус!</b>\nВы получили +${rule.rewardValue}₽ на баланс за достижение: ${rule.description}`, { parse_mode: 'HTML' }).catch(() => { });
+            await BotRegistry.get(context.projectId).telegram.sendMessage(context.tgId.toString(), `🎉 <b>Бонус!</b>\nВы получили +${rule.rewardValue}₽ на баланс за достижение: ${rule.description}`, { parse_mode: 'HTML' }).catch(() => { });
           }
         }
       }
@@ -169,13 +177,14 @@ export class PromoService {
   static async createLoyaltyLog(userId: string, projectId: string | undefined, trigger: string, reward: string, value: number, tx?: any) {
     const db = tx || prisma;
     try {
-      await db.loyaltyLog.create({
+      await db.systemLog.create({
         data: {
           userId,
           projectId,
-          trigger,
-          reward,
-          value,
+          type: 'LOYALTY',
+          action: trigger,
+          details: reward,
+          metadata: { value }
         }
       });
     } catch (e) {

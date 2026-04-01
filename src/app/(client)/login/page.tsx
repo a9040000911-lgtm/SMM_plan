@@ -9,8 +9,11 @@ import React, { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Mail, Lock, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
+import { Loader2, Mail, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TelegramLoginButton } from '@/components/auth/TelegramLoginButton';
+import { getProjectAuthSettings } from '@/app/_actions/auth/getProjectAuthSettings';
+import { SmmplanLogo } from '@/components/ui/SmmplanLogo';
 
 function LoginForm() {
     const router = useRouter();
@@ -27,6 +30,16 @@ function LoginForm() {
 
     const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
     const message = searchParams.get('message');
+
+    const [botUsername, setBotUsername] = useState<string | null>(null);
+
+    React.useEffect(() => {
+        getProjectAuthSettings().then(settings => {
+            if (settings?.botUsername) {
+                setBotUsername(settings.botUsername);
+            }
+        });
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -120,11 +133,14 @@ function LoginForm() {
                 )}
 
                 {/* Header */}
-                <div className="text-center mb-8">
-                    <Link href="/" className="inline-flex items-center gap-2 text-blue-500 text-sm mb-6 font-bold hover:text-blue-600 transition-all">
-                        <Sparkles className="w-4 h-4" /> Smmplan
-                    </Link>
-                    <h1 className="text-4xl font-black text-[#171717] mb-2">Welcome Back</h1>
+                <div className="text-center mb-8 flex flex-col items-center">
+                    <SmmplanLogo 
+                        className="mb-8"
+                        iconSize={24}
+                        textSize="text-2xl"
+                        colorMode="blue"
+                    />
+                    <h1 className="text-4xl font-black text-[#171717] mb-2 leading-tight">Вход в кабинет</h1>
                     <p className="text-slate-500 font-medium">Рады видеть вас снова</p>
                 </div>
 
@@ -142,6 +158,21 @@ function LoginForm() {
                                 onSubmit={handleSubmit}
                                 className="space-y-6"
                             >
+                                {botUsername && (
+                                    <div className="space-y-6 mb-8">
+                                        <TelegramLoginButton 
+                                            botUsername={botUsername} 
+                                            onSuccess={() => router.push(callbackUrl)}
+                                        />
+                                        <div className="relative flex items-center justify-center">
+                                            <div className="absolute inset-0 flex items-center px-4">
+                                                <div className="w-full border-t border-slate-100"></div>
+                                            </div>
+                                            <span className="relative px-4 bg-white text-[10px] font-black text-slate-300 uppercase tracking-widest">ИЛИ ПОЧТА</span>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-[#171717] ml-1">Email</label>
                                     <div className="relative">
@@ -253,7 +284,7 @@ function LoginForm() {
                                 <button
                                     type="button"
                                     onClick={() => { setNeeds2FA(false); setError(''); setTwoFACode(''); }}
-                                    className="w-full text-center text-sm text-white/30 hover:text-white/50 transition-colors"
+                                    className="w-full text-center text-sm text-slate-400 hover:text-slate-600 transition-colors"
                                 >
                                     Назад к входу
                                 </button>

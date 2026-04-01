@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { AnalyticsService } from '@/services/users/analytics.service';
 import { BroadcastService } from '@/services/support/broadcast.service';
 import { OrderRefundService } from '@/services/orders/order-refund.service';
-import { OrderStatus, TransactionStatus } from '@/generated/client';
+import { OrderStatus, TransactionStatus } from '@prisma/client';
 
 export class SelfHealingService {
   /**
@@ -140,7 +140,6 @@ export class SelfHealingService {
     const count = await prisma.transaction.updateMany({
       where: {
         status: TransactionStatus.PENDING,
-        type: 'DEPOSIT',
         createdAt: { lt: twoHoursAgo }
       },
       data: {
@@ -183,14 +182,22 @@ export class SelfHealingService {
           { lastProviderPrice: null }
         ]
       },
-      select: { id: true, name: true }
+      select: { id: true, name: true, metadata: true }
     });
 
     if (zeroPriceServices.length > 0) {
-      await prisma.internalService.updateMany({
-        where: { id: { in: zeroPriceServices.map(s => s.id) } },
-        data: { isActive: false }
-      });
+      await prisma.$transaction(
+        zeroPriceServices.map(svc => {
+          const existingMetadata = typeof svc.metadata === 'object' && svc.metadata ? svc.metadata : {};
+          return prisma.internalService.update({
+            where: { id: svc.id },
+            data: { 
+              isActive: false,
+              metadata: { ...existingMetadata, autoDisabled: true, disableReason: 'ZERO_PRICE_HEALING' }
+            }
+          });
+        })
+      );
 
       for (const svc of zeroPriceServices) {
         await prisma.adminLog.create({

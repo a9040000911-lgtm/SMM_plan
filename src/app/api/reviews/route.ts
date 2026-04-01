@@ -5,7 +5,6 @@
  */
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 
 
@@ -20,46 +19,21 @@ export async function POST(req: NextRequest) {
 
         const session = await auth();
 
-        // Find or create a placeholder user for anonymous/guest reviews if no session
-        let userId: string;
-        if (session?.user && (session.user as any).id) {
-            userId = (session.user as any).id;
-        } else {
-            console.log("[Reviews API] Authenticated session not found, using guest user");
-            // Find a system user for guests or use a default one
-            let guestUser = await prisma.user.findFirst({
-                where: { email: 'guest@smmplan.ru' }
-            });
-
-            if (!guestUser) {
-                console.log("[Reviews API] Creating guest user placeholder");
-                // Create guest user if doesn't exist
-                guestUser = await prisma.user.create({
-                    data: {
-                        email: 'guest@smmplan.ru',
-                        username: 'guest',
-                        role: 'USER'
-                    }
-                });
-            }
-            userId = guestUser.id;
-        }
-
-        console.log("[Reviews API] Creating review for user:", userId, "on project:", projectId);
-
-        const review = await prisma.review.create({
-            data: {
-                projectId: projectId || undefined,
-                userId,
-                rating: Number(rating),
-                text,
-                userName: userName || null,
-                isAnonymous: !!isAnonymous,
-                status: 'PENDING',
-            }
+        const { ReviewService } = await import("@/services/cms/review.service");
+        const result = await ReviewService.createReview({
+            projectId,
+            userId: session?.user ? (session.user as any).id : undefined,
+            rating,
+            text,
+            userName,
+            isAnonymous
         });
 
-        return NextResponse.json({ success: true, id: review.id });
+        if (!result.success) {
+            throw new Error(result.error?.message || "Failed to create review");
+        }
+
+        return NextResponse.json({ success: true, id: result.data.id });
 
     } catch (error: any) {
         console.error("[Reviews API Error]:", error);

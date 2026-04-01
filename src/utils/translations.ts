@@ -51,6 +51,11 @@ export const PLATFORM_TRANSLATIONS: Record<string, string> = {
     WHATSAPP: 'WhatsApp',
     SPOTIFY: 'Spotify',
     SOUNDCLOUD: 'SoundCloud',
+    STEAM: 'Steam',
+    GOOGLE: 'Google',
+    TROVO: 'Trovo',
+    YANDEX: 'Яндекс',
+    WEBSITE: 'Web-сайт',
 };
 
 export function translateCategory(category: string): string {
@@ -59,6 +64,21 @@ export function translateCategory(category: string): string {
 
 export function translatePlatform(platform: string): string {
     return PLATFORM_TRANSLATIONS[platform.toUpperCase()] || platform;
+}
+
+export function translateTargetType(type: string): string {
+    const map: Record<string, string> = {
+        CHANNEL: 'Канал',
+        POST: 'Пост',
+        PROFILE: 'Профиль',
+        VIDEO: 'Видео',
+        REEL: 'Reels',
+        CLIP: 'Клип',
+        STORY: 'История',
+        POLL: 'Опрос',
+        GROUP: 'Группа'
+    };
+    return map[type.toUpperCase()] || type;
 }
 
 

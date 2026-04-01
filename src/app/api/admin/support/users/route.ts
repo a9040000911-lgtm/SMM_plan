@@ -119,8 +119,8 @@ export async function GET(request: NextRequest) {
     });
 
     // Pagination
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '20'), 1), 100); // SECURITY: Cap at 100
     const startIndex = (page - 1) * limit;
     const paginatedUsers = filteredUsers.slice(startIndex, startIndex + limit);
 

@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { PlusCircle, Shield, Loader2, Mail, Key, Trash2 } from 'lucide-react';
 import { changeRoleAction, adjustBalanceAction, updateCredentialsAction, softDeleteUserAction } from '@/app/admin/users/actions';
-import type { Role } from '@/generated/client';
+import type { Role } from '@prisma/client';
 
 export function UserActions({ userId, currentRole }: { userId: string, currentRole: Role }) {
   const [isBusy, setIsBusy] = useState(false);

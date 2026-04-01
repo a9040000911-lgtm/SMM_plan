@@ -6,13 +6,21 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-import { Scenes, session, Telegraf } from 'telegraf';
+import { Scenes, session, Telegraf, Context } from 'telegraf';
 import { prisma } from '@/lib/prisma';
 import { startWebhookServer, SessionService } from '@/services/core';
 import { bot, BotRegistry } from '@/services/bot/bot-registry';
 import { CryptoService } from '@/services/core';
 import { createLogger } from '@/lib/logger';
+import { RedisSessionStore } from './utils/redis-session';
 import fs from 'fs';
+
+export interface SmmplanContext extends Context {
+    project?: any;
+    scene: Scenes.SceneContextScene<SmmplanContext, Scenes.WizardSessionData>;
+    wizard: Scenes.WizardContextWizard<SmmplanContext>;
+}
+
 
 const logger = createLogger('Bot');
 
@@ -60,13 +68,14 @@ const stage = new Scenes.Stage<Scenes.WizardContext>([
 bot.use(async (ctx: any, next) => {
   try {
     const log = `[${new Date().toISOString()}] Update:${ctx.updateType} from:${ctx.from?.id} text:${ctx.message?.text || 'non-text'}\n`;
-    fs.appendFileSync('logs/bot_debug.log', log);
-  } catch (_e) { }
+  } catch (e: any) {
+    console.error('[Bot Middleware] Debug log append failed:', e.message);
+  }
   return next();
 });
 bot.use(projectMiddleware);
 bot.use(moderationMiddleware);
-bot.use(session());
+bot.use(session({ store: RedisSessionStore }));
 bot.use(stage.middleware() as any);
 
 // --- QUEUES ---

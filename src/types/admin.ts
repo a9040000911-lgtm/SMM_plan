@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { User, InternalService, Platform, OrderStatus, Category } from '@/generated/client';
+import { User, InternalService, Platform, OrderStatus, Category } from '@prisma/client';
 import React from 'react';
 
 // Type aliases for admin panel use

@@ -3,7 +3,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { Platform, Category } from '@/generated/client';
+import { Platform, Category } from '@/services/types';
 
 export type TargetType =
   | 'TG_CHANNEL' | 'TG_GROUP' | 'TG_POST' | 'TG_STORY' | 'TG_BOT' | 'TG_BOOST' | 'TG_PROXY' | 'TG_FOLDER' | 'TG_INVOICE' | 'TG_INVITE' | 'TG_STARS'
@@ -33,6 +33,10 @@ export type TargetType =
   | 'TT_PROFILE' | 'TT_VIDEO'
   | 'KW_PROFILE' | 'KW_VIDEO'
   | 'YM_TRACK' | 'YM_ALBUM' | 'YM_ARTIST' | 'YM_PLAYLIST'
+  | 'STEAM_PROFILE' | 'STEAM_GROUP' | 'STEAM_WORKSHOP' | 'STEAM_APP'
+  | 'GOOGLE_MAPS' | 'GOOGLE_SEARCH' | 'GOOGLE_BUSINESS'
+  | 'TROVO_CHANNEL'
+  | 'YANDEX_MAPS' | 'YANDEX_SEARCH'
   | 'WEB_SITE'
   | 'ALL' | 'UNKNOWN';
 

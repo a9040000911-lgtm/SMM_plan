@@ -1,1005 +1,1450 @@
-"use client";
 /**
- * (c) 2024-2026 Smmplan. All rights reserved.
- * Created by Artem (http://artmspektr.ru)
- * Unauthorized copying of this file is strictly prohibited.
+ * SMM Plan | Instant Order Evolution 4.8
+ * Refactored by Visionary UI Architect
+ * - Unified Ordering Hub (Catalog & Quick Analysis)
+ * - Premium Design & Compact Layout
+ * - Quantity Multiplicity Validation
+ * - Integrated Service Details (Info) Overlay
  */
 
-import React, { useState, useEffect, useMemo } from "react";
-import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-    Link2, Zap, Loader2, Info,
-    CheckCircle2, Flame, ShieldCheck, TrendingUp, Sparkles, Clock3, Users, X, Mail
-} from "lucide-react";
-import { BrandIcon } from "../ui/BrandIcon";
-import { cn } from "@/utils/ui";
-import { useSession } from "next-auth/react";
-
-import { formatAmount } from "@/utils/formatter";
-import { getInstantServices } from "@/app/_actions/services/getInstantServices";
-import { analyzeLinkAction } from "@/app/_actions/services/analyzeLinkAction";
-import { validateLinkFrontendAction } from "@/app/_actions/services/validateLinkFrontendAction";
-import { mapObjectTypeToTargetType } from "@/utils/link-analyzer";
-import { translateCategory, translatePlatform } from "@/utils/translations";
-import { getWebSmartHint } from "@/utils/tips";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { motion, AnimatePresence } from 'framer-motion';
+import Link from "next/link";
+import { 
+  X, 
+  ChevronRight, 
+  ChevronLeft, 
+  Zap, 
+  ShieldCheck,
+  Link2,
+  Layers,
+  Mail,
+  CheckCircle2,
+  ShoppingBag,
+  Flame,
+  Star,
+  AlertCircle, 
+  Info, 
+  AlertTriangle,
+  ChevronDown, 
+  Heart, 
+  Timer,
+  Calendar,
+  Star as StarIcon,
+  RotateCcw,
+  Rocket,
+  User,
+  Key,
+  Check
+} from 'lucide-react';
 import { toast } from "sonner";
+import { getInstantServices } from "@/app/_actions/services/getInstantServices";
+import { 
+  staggerContainer, 
+  fadeInUp, 
+  scaleIn 
+} from '@/utils/animation-variants';
+import { useSession, signIn } from "next-auth/react";
+import { cn } from "@/utils/ui";
+import { formatUnitPrice, formatCartTotal, formatCartTotalRaw } from "@/utils/formatter";
+import { translateCategory, translatePlatform, translateTargetType } from "@/utils/translations";
+import { analyzeLink, mapObjectTypeToTargetType } from "@/utils/link-analyzer";
+import { BrandIcon } from "../ui/BrandIcon";
 
-interface Service {
+// ─── Neuro-UX: Semantic Name Cleaner ────────────────────────────────────────
+// Removes technical jargon from service names for clean H2 display
+function cleanServiceName(rawName: string): string {
+    // Step 1: Strip leading tier tags like [Микс] [Стандарт] etc - keep them for suffix
+    const tierMatch = rawName.match(/^\[([^\]]+)\]\s*/);
+    const tierTag = tierMatch ? tierMatch[1].trim() : null;
+    let cleaned = tierMatch ? rawName.slice(tierMatch[0].length) : rawName;
+    
+    // Step 2: Remove trailing technical blocks [... | ... | ...]
+    cleaned = cleaned.replace(/\s*\[[^\]]{10,}\]\s*$/g, '');
+    
+    // Step 3: Remove remaining bracket noise at the end (short tags left)
+    cleaned = cleaned.replace(/\s*\[[^\]]+\]\s*$/g, '');
+    
+    // Step 4: Title-case the result
+    cleaned = cleaned.trim().replace(/\b([A-ZА-ЯЁ])([A-ZА-ЯЁ]+)/g, (_, first, rest) => first + rest.toLowerCase());
+    
+    // Step 5: Append tier as suffix if found
+    if (tierTag && tierTag.toUpperCase() !== cleaned.split(' ')[0]?.toUpperCase()) {
+        cleaned = `${cleaned} — ${tierTag.charAt(0).toUpperCase() + tierTag.slice(1).toLowerCase()}`;
+    }
+    
+    return cleaned || rawName;
+}
+
+// ─── Neuro-UX: Dynamic Badge Parser ─────────────────────────────────────────
+// Extracts guarantee, dropoff, and speed info from service data  
+function parseServiceMeta(service: SmmService) {
+    const name = (service.name || '').toUpperCase();
+    
+    // Guarantee
+    let guarantee = 'Стандартная';
+    let guaranteeColor: 'emerald' | 'rose' = 'emerald';
+    if (name.includes('БЕЗ ГАРАНТ')) { guarantee = 'Без гарантии'; guaranteeColor = 'rose'; }
+    else if (name.includes('ВЕЧНАЯ') || name.includes('ПОЖИЗН')) guarantee = 'Навсегда';
+    else if (name.includes('ГАРАНТ')) guarantee = 'Есть';
+    
+    // Dropoff  
+    let dropoff = 'Минимальные';
+    let dropoffColor: 'emerald' | 'amber' = 'emerald';
+    const dropMatch = name.match(/СПИСАНИ[ЯЕ]\s*(\d+[-–]?\d*)%/i);
+    if (dropMatch) {
+        const val = dropMatch[1];
+        dropoff = `До ${val}%`;
+        const maxDrop = parseInt(val.split(/[-–]/).pop() || '0');
+        dropoffColor = maxDrop > 10 ? 'amber' : 'emerald';
+    } else if (name.includes('БЕЗ СПИСАН')) {
+        dropoff = 'Нет';
+    }
+    
+    // Quality
+    const quality = service.quality === 'HIGH' ? 'Премиум' : 'Стандарт';
+    const qualityColor: 'amber' | 'slate' = service.quality === 'HIGH' ? 'amber' : 'slate';
+    
+    return { guarantee, guaranteeColor, dropoff, dropoffColor, quality, qualityColor };
+}
+
+const PLATFORMS = {
+    TELEGRAM: 'Telegram',
+    INSTAGRAM: 'Instagram',
+    VK: 'VK',
+    YOUTUBE: 'YouTube',
+    TIKTOK: 'TikTok',
+    TWITTER: 'Twitter',
+    FACEBOOK: 'Facebook',
+    THREADS: 'Threads',
+    DISCORD: 'Discord',
+    REDDIT: 'Reddit',
+    LINKEDIN: 'LinkedIn',
+    PINTEREST: 'Pinterest',
+    SNAPCHAT: 'Snapchat',
+    KICK: 'Kick',
+    RUTUBE: 'Rutube',
+    DZEN: 'Dzen',
+    STEAM: 'Steam',
+    GOOGLE: 'Google',
+    TROVO: 'Trovo',
+    YANDEX: 'Yandex',
+    WEBSITE: 'Website'
+} as const;
+
+interface InstantOrderProps {
+    initialLink?: string;
+    initialServiceId?: string;
+    initialPlatform?: string;
+    isExpanded: boolean;
+    onExpandChange: (expanded: boolean) => void;
+}
+
+interface SmmService {
     id: string;
-    numericId: number;
+    numericId?: string;
     name: string;
-    description: string;
+    description?: string;
+    requirements?: string;
     pricePer1000: number;
-    pricePerUnit: number;
     category: string;
     platform: string;
+    minQty: number;
+    maxQty?: number;
+    qtyStep?: number;
+    targetType?: string;
     isHot?: boolean;
     isCheap?: boolean;
     isBest?: boolean;
     quality?: "HIGH" | "STD";
-    minQty?: number;
-    maxQty?: number;
-    requirements?: string | null;
-    targetType?: string;
-    isPrivate?: boolean;
 }
 
-export const InstantOrder = () => {
-    const [link, setLink] = useState("");
-    const [platform, setPlatform] = useState<string | null>(null);
+const CategorySection = React.memo(({
+    categories,
+    selectedCategory,
+    onSelect
+}: {
+    categories: string[];
+    selectedCategory: string | null;
+    onSelect: (cat: string) => void;
+}) => {
+    return (
+        <>
+            {/* Desktop Categories */}
+            <div className="hidden lg:flex flex-col w-64 shrink-0 space-y-6">
+                <div className="space-y-4">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4">Доступные Категории</h3>
+                    <div className="flex flex-col gap-1.5">
+                        {categories.map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => onSelect(cat)}
+                                className={cn(
+                                    "group flex items-center justify-between px-6 py-4 rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest transition-all text-left border relative overflow-hidden",
+                                    selectedCategory === cat 
+                                        ? "bg-slate-900 border-slate-800 text-white shadow-xl translate-x-1" 
+                                        : "bg-white border-transparent text-slate-400 hover:border-slate-100 hover:bg-slate-50/50 hover:text-slate-900"
+                                )}
+                            >
+                                <span className="flex items-center gap-3 relative z-10">
+                                    {cat === 'FAVORITES' ? <Star size={14} className="fill-amber-400 text-amber-400" /> : null}
+                                    {cat === 'FAVORITES' ? 'Избранное' : translateCategory(cat)}
+                                </span>
+                                {selectedCategory === cat && <ChevronRight size={14} className="relative z-10 animate-pulse" />}
+                                {selectedCategory === cat && <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-transparent" />}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Mobile Categories (Touch-Optimized) */}
+            <div className="lg:hidden -mx-3 px-3 overflow-x-auto no-scrollbar flex items-center gap-2 pb-2">
+                {categories.map(cat => (
+                    <button
+                        key={cat}
+                        onClick={() => onSelect(cat)}
+                        className={cn(
+                            "whitespace-nowrap px-5 py-3 rounded-[1.25rem] text-[10px] font-black uppercase tracking-tight transition-all border shrink-0 min-h-[44px]",
+                            selectedCategory === cat ? "bg-slate-950 border-slate-950 text-white shadow-lg translate-y-0" : "bg-white border-slate-100 text-slate-400"
+                        )}
+                    >
+                        {cat === 'FAVORITES' ? '★ ' : ''}{cat === 'FAVORITES' ? 'Избранное' : translateCategory(cat)}
+                    </button>
+                ))}
+            </div>
+        </>
+    );
+});
+
+CategorySection.displayName = "CategorySection";
+
+const ServiceCard = React.memo(({
+    service,
+    viewMode,
+    isFavorite,
+    isDisabled,
+    onSelect,
+    onInfo,
+    onToggleFavorite
+}: {
+    service: SmmService;
+    viewMode: 'grid' | 'list';
+    isFavorite: boolean;
+    isDisabled?: boolean;
+    onSelect: () => void;
+    onInfo: (e: React.MouseEvent) => void;
+    onToggleFavorite: (e: React.MouseEvent) => void;
+}) => {
+    return (
+        <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            onClick={isDisabled ? undefined : onSelect}
+            role="button"
+            className={cn(
+                "transition-all duration-300 relative group overflow-hidden border p-4 rounded-[1.75rem] text-left cursor-pointer",
+                "bg-slate-900/40 backdrop-blur-md border-white/5 shadow-2xl hover:bg-slate-800/60 hover:border-blue-500/30",
+                service.isBest ? "border-amber-400/20 hover:border-amber-400/50 ring-1 ring-amber-400/10" : "border-white/5",
+                viewMode === 'grid' ? "flex flex-col justify-between min-h-[120px]" : "flex flex-row items-center gap-4 py-3",
+                isDisabled && "opacity-40 grayscale pointer-events-none"
+            )}
+        >
+            <div className={cn("flex flex-col space-y-1 relative z-10", viewMode === 'list' && "flex-1 min-w-0")}>
+                <div className="flex items-center justify-between pointer-events-none">
+                    <div className="flex items-center gap-1 flex-wrap">
+                        <span className="px-1.5 py-0.5 bg-white/5 rounded-md text-[7px] font-bold text-slate-500 uppercase tracking-widest">ID: {service.numericId || service.id.split('_').pop()}</span>
+                        {service.isHot && <Flame size={10} className="text-rose-500 fill-rose-500/20" />}
+                    </div>
+                </div>
+                <div className="font-bold text-slate-200 uppercase text-[10px] sm:text-xs leading-tight italic tracking-tight group-hover:text-blue-400 transition-colors line-clamp-2">
+                    {service.name}
+                </div>
+            </div>
+            
+            <div className={cn("flex items-end justify-between relative z-10", viewMode === 'grid' ? "mt-2" : "gap-4")}>
+                <div className="flex flex-col">
+                    <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Цена за 1 шт.</span>
+                    <span className="text-blue-400 font-black text-xs sm:text-sm">
+                        {(service.pricePer1000 / 1000).toFixed(4).replace(/\.?0+$/, "")} ₽
+                    </span>
+                </div>
+                <div className="flex items-center gap-1 pointer-events-auto">
+                    <button onClick={onInfo} className="p-1.5 rounded-lg text-slate-500 hover:text-blue-400 hover:bg-blue-400/10 transition-all">
+                        <Info size={14} />
+                    </button>
+                    <button onClick={onToggleFavorite} className={cn("p-1.5 rounded-lg transition-all", isFavorite ? "text-rose-400 bg-rose-400/10" : "text-slate-600 hover:text-slate-400")}>
+                        <Heart size={14} className={cn(isFavorite && "fill-current")} />
+                    </button>
+                </div>
+            </div>
+        </motion.div>
+    );
+});
+
+ServiceCard.displayName = "ServiceCard";
+
+export const InstantOrder = ({ initialLink = '', initialServiceId = '', initialPlatform = '', isExpanded, onExpandChange: setIsExpanded }: InstantOrderProps) => {
+    const { data: session } = useSession();
+    const [wizardStep, setWizardStep] = useState<'INPUT' | 'CONFIG' | 'SUMMARY'>('INPUT');
+    const [link, setLink] = useState(initialLink);
+    const [platform, setPlatform] = useState<string | null>(initialPlatform || null);
+    const [detectedTargetType, setDetectedTargetType] = useState<string | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-    const [services, setServices] = useState<Service[]>([]);
+    const [selectedService, setSelectedService] = useState<SmmService | null>(null);
+    const [detailService, setDetailService] = useState<SmmService | null>(null);
+    const [quantity, setQuantity] = useState<number>(0);
+    const [email, setEmail] = useState('');
+    const [consent, _setConsent] = useState(true);
+    const [isValidationBypassed, setIsValidationBypassed] = useState(false);
+    const [isManualMode, setIsManualMode] = useState(false);
+
+    // Enhanced Service State
+    const [allServices, setAllServices] = useState<SmmService[]>([]);
+    const [isLoadingServices, setIsLoadingServices] = useState(false);
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [searchQuery, setSearchQuery] = useState("");
+    const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+
+    // AI Analysis Simulation
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<any>(null);
-    const [lastAnalyzedLink, setLastAnalyzedLink] = useState<string>("");
-    const [selectedService, setSelectedService] = useState<Service | null>(null);
-    const [quantity, setQuantity] = useState<number>(100);
-    const [isDripFeed, setIsDripFeed] = useState(false);
-    const [runs, setRuns] = useState(2);
-    const [interval, setInterval] = useState(60);
-    const [email, setEmail] = useState("");
-    const [isScheduled, setIsScheduled] = useState(false);
-    const [scheduleTime, setScheduleTime] = useState("");
-    const [repeatInterval, setRepeatInterval] = useState<number | "">("");
-    const [consent, setConsent] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [checkoutWarning, setCheckoutWarning] = useState<string | null>(null);
-    const { data: session } = useSession();
+    const [error, setError] = useState<string | null>(null);
 
-    // Secondary filter for invite links
-    const [privacyFilter, setPrivacyFilter] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
+    // Auth States for existing users
+    const [authMode, setAuthMode] = useState<'PASSWORD' | 'MAGIC' | null>(null);
+    const [password, setPassword] = useState('');
+    const [magicCode, setMagicCode] = useState('');
+    const [isSendingCode, setIsSendingCode] = useState(false);
+    const [isLinkInvalid, setIsLinkInvalid] = useState(false);
 
-    const platformIconComponents: Record<string, React.ReactNode> = {
-        TELEGRAM: <BrandIcon name="telegram" size={32} colorMode="original" />,
-        INSTAGRAM: <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center shadow-lg shadow-black/20 text-xs font-black text-slate-400">IG</div>,
-        TIKTOK: <BrandIcon name="tiktok" size={32} colorMode="original" />,
-        VK: <BrandIcon name="vk" size={32} colorMode="original" />,
-        YOUTUBE: <BrandIcon name="youtube" size={32} colorMode="original" />,
-        LIKEE: <BrandIcon name="likee" size={32} colorMode="original" />,
-        TWITCH: <BrandIcon name="twitch" size={32} colorMode="original" />,
-        OK: <BrandIcon name="ok" size={32} colorMode="original" />,
-        FACEBOOK: <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center shadow-lg shadow-black/20 text-xs font-black text-slate-400">FB</div>,
-        THREADS: <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center shadow-lg shadow-black/20 text-xs font-black text-slate-400">TH</div>,
-        DISCORD: <BrandIcon name="discord" size={32} colorMode="original" />,
-        TWITTER: <BrandIcon name="twitter" size={32} colorMode="original" />,
-    };
-
-    const objectTypeIconComponents: Record<string, React.ReactNode> = {
-        TG_BOT: <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center shadow-lg shadow-black/20"><Zap size={16} className="text-amber-400" /></div>,
-        TG_STORY: <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center shadow-lg shadow-black/20"><Flame size={16} className="text-orange-500" /></div>,
-    };
-
+    // Advanced Options States
+    const [showAdvanced, setShowAdvanced] = useState(true);
+    const [isDripFeed, setIsDripFeed] = useState(false);
+    const [runs, setRuns] = useState<number>(2);
+    const [interval, setInterval] = useState<number>(30);
+    const [isScheduled, setIsScheduled] = useState(false);
+    const [scheduleTime, setScheduleTime] = useState<string>('');
+    const [repeatInterval, setRepeatInterval] = useState<number | ''>('');
+    const [showServiceInfo, setShowServiceInfo] = useState(false);
+    // Initial setup from props
     useEffect(() => {
-        async function load() {
+        if (initialLink) {
+            setLink(initialLink);
+            setIsExpanded(true);
+        }
+    }, [initialLink, setIsExpanded]);
+
+    // Handle initialServiceId deep-linking
+    useEffect(() => {
+        if (initialServiceId && allServices.length > 0) {
+            const service = allServices.find(s => s.id === initialServiceId);
+            if (service) {
+                setSelectedService(service);
+                setPlatform(service.platform.toUpperCase());
+                setSelectedCategory(service.category);
+                setQuantity(service.minQty || 1);
+            }
+        }
+    }, [initialServiceId, allServices]);
+
+    // Restore Draft Order (Broken Loop protection)
+    useEffect(() => {
+        if (allServices.length > 0) {
             try {
-                const data = await getInstantServices();
-                setServices(data as any);
-            } catch (e) {
-                console.error("Failed to load services", e);
-            }
-        }
-        load();
-    }, []);
-
-    // Auto-select service from URL parameter (e.g. redirected from Catalog)
-    useEffect(() => {
-        if (services.length > 0 && typeof window !== 'undefined') {
-            const params = new URLSearchParams(window.location.search);
-            const serviceId = params.get('serviceId');
-
-            if (serviceId) {
-                const serviceToSelect = services.find(s => s.id === serviceId);
-                if (serviceToSelect) {
-                    setPlatform(serviceToSelect.platform);
-                    setSelectedCategory(serviceToSelect.category);
-                    setSelectedService(serviceToSelect);
-
-                    // Remove parameter from URL without page reload
-                    const url = new URL(window.location.href);
-                    url.searchParams.delete('serviceId');
-                    window.history.replaceState({}, '', url.toString());
-
-                    // Set a dummy link so validation doesn't immediately fail if they want to order
-                    if (!link) {
-                        setLink(''); // Let user type it out, but modal is open
-                    }
-                }
-            }
-        }
-    }, [services]);
-
-    useEffect(() => {
-        if (link === lastAnalyzedLink) return;
-
-        const timer = setTimeout(async () => {
-            if (link.length > 5) {
-                setIsAnalyzing(true);
-                const result = await analyzeLinkAction(link);
-                setLastAnalyzedLink(link);
-
-                if (result.success && result.data) {
-                    const detected = result.data.platform;
-                    setPlatform(detected);
-                    setAnalysisResult(result.data);
-
-                    // Smart category selection: if current category is not in possible categories, switch
-                    const availableCats = Array.from(new Set(services.filter(s => s.platform === detected).map(s => s.category)));
-
-                    if (availableCats.length > 0) {
-                        setSelectedCategory(prevSelected => {
-                            if (availableCats.length === 1) return availableCats[0];
-
-                            const firstPossible = result.data.possibleCategories[0];
-                            // If we already have a selected category and it's valid for this platform, keep it (unless we want to force best match).
-                            // A good UX is: if the user pastes a link to a POST, we switch to LIKES.
-                            // If they change the link slightly, we don't jump around. 
-                            if (firstPossible && availableCats.includes(firstPossible)) {
-                                return firstPossible;
-                            } else if (!prevSelected || !availableCats.includes(prevSelected)) {
-                                return availableCats[0];
-                            }
-                            return prevSelected;
-                        });
+                const draftRaw = localStorage.getItem('smmplan_draft_order');
+                if (draftRaw) {
+                    const draft = JSON.parse(draftRaw);
+                    if (draft.expiresAt > Date.now() && draft.data) {
+                        const { link: dLink, serviceId, quantity: dQty, isDripFeed: dDrip, runs: dRuns, interval: dInt } = draft.data;
+                        const service = allServices.find(s => s.id === serviceId);
+                        if (service) {
+                            setLink(dLink || '');
+                            setSelectedService(service);
+                            setPlatform(service.platform.toUpperCase());
+                            setSelectedCategory(service.category);
+                            if (dQty) setQuantity(dQty);
+                            if (dDrip !== undefined) setIsDripFeed(dDrip);
+                            if (dRuns) setRuns(dRuns);
+                            if (dInt) setInterval(dInt);
+                            toast.success('Заказ восстановлен. Вы можете продолжить оформление!');
+                            localStorage.removeItem('smmplan_draft_order');
+                        }
                     } else {
-                        setSelectedCategory(null);
+                        localStorage.removeItem('smmplan_draft_order');
                     }
                 }
-                setIsAnalyzing(false);
-            } else if (!selectedService) {
-                setPlatform(null);
-                setSelectedCategory(null);
-                setAnalysisResult(null);
-                setLastAnalyzedLink("");
+            } catch (e) {
+                console.error("Draft parsing failed", e);
             }
-            // Reset privacy filter when link changes
-            setPrivacyFilter('PUBLIC');
-        }, 500);
+        }
+    }, [allServices]);
 
-        return () => clearTimeout(timer);
-    }, [link, services, lastAnalyzedLink, selectedService]);
-
-    // Validate link dynamically for warning in checkout
+    // Reset quantity when service changes
     useEffect(() => {
-        if (selectedService && link.length > 5) {
-            const delay = setTimeout(async () => {
-                const res = await validateLinkFrontendAction(link, selectedService.id);
-                if (res.success && res.validation?.isWarning) {
-                    setCheckoutWarning(res.validation.warning || null);
-                } else {
-                    setCheckoutWarning(null);
-                }
-            }, 500);
-            return () => clearTimeout(delay);
+        if (selectedService) {
+            setQuantity(selectedService.minQty || 1);
+            setIsValidationBypassed(false);
+        }
+    }, [selectedService]);
+
+    // Multiplicity Logic
+    const isQtyMultiple = useMemo(() => {
+        if (!selectedService || !selectedService.qtyStep || selectedService.qtyStep <= 1) return true;
+        return (quantity % selectedService.qtyStep) === 0;
+    }, [quantity, selectedService]);
+
+    useEffect(() => {
+        if (isExpanded) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.body.style.overflow = 'hidden';
+            document.body.classList.add('modal-open');
+
+            setIsLoadingServices(true);
+            getInstantServices(undefined, platform).then(data => {
+                setAllServices(data);
+                setIsLoadingServices(false);
+            });
+
+            try {
+                const saved = localStorage.getItem('smmplan_fav_services');
+                if (saved) setFavoriteIds(JSON.parse(saved));
+            } catch (e) { 
+                console.error("Failed to load favorites", e);
+            }
         } else {
-            setCheckoutWarning(null);
+            document.body.style.overflow = 'unset';
+            document.body.classList.remove('modal-open');
         }
-    }, [selectedService, link]);
+        return () => { 
+            document.body.style.overflow = 'unset'; 
+            document.body.classList.remove('modal-open');
+        };
+    }, [isExpanded, platform]);
 
-    const availableCategories = useMemo(() => {
-        if (!platform) return [];
-        let filteredServices = services.filter(s => s.platform === platform);
-
-        // 0. Фильтрация приватности (Phase 4, обновлено Phase 7)
-        // Если ссылка НЕ приватная (публичная) -> скрываем приватные услуги.
-        // Если ссылка ПРИВАТНАЯ (инвайт) -> показываем ВСЕ услуги (и публичные, и приватные), оставляя выбор пользователю.
-        if (!analysisResult?.isPrivate) {
-            filteredServices = filteredServices.filter(s => !s.isPrivate);
-        }
-
-        // 1. Техническая фильтрация (Link Type -> targetType)
-        if (analysisResult?.objectType) {
-            const detectedTargetType = mapObjectTypeToTargetType(analysisResult.objectType);
-            filteredServices = filteredServices.filter(s => !s.targetType || s.targetType === detectedTargetType || s.targetType === analysisResult.objectType || s.targetType === 'ALL');
-        }
-
-        // 2. Бизнес-фильтрация (Relevance -> possibleCategories)
-        if (analysisResult?.possibleCategories && analysisResult.possibleCategories.length > 0) {
-            filteredServices = filteredServices.filter(s => analysisResult.possibleCategories.includes(s.category as any));
-        }
-
-        const cats = Array.from(new Set(filteredServices.map(s => s.category)));
-        return cats;
-    }, [platform, services, analysisResult]);
-
-    const availableServicesByTarget = useMemo(() => {
-        if (!platform) return services;
-        let filteredServices = services.filter(s => s.platform === platform);
-
-        // 0. Фильтрация приватности (Phase 4, обновлено Phase 7)
-        if (!analysisResult?.isPrivate) {
-            filteredServices = filteredServices.filter(s => !s.isPrivate);
-        }
-
-        // Используем то же самое пересечение для списка услуг
-        if (analysisResult?.objectType) {
-            const detectedTargetType = mapObjectTypeToTargetType(analysisResult.objectType);
-            filteredServices = filteredServices.filter(s => !s.targetType || s.targetType === detectedTargetType || s.targetType === analysisResult.objectType || s.targetType === 'ALL');
-        }
-
-        if (analysisResult?.possibleCategories && analysisResult.possibleCategories.length > 0) {
-            filteredServices = filteredServices.filter(s => analysisResult.possibleCategories.includes(s.category as any));
-        }
-
-        return filteredServices;
-    }, [platform, services, analysisResult]);
-
-    const currentServices = useMemo(() => {
-        let filtered = availableServicesByTarget.filter(s => s.category === selectedCategory);
-
-        // Apply secondary Privacy Filter for Invite Links
-        if (analysisResult?.isPrivate) {
-            filtered = filtered.filter(s => s.isPrivate === (privacyFilter === 'PRIVATE'));
-        }
-
-        return filtered;
-    }, [availableServicesByTarget, selectedCategory, analysisResult?.isPrivate, privacyFilter]);
-
-    const categoryWarning = useMemo(() => {
-        if (!analysisResult || !selectedCategory) return null;
-
-        // 1. Предупреждение о приватности
-        if (analysisResult.isPrivate) {
-            return `Внимание: Ссылка ведет на приватный канал/группу. Убедитесь, что у нашего бота есть доступ или используйте публичную ссылку для мгновенного старта.`;
-        }
-
-        // 2. Специфические законы SMM
-        if (analysisResult.objectType === 'TG_BOT' && !['referrals', 'other'].includes(selectedCategory.toLowerCase())) {
-            return `Для ссылок на ботов подходят только услуги из категорий «Рефералы» или «Другое».`;
-        }
-
-        if (analysisResult.objectType === 'TG_STORY' && selectedCategory.toLowerCase() !== 'stories') {
-            return `Для ссылок на истории подходят только услуги из категории «Истории».`;
-        }
-
-        // 3. Heuristic / Fallback
-        if (!analysisResult.possibleCategories?.includes(selectedCategory as any)) {
-            if (analysisResult.possibleCategories && analysisResult.possibleCategories.length > 0 && availableCategories.includes(analysisResult.possibleCategories[0])) {
-                return `Внимание: Система рекомендует использовать категорию: «${translateCategory(analysisResult.possibleCategories[0])}» для этого типа ссылки.`;
-            } else {
-                return `Внимание: Выбранная категория может быть несовместима с типом вставленной ссылки.`;
-            }
-        }
-
-        return null;
-    }, [analysisResult, selectedCategory, availableCategories]);
-
-    const handleOrder = async () => {
-        if (!selectedService || !link) return;
-        if (!session && !email) {
-            toast.error("Пожалуйста, введите ваш Email для автоматического создания аккаунта");
-            return;
-        }
-        if (!consent) {
-            toast.error("Пожалуйста, подтвердите согласие на обработку персональных данных");
-            return;
-        }
-        let finalLink = link.trim();
-        // Авто-дополнение ?boost для Telegram Бустов
-        if (selectedService.platform === 'TELEGRAM' &&
-            (selectedService.name.toLowerCase().includes('буст') || selectedService.name.toLowerCase().includes('boost') || selectedService.category.toLowerCase().includes('boost') || selectedService.category.toLowerCase().includes('буст'))) {
-            if (!finalLink.toLowerCase().includes('boost') && !finalLink.toLowerCase().includes('?c=')) {
-                finalLink = finalLink.includes('?') ? `${finalLink}&boost` : `${finalLink}?boost`;
-            }
-        }
-
-        setIsSubmitting(true);
+    const handleEmailBlur = async () => {
+        if (!email || email.length < 5 || !email.includes('@')) return;
+        
         try {
-            const res = await fetch("/api/client/orders", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    serviceId: selectedService.id,
-                    link: finalLink,
-                    quantity,
-                    isDripFeed,
-                    runs: isDripFeed ? runs : 1,
-                    interval: isDripFeed ? interval : 0,
-                    email: session ? undefined : email,
-                    scheduleTime: isScheduled ? scheduleTime : undefined,
-                    repeatInterval: (isScheduled && repeatInterval) ? repeatInterval : undefined
-                })
+            const res = await fetch('/api/client/auth/check-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
             });
             const data = await res.json();
-            if (data.success) {
-                toast.success("Заказ успешно создан!");
-                if (data.requiresPayment && data.paymentUrl) {
-                    window.location.href = data.paymentUrl;
-                } else {
-                    window.location.href = "/dashboard/orders";
-                }
-            } else {
-                toast.error(data.error || "Ошибка при создании заказа");
+            if (data.exists) {
+                setAuthMode(prev => prev === 'MAGIC' ? 'MAGIC' : 'PASSWORD');
+                setError(prev => prev ? prev : 'Этот аккаунт уже зарегистрирован. Введите пароль для входа.');
             }
         } catch (e) {
-            console.error("Order error", e);
-            toast.error("Критическая ошибка при оформлении заказа");
+            console.warn('Email check failed', e);
+        }
+    };
+
+    useEffect(() => {
+        if (link.length > 5) {
+            setIsAnalyzing(true);
+            const timer = setTimeout(() => {
+                setIsAnalyzing(false);
+                const analysis = analyzeLink(link);
+                
+                if (analysis) {
+                    setIsLinkInvalid(false);
+                    if (analysis.platform.toUpperCase() === 'OTHER') {
+                        setIsManualMode(true);
+                        setPlatform(null);
+                        setAnalysisResult(null);
+                        setDetectedTargetType(null);
+                    } else {
+                        const detectedPlatform = analysis.platform.toUpperCase();
+                        if (platform !== detectedPlatform) {
+                            setPlatform(detectedPlatform);
+                            setSelectedCategory(null);
+                            setSelectedService(null);
+                        }
+                        
+                        const tType = mapObjectTypeToTargetType(analysis.objectType);
+                        setDetectedTargetType(tType);
+                        
+                        setAnalysisResult({
+                            platform: analysis.platform,
+                            objectType: analysis.objectType,
+                            targetType: tType,
+                            isPrivate: false,
+                            isEmailRequired: !session
+                        });
+                    }
+                } else if (!initialServiceId) {
+                    setIsLinkInvalid(link.length > 5);
+                    setPlatform(null);
+                    setDetectedTargetType(null);
+                    setAnalysisResult(null);
+                    setSelectedCategory(null);
+                    setSelectedService(null);
+                }
+                setIsValidationBypassed(false);
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [link, session, initialServiceId]);
+
+    const handleSendMagicCode = async () => {
+        if (!email || isSendingCode) return;
+        setIsSendingCode(true);
+        setError(null);
+        try {
+            const res = await fetch('/api/client/auth/send-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            if (res.ok) {
+                setAuthMode('MAGIC');
+                toast.success('Код отправлен на почту!');
+            } else {
+                const data = await res.json();
+                setError(data.error || 'Не удалось отправить код');
+            }
+        } catch (e) {
+            setError('Ошибка сети при отправке кода');
+        } finally {
+            setIsSendingCode(false);
+        }
+    };
+
+    const handleAddToCart = () => {
+        if (!selectedService || !link || !quantity) return;
+
+        const cartItem = {
+            id: Math.random().toString(36).substr(2, 9),
+            serviceId: selectedService.id,
+            platformLabel: platform || 'SOCIAL',
+            strategyLabel: selectedService.name,
+            price: formatCartTotalRaw(selectedService.pricePer1000, quantity),
+            link: link,
+            quantity: quantity,
+            subs: quantity, // for display compatibility
+            views: 0
+        };
+
+        const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+        localStorage.setItem('cart', JSON.stringify([...existingCart, cartItem]));
+        
+        // Notify other components
+        window.dispatchEvent(new Event('cart-updated'));
+        
+        toast.success('Добавлено в корзину!', {
+            icon: '🛒',
+            style: {
+                borderRadius: '1rem',
+                background: '#0f172a',
+                color: '#fff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase'
+            }
+        });
+    };
+
+    const handleOrder = async () => {
+        if (!canSubmit || !selectedService) return;
+        
+        setIsSubmitting(true);
+        try {
+            const response = await fetch('/api/client/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    serviceId: selectedService.id,
+                    link,
+                    quantity,
+                    email: !session ? email : undefined,
+                    password: authMode === 'PASSWORD' ? password : undefined,
+                    magicCode: authMode === 'MAGIC' ? magicCode : undefined,
+                    isDripFeed,
+                    runs: isDripFeed ? runs : undefined,
+                    interval: isDripFeed ? interval : undefined,
+                    scheduleTime: isScheduled ? scheduleTime : undefined,
+                    repeatInterval: (isScheduled && repeatInterval) ? repeatInterval : undefined,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                if (response.status === 409) {
+                    setAuthMode('PASSWORD');
+                    setError(data.message || 'Этот email уже зарегистрирован. Пожалуйста, введите пароль.');
+                    return;
+                }
+                if (response.status === 401) {
+                    setAuthMode(prev => prev || 'PASSWORD');
+                    setError(data.message || data.error || 'Неверный пароль или код');
+                    return;
+                }
+                throw new Error(data.message || data.error || 'Ошибка при создании заказа');
+            }
+
+            if (data.requiresPayment && data.paymentUrl) {
+                // Smmplan Architecture: Broken Loop State Persistence
+                localStorage.setItem('smmplan_draft_order', JSON.stringify({
+                    expiresAt: Date.now() + 1000 * 60 * 60, // 1 hour TTL
+                    data: { link, serviceId: selectedService.id, quantity, isDripFeed, runs, interval }
+                }));
+
+                // Seamless Auth for Guests (Zero-Friction Journey)
+                if (data.loginToken) {
+                    try {
+                        await signIn('credentials', {
+                            magicToken: data.loginToken,
+                            redirect: false
+                        });
+                    } catch (authErr) {
+                        console.warn('[Seamless Auth] Failed to login before redirect, proceeding as guest', authErr);
+                    }
+                }
+
+                window.location.href = data.paymentUrl;
+            } else {
+                window.location.href = '/orders?payment=success';
+            }
+        } catch (error: any) {
+            console.error('Order Error:', error);
+            toast.error(error.message || 'Произошла ошибка при оформлении заказа. Попробуйте снова.');
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const totalPrice = useMemo(() => {
-        if (!selectedService) return 0;
-        const base = (selectedService.pricePer1000 * quantity) / 1000;
-        return Number((base * (isDripFeed ? runs : 1)).toFixed(2));
-    }, [selectedService, quantity, isDripFeed, runs]);
+    const availableCategories = useMemo(() => {
+        const platformServices = platform 
+            ? allServices.filter(s => s.platform.toUpperCase() === platform.toUpperCase())
+            : allServices;
+        
+        const filteredByTarget = detectedTargetType 
+            ? platformServices.filter(s => !s.targetType || s.targetType === 'ALL' || s.targetType === detectedTargetType)
+            : platformServices;
 
-    const isEmailValid = useMemo(() => {
-        if (session) return true;
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    }, [email, session]);
+        const cats = new Set(filteredByTarget.map(s => s.category));
+        const uniqueCats = Array.from(cats);
+        if (favoriteIds.length > 0) return ['FAVORITES', ...uniqueCats];
+        return uniqueCats;
+    }, [allServices, favoriteIds, platform, detectedTargetType]);
 
-    const isLinkValid = useMemo(() => {
-        return link.trim().length > 5 && (link.startsWith('http') || link.startsWith('https') || link.includes('.'));
-    }, [link]);
+    const filteredServices = useMemo(() => {
+        return allServices.filter(s => {
+            const isFavTab = selectedCategory === 'FAVORITES';
+            const matchesPlatform = !platform || s.platform.toUpperCase() === platform.toUpperCase();
+            
+            // Allow all favorites to be shown, even if they don't match platform
+            if (!isFavTab && !matchesPlatform) return false;
 
-    const isQuantityValid = useMemo(() => {
-        if (!selectedService) return false;
-        return quantity >= (selectedService.minQty || 1) && quantity <= (selectedService.maxQty || 1000000);
-    }, [quantity, selectedService]);
+            if (!isFavTab && detectedTargetType && s.targetType && s.targetType !== 'ALL') {
+                if (detectedTargetType === 'POST') {
+                    if (s.targetType !== 'POST' && s.targetType !== 'CHANNEL') return false;
+                } else if (s.targetType !== detectedTargetType) {
+                    return false;
+                }
+            }
 
-    const canSubmit = isLinkValid && isQuantityValid && isEmailValid && consent && !isSubmitting;
+            const matchesCategory = isFavTab ? favoriteIds.includes(s.id) : (!selectedCategory || s.category === selectedCategory);
+            const matchesSearch = !searchQuery || 
+                s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                (s.description || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+                s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (s.numericId || "").toString().includes(searchQuery);
+            return matchesCategory && matchesSearch;
+        });
+    }, [allServices, selectedCategory, searchQuery, favoriteIds, platform, detectedTargetType]);
+
+    const toggleFavorite = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const next = favoriteIds.includes(id) 
+            ? favoriteIds.filter(fid => fid !== id) 
+            : [...favoriteIds, id];
+        setFavoriteIds(next);
+        localStorage.setItem('smmplan_fav_services', JSON.stringify(next));
+    };
+
+    // Validation
+    const isLinkValid = link.length > 5;
+    const isQuantityValid = selectedService && quantity >= (selectedService.minQty || 1);
+    const isEmailValid = email.includes('@') && email.includes('.');
+    const isAuthValid = session || isEmailValid;
+    
+    // Check if auth fields are filled when required
+    const isAuthParamsValid = !authMode || 
+        (authMode === 'PASSWORD' && password.length >= 3) || 
+        (authMode === 'MAGIC' && magicCode.length >= 5);
+        
+    const isStepValid = isQtyMultiple;
+    
+    const validationError = useMemo(() => {
+        if (!selectedService || !analysisResult || isValidationBypassed || isManualMode) return null;
+        const serviceType = selectedService.targetType || 'POST';
+        const linkType = analysisResult.targetType || 'POST';
+        if (serviceType === linkType) return null;
+        if (serviceType === 'CHANNEL' && linkType === 'POST') return null;
+        return `Внимание: Вы выбрали услугу типа "${serviceType}", но ссылка ведет на "${linkType}". Это может привести к отмене заказа.`;
+    }, [selectedService, analysisResult, isValidationBypassed, isManualMode]);
+    const canSubmit = isLinkValid && isQuantityValid && isStepValid && isAuthValid && isAuthParamsValid && (!validationError || isValidationBypassed);
+
+    // Auto-select first category
+    useEffect(() => {
+        if (availableCategories.length > 0 && !selectedCategory) {
+            setSelectedCategory(availableCategories[0]);
+        }
+    }, [availableCategories, selectedCategory]);
+
+    // Auto-select first service to reduce friction (Zero-Click Ordering) ONLY on new platforms
+    const lastAutoSelectedPlatformRef = useRef<string | null>(null);
+    useEffect(() => {
+        if (platform && platform !== lastAutoSelectedPlatformRef.current && filteredServices.length > 0) {
+            setSelectedService(filteredServices[0]);
+            lastAutoSelectedPlatformRef.current = platform;
+        }
+    }, [filteredServices, platform]);
+
+    const activeBrandColor = 
+        platform === 'TELEGRAM' ? '#0088CC' : 
+        platform === 'INSTAGRAM' ? '#E1306C' : 
+        platform === 'VK' ? '#0077FF' : 
+        platform === 'YOUTUBE' ? '#FF0000' :
+        platform === 'TIKTOK' ? '#ff0050' :
+        platform === 'TWITTER' ? '#1DA1F2' :
+        platform === 'FACEBOOK' ? '#1877F2' :
+        '#3b82f6';
 
     return (
-        <div className={cn("w-full max-w-4xl mx-auto flex flex-col transition-all duration-500", platform ? "min-h-[560px]" : "min-h-0")}>
-            {/* 1. Ultra-Wide Search Block */}
-            <div className="relative group shrink-0 mb-8 px-4 flex flex-col items-center">
-                <div className="relative w-full max-w-4xl">
-                    <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center justify-center z-10 w-8">
-                        {analysisResult?.objectType && objectTypeIconComponents[analysisResult.objectType] ? (
-                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                                {objectTypeIconComponents[analysisResult.objectType]}
-                            </motion.div>
-                        ) : platform ? (
-                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                                {platformIconComponents[platform] || <Link2 className="text-slate-400 w-6 h-6" />}
-                            </motion.div>
-                        ) : (
-                            <Sparkles size={24} className="text-blue-500/30 animate-pulse" />
-                        )}
-                    </div>
-                    <input
-                        type="text"
-                        value={link}
-                        onChange={(e) => setLink(e.target.value)}
-                        placeholder="Вставьте ссылку и начните рост..."
-                        className="w-full h-16 pl-16 pr-16 bg-blue-100 border-2 border-blue-200 rounded-[2rem] text-lg font-bold text-blue-950 placeholder:text-blue-500/80 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all shadow-[0_0_40px_rgba(37,99,235,0.15)] relative"
-                    />
-                    {isAnalyzing && (
-                        <div className="absolute right-6 top-1/2 -translate-y-1/2">
-                            <Loader2 className="animate-spin text-blue-500 w-5 h-5" />
-                        </div>
-                    )}
-                    {platform && !isAnalyzing && (
-                        <div className="absolute right-6 top-1/2 -translate-y-1/2">
-                            <CheckCircle2 className="text-emerald-500 w-5 h-5" />
-                        </div>
-                    )}
-                </div>
-
-                <AnimatePresence>
-                    {platform && !isAnalyzing && (
+        <div className="w-full max-w-4xl mx-auto flex flex-col min-h-0 relative z-[100]">
+            <AnimatePresence>
+                {isExpanded && (
+                    <>
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className={cn(
-                                "mt-4 px-6 py-2.5 rounded-full flex items-center gap-3 shadow-lg transition-colors border",
-                                availableCategories.length > 0
-                                    ? "bg-emerald-50 border-emerald-100 text-emerald-700"
-                                    : "bg-amber-50 border-amber-100 text-amber-700"
-                            )}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsExpanded(false)}
+                            className="fixed inset-0 bg-slate-950/80 backdrop-blur-3xl z-[9000]"
+                        />
+
+                        <motion.div
+                            variants={scaleIn}
+                            initial="hidden"
+                            animate="show"
+                            exit="hidden"
+                            className="fixed inset-0 z-[9999] bg-slate-50 flex flex-col"
                         >
-                            <div className={cn("w-2.5 h-2.5 rounded-full animate-pulse", availableCategories.length > 0 ? "bg-emerald-500" : "bg-amber-500")} />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">
-                                {availableCategories.length > 0
-                                    ? `Платформа ${translatePlatform(platform)} распознана. Выберите тариф:`
-                                    : `Платформа ${translatePlatform(platform)} распознана, но услуги временно недоступны.`
-                                }
-                            </span>
+                            {/* Premium Site-Synced Header */}
+                            <div className="w-full bg-white/70 backdrop-blur-xl border-b border-slate-100 px-4 md:px-8 py-3.5 flex items-center justify-between shadow-sm sticky top-0 z-[10010] min-h-[72px]">
+                                <div className="flex items-center gap-6">
+                                    <Link href="/" className="flex items-center gap-2 group pointer-events-auto" onClick={() => setIsExpanded(false)}>
+                                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform shadow-lg shadow-blue-500/20">
+                                            <Rocket className="text-white w-5 h-5" />
+                                        </div>
+                                        <div className="hidden sm:flex flex-col">
+                                            <span className="text-lg font-black tracking-tighter text-slate-900 leading-none">
+                                                Smmplan
+                                            </span>
+                                            <span className="text-[7px] font-bold text-blue-600 uppercase tracking-[0.3em] mt-0.5">Premium SMM</span>
+                                        </div>
+                                    </Link>
+
+                                    <div className="h-8 w-px bg-slate-100 hidden md:block" />
+
+                                    {/* trust indicators infusion */}
+                                    <div className="hidden lg:flex items-center gap-6">
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-1">
+                                                <Star size={12} className="text-amber-400 fill-amber-400" />
+                                                <span className="text-[11px] font-black text-slate-900">4.9/5</span>
+                                            </div>
+                                            <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none">Rating</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[11px] font-black text-slate-900">45,000+</span>
+                                            <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none">Brands</span>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* AI Status Badge */}
+                                    <div className="flex items-center gap-3 px-4 py-2 bg-blue-500/5 rounded-full border border-blue-500/10 scale-90 md:scale-100">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600/80">
+                                            Cognitive AI v5.0
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 md:gap-4">
+                                    <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-emerald-500/5 border border-emerald-500/10 rounded-full">
+                                        <ShieldCheck size={14} className="text-emerald-500" />
+                                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Safe Order</span>
+                                    </div>
+                                    <button 
+                                        onClick={() => setIsExpanded(false)}
+                                        className="w-10 h-10 flex items-center justify-center rounded-2xl bg-slate-50 hover:bg-slate-100 transition-all active:scale-90 border border-slate-100 text-slate-500 group pointer-events-auto"
+                                    >
+                                        <X size={20} className="group-hover:rotate-90 transition-transform" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div 
+                                className="overflow-hidden flex flex-col w-full h-full border-t-4"
+                                style={{ borderTopColor: platform ? activeBrandColor : '#3b82f6' }}
+                            >
+                                <motion.div 
+                                    variants={staggerContainer}
+                                    initial="hidden"
+                                    animate="show"
+                                    className="p-3 md:p-6 space-y-4 md:space-y-5 overflow-y-auto w-full max-w-2xl mx-auto h-full no-scrollbar pb-32"
+                                >
+                                    {/* Action Header for Context */}
+                                    {!selectedService ? (
+                                        <motion.div variants={fadeInUp} className="space-y-6 mb-4">
+                                            {/* Trust Ribbon Infusion */}
+                                            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 bg-blue-600/5 border border-blue-600/10 rounded-3xl px-6 py-4 max-w-3xl mx-auto backdrop-blur-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex -space-x-2">
+                                                        {[1, 2, 3].map((i) => (
+                                                            <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-slate-200 overflow-hidden">
+                                                                <img src={`https://i.pravatar.cc/100?u=${i + 10}`} alt="User" />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-[9px] font-black text-slate-900 uppercase">45k+ Доверяют нам</span>
+                                                </div>
+                                                <div className="h-4 w-px bg-slate-200 hidden md:block" />
+                                                <div className="flex items-center gap-2">
+                                                    <StarIcon size={14} className="text-amber-400 fill-amber-400" />
+                                                    <span className="text-[10px] font-black text-slate-900">Высочайшее качество (4.9/5)</span>
+                                                </div>
+                                                <div className="h-4 w-px bg-slate-200 hidden md:block" />
+                                                <div className="flex items-center gap-2">
+                                                    <ShieldCheck size={14} className="text-blue-500" />
+                                                    <span className="text-[10px] font-black text-slate-900">Защита 24/7</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="text-center max-w-2xl mx-auto space-y-2">
+                                                <h3 className="text-2xl md:text-3xl font-black text-slate-950 uppercase italic leading-tight tracking-tighter">
+                                                    Умный <span className="text-blue-600">Заказ</span>
+                                                </h3>
+                                                <div className="flex items-center justify-center gap-3">
+                                                    <div className="h-px w-8 bg-slate-200" />
+                                                    <span className="text-[10px] text-blue-600 font-black uppercase tracking-[0.3em]">Интеллектуальный AI-парсинг</span>
+                                                    <div className="h-px w-8 bg-slate-200" />
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    ) : (
+                                        <motion.div variants={fadeInUp} className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-950 rounded-2xl p-5 text-white shadow-xl shadow-blue-900/10 mb-4 relative overflow-hidden group border border-white/5">
+                                            <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-all duration-700 -translate-y-2 translate-x-2 pointer-events-none">
+                                                {platform && <BrandIcon name={platform.toLowerCase()} size={80} colorMode="white" />}
+                                            </div>
+                                            <div className="relative z-10 flex items-center justify-between gap-4">
+                                                <div className="space-y-1 min-w-0 flex-1">
+                                                    <span className="text-blue-400 text-[7px] font-black uppercase tracking-[0.3em]">Активная услуга</span>
+                                                    <h2 className="text-lg md:text-xl font-black tracking-tight leading-tight line-clamp-2">
+                                                        {cleanServiceName(selectedService.name)}
+                                                    </h2>
+                                                    <div className="flex items-center gap-3 pt-1">
+                                                        <span className="text-blue-400 font-black text-sm">{formatUnitPrice(selectedService.pricePer1000)} ₽<span className="text-[7px] text-blue-400/60 font-bold ml-1">/ шт</span></span>
+                                                        <span className="text-[7px] text-slate-500">•</span>
+                                                        <span className="text-[8px] text-slate-400 font-bold">от {selectedService.minQty} шт</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setShowServiceInfo(!showServiceInfo)}
+                                                        className={cn("w-9 h-9 rounded-xl border flex items-center justify-center transition-all relative z-20", showServiceInfo ? "bg-white/15 border-white/30" : "bg-white/5 hover:bg-white/10 border-white/10")}
+                                                        title="Характеристики услуги"
+                                                    >
+                                                        <Info size={14} className="text-white/60" />
+                                                    </button>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => { setSelectedService(null); setShowServiceInfo(false); setWizardStep('INPUT'); }}
+                                                        className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[8px] font-black uppercase tracking-widest transition-all relative z-20"
+                                                    >
+                                                        Изменить
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            {/* Inline Service Info Panel */}
+                                            <AnimatePresence>
+                                                {showServiceInfo && selectedService && (
+                                                    <motion.div 
+                                                        initial={{ opacity: 0, height: 0 }}
+                                                        animate={{ opacity: 1, height: 'auto' }}
+                                                        exit={{ opacity: 0, height: 0 }}
+                                                        className="overflow-hidden"
+                                                    >
+                                                        <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+                                                            {selectedService.description && (
+                                                                <p className="text-[10px] text-slate-300 leading-relaxed">{selectedService.description}</p>
+                                                            )}
+                                                            {selectedService.requirements && (
+                                                                <p className="text-[9px] text-amber-400/80 flex items-start gap-1.5">
+                                                                    <AlertTriangle size={10} className="shrink-0 mt-0.5" />
+                                                                    {selectedService.requirements}
+                                                                </p>
+                                                            )}
+                                                            <div className="flex flex-wrap gap-2 text-[8px] text-slate-400">
+                                                                <span>Мин: {selectedService.minQty} шт</span>
+                                                                {selectedService.maxQty && <span>• Макс: {selectedService.maxQty} шт</span>}
+                                                                {selectedService.qtyStep && <span>• Шаг: ±{selectedService.qtyStep}</span>}
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </motion.div>
+                                    )}
+
+                                    {/* SERVICE INFO & QUICK STATS: Digital Obsidian Style */}
+                                    <AnimatePresence>
+                                        {selectedService && (
+                                            <motion.div 
+                                                initial={{ opacity: 0, y: -10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="flex flex-wrap gap-1.5 mb-3"
+                                            >
+                                                {(() => {
+                                                    const meta = parseServiceMeta(selectedService);
+                                                    return (<>
+                                                        <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[8px] font-bold uppercase tracking-wide border",
+                                                            meta.guaranteeColor === 'rose' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                        )}>
+                                                            <ShieldCheck size={10} />
+                                                            {meta.guarantee}
+                                                        </span>
+                                                        <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[8px] font-bold uppercase tracking-wide border",
+                                                            meta.qualityColor === 'amber' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-slate-50 text-slate-500 border-slate-100'
+                                                        )}>
+                                                            <Zap size={10} />
+                                                            {meta.quality}
+                                                        </span>
+                                                        <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[8px] font-bold uppercase tracking-wide border",
+                                                            meta.dropoffColor === 'amber' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                        )}>
+                                                            <RotateCcw size={10} />
+                                                            Списания: {meta.dropoff}
+                                                        </span>
+                                                    </>);
+                                                })()}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                    <div className="space-y-3">
+                                        {/* Row 1: Link & Quantity */}
+                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                                            {/* Link Input (8/12) */}
+                                            <div className="md:col-span-8 relative group">
+                                                <div className="absolute inset-0 bg-blue-600/5 rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                                                <div className="relative h-16 md:h-14 bg-blue-50/40 border-2 border-slate-300 rounded-2xl px-4 flex items-center group-focus-within:border-blue-500 group-focus-within:ring-4 group-focus-within:ring-blue-100 transition-all shadow-sm">
+                                                    {analysisResult && platform ? (
+                                                        <div className="mr-3 shrink-0"><BrandIcon name={platform.toLowerCase()} size={18} /></div>
+                                                    ) : (
+                                                        <Link2 className="text-slate-400 mr-3 shrink-0" size={18} />
+                                                    )}
+                                                    <div className="flex flex-col flex-1 mt-0.5">
+                                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{(() => {
+                                                            const svcPlatform = selectedService?.platform;
+                                                            const pName = svcPlatform ? (PLATFORMS[svcPlatform as keyof typeof PLATFORMS] || svcPlatform) : (platform ? (PLATFORMS[platform as keyof typeof PLATFORMS] || platform) : null);
+                                                            const rawType = selectedService?.targetType;
+                                                            const tType = (rawType && rawType !== 'ALL') ? translateTargetType(rawType) : null;
+                                                            if (tType && pName) return `Ссылка на ${tType} ${pName}`;
+                                                            if (tType) return `Ссылка на ${tType}`;
+                                                            if (pName) return `Ссылка на ${pName}`;
+                                                            return 'Вставьте ссылку';
+                                                        })()}</span>
+                                                        <input 
+                                                            value={link}
+                                                            onChange={(e) => setLink(e.target.value)}
+                                                            placeholder="https://t.me/example"
+                                                            className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-slate-950 font-black text-sm md:text-xs p-0 h-5 md:h-4 placeholder:text-slate-300"
+                                                        />
+                                                    </div>
+                                                    {isAnalyzing && <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full ml-2" />}
+                                                </div>
+                                            </div>
+
+                                            {/* Quantity Control (4/12) */}
+                                            <div className="md:col-span-4 space-y-1.5">
+                                                <div className="h-14 bg-slate-100/50 border border-slate-200 rounded-2xl p-1 flex items-stretch">
+                                                    <button 
+                                                        onClick={() => setQuantity(Math.max(selectedService?.minQty || 1, quantity - (selectedService?.qtyStep || 10)))} 
+                                                        className="w-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-950 transition-all shadow-sm"
+                                                    >
+                                                        <ChevronLeft size={18}/>
+                                                    </button>
+                                                    <div className="flex-1 flex flex-col justify-center items-center">
+                                                        <input 
+                                                            type="number" 
+                                                            value={quantity} 
+                                                            onChange={(e) => setQuantity(parseInt(e.target.value) || 0)} 
+                                                            className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-slate-950 text-center font-black text-base p-0 w-full leading-none" 
+                                                        />
+                                                        <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mt-0.5">Количество</span>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => setQuantity(quantity + (selectedService?.qtyStep || 10))} 
+                                                        className="w-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-950 transition-all shadow-sm"
+                                                    >
+                                                        <ChevronRight size={18}/>
+                                                    </button>
+                                                </div>
+                                                {/* Smart Quantity Presets */}
+                                                {selectedService && (() => {
+                                                    const min = selectedService.minQty || 1;
+                                                    const max = selectedService.maxQty;
+                                                    const step = selectedService.qtyStep || 10;
+                                                    const standards = [100, 500, 1000, 5000, 10000];
+                                                    let presets = standards.filter(v => v >= min && (!max || v <= max));
+                                                    // Add minQty as first preset if it's not already a standard value
+                                                    if (min > 1 && !standards.includes(min)) presets = [min, ...presets];
+                                                    presets = presets.slice(0, 5);
+                                                    return presets.length > 0 ? (
+                                                        <div className="flex gap-1">
+                                                            {presets.map((preset) => (
+                                                                <button
+                                                                    key={preset}
+                                                                    onClick={() => setQuantity(preset)}
+                                                                    className={cn(
+                                                                        "flex-1 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all border",
+                                                                        quantity === preset 
+                                                                            ? "bg-blue-600 text-white border-blue-600 shadow-sm" 
+                                                                            : "bg-white text-slate-500 border-slate-200 hover:border-blue-200 hover:text-blue-600"
+                                                                    )}
+                                                                >
+                                                                    {preset >= 1000 ? `${preset / 1000}K` : preset}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    ) : null;
+                                                })()}
+                                            </div>
+                                        </div>
+
+                                        {/* Row 2: Email & Actions */}
+                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
+                                            {/* Email/Auth Sector (5/12) */}
+                                            <div className="md:col-span-6 flex flex-col gap-2">
+                                                {!session ? (
+                                                    <motion.div className={cn("relative group bg-blue-50/40 border-2 rounded-2xl flex flex-col overflow-hidden transition-all", authMode ? "border-blue-500 ring-4 ring-blue-100 shadow-sm" : "border-slate-300 shadow-sm focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100")}>
+                                                        {/* Email Input */}
+                                                        <div className="relative h-16 px-4 flex items-center bg-transparent z-10">
+                                                            <Mail className={cn("mr-3 shrink-0 transition-colors", authMode ? "text-blue-500" : "text-slate-400")} size={18} />
+                                                            <div className="flex-1 flex flex-col mt-0.5">
+                                                                <span className={cn("text-[8px] font-black uppercase tracking-widest leading-none mb-1 transition-colors", authMode ? "text-blue-500" : "text-slate-400")}>Ваш Email для чека</span>
+                                                                <input 
+                                                                    type="email"
+                                                                    name="email"
+                                                                    id="order-email"
+                                                                    value={email}
+                                                                    onBlur={handleEmailBlur}
+                                                                    onChange={(e) => setEmail(e.target.value)}
+                                                                    placeholder="mail@example.com"
+                                                                    autoComplete="email"
+                                                                    className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-slate-950 font-black text-sm p-0 h-5 placeholder:text-slate-300"
+                                                                />
+                                                            </div>
+                                                            {authMode && (
+                                                                <span className="text-[7px] font-black text-amber-600 bg-amber-50 px-1.5 py-1 rounded-md uppercase tracking-widest ml-2 border border-amber-100/50">
+                                                                    Требуется {authMode === 'PASSWORD' ? 'Пароль' : 'Код'}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        
+                                                        {/* Auth Inline Popover (Seamless Accordion) */}
+                                                        <AnimatePresence>
+                                                            {authMode && (
+                                                                <motion.div 
+                                                                    initial={{ height: 0, opacity: 0 }} 
+                                                                    animate={{ height: 'auto', opacity: 1 }} 
+                                                                    exit={{ height: 0, opacity: 0 }}
+                                                                    className="border-t border-slate-200/50 bg-white"
+                                                                >
+                                                                    <div className="p-3 pl-4 flex items-center gap-3">
+                                                                        <Key className="text-blue-600 shrink-0" size={16} />
+                                                                        <div className="flex-1 flex flex-col mt-0.5 relative">
+                                                                            <div className="flex items-center justify-between mb-1">
+                                                                                <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                                                                                    {authMode === 'PASSWORD' ? "Введите пароль" : "Код из почты"}
+                                                                                </span>
+                                                                                {authMode === 'PASSWORD' && (
+                                                                                    <button 
+                                                                                        type="button"
+                                                                                        onClick={handleSendMagicCode}
+                                                                                        disabled={isSendingCode}
+                                                                                        className="text-[7px] font-black text-blue-600 hover:text-blue-500 uppercase tracking-widest leading-none"
+                                                                                    >
+                                                                                        {isSendingCode ? 'Отправляем...' : 'Забыли пароль?'}
+                                                                                    </button>
+                                                                                )}
+                                                                            </div>
+                                                                            <input 
+                                                                                type={authMode === 'PASSWORD' ? 'password' : 'text'}
+                                                                                name={authMode === 'PASSWORD' ? 'password' : 'code'}
+                                                                                id={authMode === 'PASSWORD' ? 'order-password' : 'order-code'}
+                                                                                value={authMode === 'PASSWORD' ? password : magicCode}
+                                                                                autoFocus
+                                                                                onChange={(e) => {
+                                                                                    if (error) setError(null);
+                                                                                    authMode === 'PASSWORD' ? setPassword(e.target.value) : setMagicCode(e.target.value);
+                                                                                }}
+                                                                                placeholder="••••••••"
+                                                                                className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-slate-950 text-sm font-black p-0 h-5"
+                                                                            />
+                                                                        </div>
+                                                                        {authMode === 'MAGIC' && !magicCode && (
+                                                                            <button 
+                                                                                type="button"
+                                                                                onClick={handleSendMagicCode}
+                                                                                disabled={isSendingCode}
+                                                                                className="h-8 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all shadow-md shadow-slate-900/20"
+                                                                            >
+                                                                                {isSendingCode ? '...' : 'Выслать'}
+                                                                            </button>
+                                                                        )}
+                                                                        <button type="button" onClick={() => setAuthMode(null)} className="h-8 w-8 flex items-center justify-center bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors ml-1 shrink-0">
+                                                                            <X size={14} />
+                                                                        </button>
+                                                                    </div>
+                                                                    
+                                                                    {/* Inline Auth Error */}
+                                                                    {error && !validationError && (
+                                                                        <div className="px-4 pb-3 pt-1">
+                                                                            <p className="text-[9px] font-bold text-rose-500 uppercase tracking-tight leading-tight italic">
+                                                                                {error}
+                                                                            </p>
+                                                                        </div>
+                                                                    )}
+                                                                </motion.div>
+                                                            )}
+                                                        </AnimatePresence>
+                                                    </motion.div>
+                                                ) : (
+                                                    <div className="h-16 bg-slate-50 border border-slate-200 rounded-2xl flex items-center px-4">
+                                                        <User size={18} className="text-blue-600 mr-3 shrink-0" />
+                                                        <div className="flex flex-col mt-0.5 min-w-0">
+                                                            <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest leading-none mb-1">Личный кабинет</span>
+                                                            <span className="text-sm font-black text-slate-950 truncate">{session.user?.email}</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* ACTION: Split Price/Pay Button & Cart (7/12) */}
+                                            <div className="md:col-span-6 flex items-stretch gap-2 h-16">
+                                                <div className="flex-1 bg-blue-600 rounded-2xl p-1 flex items-stretch shadow-xl shadow-blue-600/20 group">
+                                                    {/* Price Part */}
+                                                    <div className="flex-[0.4] bg-white/10 rounded-xl flex flex-col justify-center items-center px-2 sm:px-4">
+                                                        <span className="text-[7px] font-black text-blue-100 uppercase tracking-widest leading-none mb-1 opacity-70">Итоговая стоимость</span>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-lg sm:text-xl font-black text-white leading-none">{selectedService ? formatCartTotal(selectedService.pricePer1000, quantity) : '0,00'}</span>
+                                                            <span className="text-[10px] font-black text-blue-200 uppercase italic leading-none">₽</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {/* Action Part */}
+                                                    <button 
+                                                        onClick={handleOrder}
+                                                        disabled={!canSubmit || isSubmitting}
+                                                        className={cn(
+                                                            "flex-[0.6] flex items-center justify-center gap-2 sm:gap-3 text-white font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all",
+                                                            (!canSubmit || isSubmitting) ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02] active:scale-95"
+                                                        )}
+                                                    >
+                                                        {isSubmitting ? (
+                                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                        ) : (
+                                                            <>
+                                                                Оплатить заказ
+                                                                <Zap size={14} className="fill-white shrink-0" />
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+
+                                                {/* Cart Button */}
+                                                <button 
+                                                    onClick={handleAddToCart} 
+                                                    disabled={!canSubmit} 
+                                                    className={cn(
+                                                        "w-16 h-16 shrink-0 rounded-2xl flex items-center justify-center transition-all border",
+                                                        canSubmit 
+                                                            ? "bg-slate-100 text-slate-600 border-slate-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200" 
+                                                            : "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"
+                                                    )}
+                                                >
+                                                    <ShoppingBag size={20}/>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {/* Trust Micro-Strip */}
+                                        <div className="flex items-center justify-center gap-3 py-1">
+                                            <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1"><CheckCircle2 size={10} className="text-emerald-500" /> Безопасная оплата</span>
+                                            <span className="text-slate-200">•</span>
+                                            <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1"><Zap size={10} className="text-blue-500" /> Мгновенный старт</span>
+                                            <span className="text-slate-200">•</span>
+                                            <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1"><ShieldCheck size={10} className="text-emerald-500" /> Гарантия</span>
+                                        </div>
+                                        {/* Advanced Settings Toggle */}
+                                        <div className="pt-3">
+                                            <button 
+                                                onClick={() => setShowAdvanced(!showAdvanced)}
+                                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[9px] font-black text-slate-500 uppercase tracking-widest hover:bg-slate-100 hover:text-blue-600 hover:border-blue-200 transition-all w-full justify-center"
+                                            >
+                                                <div className={cn("transition-transform", showAdvanced && "rotate-180")}>
+                                                    <ChevronDown size={14} />
+                                                </div>
+                                                Продвинутые настройки
+                                            </button>
+                                        </div>
+
+                                        {/* Advanced Settings Panel: Light Theme */}
+                                        <AnimatePresence>
+                                            {showAdvanced && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    className="overflow-hidden"
+                                                >
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl mt-3">
+                                                        {/* Drip-Feed Section */}
+                                                        <div className="space-y-3">
+                                                            <button 
+                                                                onClick={() => setIsDripFeed(!isDripFeed)}
+                                                                className={cn(
+                                                                    "w-full flex items-center justify-between p-3 rounded-xl border transition-all",
+                                                                    isDripFeed ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-white border-slate-200"
+                                                                )}
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", isDripFeed ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-400")}>
+                                                                        <Layers size={14} />
+                                                                    </div>
+                                                                    <div className="text-left">
+                                                                        <span className={cn("text-[10px] font-black uppercase block leading-none", isDripFeed ? "text-blue-700" : "text-slate-900")}>Drip-Feed</span>
+                                                                        <span className={cn("text-[7px] font-bold uppercase tracking-widest leading-none mt-1", isDripFeed ? "text-blue-500" : "text-slate-400")}>Растянуть выполнение</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", isDripFeed ? "border-blue-600 bg-blue-600" : "border-slate-200")}>
+                                                                    {isDripFeed && <CheckCircle2 size={10} className="text-white font-bold" />}
+                                                                </div>
+                                                            </button>
+
+                                                            {isDripFeed && (
+                                                                <div className="grid grid-cols-2 gap-2">
+                                                                    <div className="bg-white border border-slate-200 rounded-xl p-2.5">
+                                                                        <span className="text-[7px] font-black text-slate-400 uppercase block mb-1">Запусков (Runs)</span>
+                                                                        <input 
+                                                                            type="number" 
+                                                                            value={runs} 
+                                                                            onChange={(e) => setRuns(parseInt(e.target.value) || 2)}
+                                                                            className="w-full bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-slate-950 font-black text-sm p-0"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="bg-white border border-slate-200 rounded-xl p-2.5">
+                                                                        <span className="text-[7px] font-black text-slate-400 uppercase block mb-1">Интервал (мин)</span>
+                                                                        <input 
+                                                                            type="number" 
+                                                                            value={interval} 
+                                                                            onChange={(e) => setInterval(parseInt(e.target.value) || 30)}
+                                                                            className="w-full bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-slate-950 font-black text-sm p-0"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Schedule Section */}
+                                                        <div className="space-y-3">
+                                                            <button 
+                                                                onClick={() => setIsScheduled(!isScheduled)}
+                                                                className={cn(
+                                                                    "w-full flex items-center justify-between p-3 rounded-xl border transition-all",
+                                                                    isScheduled ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-white border-slate-200"
+                                                                )}
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", isScheduled ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400")}>
+                                                                        <Calendar size={14} />
+                                                                    </div>
+                                                                    <div className="text-left">
+                                                                        <span className={cn("text-[10px] font-black uppercase block leading-none", isScheduled ? "text-emerald-700" : "text-slate-900")}>Планировщик</span>
+                                                                        <span className={cn("text-[7px] font-bold uppercase tracking-widest leading-none mt-1", isScheduled ? "text-emerald-500" : "text-slate-400")}>Отложенный старт</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", isScheduled ? "border-emerald-600 bg-emerald-600" : "border-slate-200")}>
+                                                                    {isScheduled && <CheckCircle2 size={10} className="text-white font-bold" />}
+                                                                </div>
+                                                            </button>
+
+                                                            {isScheduled && (
+                                                                <div className="grid grid-cols-1 gap-2">
+                                                                    <div className="bg-white border border-slate-200 rounded-xl p-2.5">
+                                                                        <span className="text-[7px] font-black text-slate-400 uppercase block mb-1">Дата и время запуска</span>
+                                                                        <input 
+                                                                            type="datetime-local" 
+                                                                            value={scheduleTime} 
+                                                                            onChange={(e) => setScheduleTime(e.target.value)}
+                                                                            className="w-full bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-slate-950 font-black text-xs p-0"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                        <AnimatePresence>
+                                            {validationError && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    className="relative overflow-hidden mt-4"
+                                                >
+                                                    <div className="px-5 py-4 rounded-2xl border bg-amber-50 border-amber-200">
+                                                        <div className="flex items-start gap-4">
+                                                            <AlertCircle size={20} className="text-amber-500 shrink-0 mt-0.5" />
+                                                            <div className="flex flex-col gap-3">
+                                                                <span className="text-[10px] sm:text-xs font-black uppercase tracking-tight italic text-amber-700 leading-snug">
+                                                                    {validationError}
+                                                                </span>
+                                                                <label className="flex items-center gap-2 cursor-pointer group w-fit">
+                                                                    <div className={cn("w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors", isValidationBypassed ? "bg-amber-500 border-amber-500" : "bg-white border-amber-200 group-hover:border-amber-400")}>
+                                                                        {isValidationBypassed && <Check size={14} className="text-white font-bold" />}
+                                                                    </div>
+                                                                    <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest leading-none select-none">
+                                                                        Осознаю риски, продолжить заказ
+                                                                    </span>
+                                                                    <input type="checkbox" className="hidden" checked={isValidationBypassed} onChange={(e) => setIsValidationBypassed(e.target.checked)} />
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </motion.div>
+                            </div>
+
+                            {/* Footer Trust Bar: Simplified */}
+                                <div className="border-t border-slate-100 bg-white/50 backdrop-blur-md py-3 px-6 mt-auto">
+                                    <div className="flex items-center justify-center gap-4">
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                            <span className="text-[8px] font-bold text-slate-400">Карта / СБП / Крипто</span>
+                                        </div>
+                                        <span className="text-slate-200">•</span>
+                                        <span className="text-[8px] font-bold text-slate-400">Гарантия возврата</span>
+                                        <span className="text-slate-200">•</span>
+                                        <Link href="/terms" className="text-[8px] font-bold text-slate-300 hover:text-blue-500 transition-colors">Оферта</Link>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
+
+                {/* Service Details Overlay: Light Theme Refined */}
+                <AnimatePresence>
+                    {detailService && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm"
+                            onClick={() => setDetailService(null)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-100"
+                            >
+                                <div className="px-8 py-7 border-b border-slate-50 flex items-center justify-between bg-gradient-to-r from-blue-600 to-blue-700 text-white relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12 scale-150">
+                                        <Info size={100} />
+                                    </div>
+                                    <div className="flex items-center gap-4 relative z-10">
+                                        <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
+                                            <Info size={24} className="text-white" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-100 italic">Характеристики</h4>
+                                            <p className="text-[9px] font-bold text-white/70 uppercase tracking-widest mt-0.5">ID: {detailService.numericId || detailService.id}</p>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => setDetailService(null)}
+                                        className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all group relative z-10"
+                                    >
+                                        <X size={20} className="group-hover:rotate-90 transition-transform text-white/80" />
+                                    </button>
+                                </div>
+                                <div className="p-8 space-y-6">
+                                    <div>
+                                        <h3 className="text-2xl font-black text-slate-900 uppercase italic leading-tight mb-4 tracking-tighter">{detailService.name}</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[9px] font-black uppercase">{translatePlatform(detailService.platform)}</span>
+                                            <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-[9px] font-black uppercase">{translateCategory(detailService.category)}</span>
+                                        </div>
+                                    </div>
+
+                                    {detailService.requirements && (
+                                        <div className="bg-amber-50 rounded-2xl p-5 border border-amber-100">
+                                            <div className="flex items-center gap-2 mb-2 text-amber-700">
+                                                <AlertTriangle size={14} />
+                                                <span className="text-[9px] font-black uppercase tracking-wider">Важно</span>
+                                            </div>
+                                            <p className="text-xs font-bold text-amber-950 leading-relaxed uppercase italic">{detailService.requirements}</p>
+                                        </div>
+                                    )}
+
+                                    {detailService.description && (
+                                        <div className="space-y-2">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Описание</span>
+                                            <p className="text-sm text-slate-600 leading-relaxed font-medium italic whitespace-pre-wrap">{detailService.description}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-2 gap-4 pt-6 mt-6 border-t border-slate-50">
+                                        <div className="bg-slate-50 p-4 rounded-2xl">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Объем</span>
+                                            <p className="text-[10px] font-black text-slate-900 uppercase tracking-tight italic">{detailService.minQty} - {detailService.maxQty || '∞'}</p>
+                                        </div>
+                                        <div className="bg-blue-50 p-4 rounded-2xl text-right">
+                                            <span className="text-[9px] font-black text-blue-400 uppercase tracking-wider block mb-1">Цена</span>
+                                            <p className="text-lg font-black text-blue-600 italic">{formatUnitPrice(detailService.pricePer1000)}₽ <span className="text-[8px] uppercase text-blue-400 not-italic">/ шт</span></p>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={() => { setSelectedService(detailService); setDetailService(null); }}
+                                        className="w-full h-16 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] italic hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 active:scale-[0.98]"
+                                    >
+                                        Выбрать эту услугу
+                                    </button>
+                                </div>
+                            </motion.div>
                         </motion.div>
                     )}
                 </AnimatePresence>
             </div>
-
-            <AnimatePresence mode="wait">
-                {platform ? (
-                    <motion.div
-                        key="interface"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        className="flex-1 flex flex-col min-h-0"
-                    >
-                        {/* 2. Bento-Style Categories Navigation */}
-                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-2 px-4 shrink-0 mb-6">
-                            {availableCategories.map((cat) => (
-                                <button
-                                    key={cat}
-                                    onClick={() => setSelectedCategory(cat)}
-                                    className={cn(
-                                        "px-6 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border-2 shrink-0",
-                                        selectedCategory === cat
-                                            ? "bg-blue-600 border-blue-600 text-white shadow-xl shadow-blue-500/20 scale-105"
-                                            : "bg-white border-slate-100 text-slate-400 hover:text-slate-600 hover:border-slate-200"
-                                    )}
-                                >
-                                    {translateCategory(cat)}
-                                </button>
-                            ))}
-
-                            <button
-                                onClick={() => window.location.href = `/catalog?link=${encodeURIComponent(link)}`}
-                                className="px-6 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border-2 shrink-0 bg-slate-50 border-slate-200 text-slate-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 flex items-center gap-2"
-                            >
-                                <Info size={14} className="opacity-70" />
-                                Не нашли услугу?
-                            </button>
-                        </div>
-
-                        {/* Smart Analyzer Warning */}
-                        <AnimatePresence>
-                            {categoryWarning && (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, height: 'auto', scale: 1 }}
-                                    exit={{ opacity: 0, height: 0, scale: 0.95 }}
-                                    className="px-4 mb-6 z-50 relative"
-                                >
-                                    <div className="bg-orange-50/80 border border-orange-200/50 rounded-[1.5rem] p-4 flex items-start flex-col gap-4 shadow-sm relative z-50 overflow-visible">
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none" />
-                                        <div className="flex items-center gap-3 w-full">
-                                            <Flame size={20} className="text-orange-500 shrink-0 mt-0.5" />
-                                            <h4 className="text-[10px] font-bold uppercase tracking-widest text-orange-700">ИИ АНАЛИЗАТОР: РИСК ОШИБКИ</h4>
-                                        </div>
-                                        <div className="space-y-1 relative z-10 w-full mt-2">
-                                            <p className="text-xs font-medium text-orange-900/80 leading-relaxed italic pr-1">{categoryWarning}&nbsp;</p>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
-                        {/* 3. Next-Gen Grid System */}
-                        <div className="flex-1 overflow-y-auto no-scrollbar px-4 pt-1 pb-12">
-                            {/* Secondary Privacy Toggle for Invite Links */}
-                            <AnimatePresence>
-                                {analysisResult?.isPrivate && selectedCategory && (
-                                    <motion.div
-                                        initial={{ opacity: 0, height: 0, y: -10 }}
-                                        animate={{ opacity: 1, height: 'auto', y: 0 }}
-                                        exit={{ opacity: 0, height: 0, y: -10 }}
-                                        className="mb-6"
-                                    >
-                                        <div className="flex bg-slate-100 p-1.5 rounded-2xl w-full max-w-sm mx-auto shadow-inner">
-                                            <button
-                                                onClick={() => setPrivacyFilter('PUBLIC')}
-                                                className={cn(
-                                                    "flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all",
-                                                    privacyFilter === 'PUBLIC'
-                                                        ? "bg-white text-blue-600 shadow-md scale-100"
-                                                        : "text-slate-400 hover:text-slate-600 scale-95"
-                                                )}
-                                            >
-                                                Открытый канал
-                                            </button>
-                                            <button
-                                                onClick={() => setPrivacyFilter('PRIVATE')}
-                                                className={cn(
-                                                    "flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all",
-                                                    privacyFilter === 'PRIVATE'
-                                                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20 scale-100"
-                                                        : "text-slate-400 hover:text-slate-600 scale-95"
-                                                )}
-                                            >
-                                                Приватный канал
-                                            </button>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-
-                            {currentServices.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                                    <AnimatePresence>
-                                        {currentServices.map((service, idx) => (
-                                            <motion.div
-                                                key={service.id}
-                                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                transition={{ delay: idx * 0.05 }}
-                                                whileHover={{ y: -8, scale: 1.02 }}
-                                                onClick={() => {
-                                                    setSelectedService(service);
-                                                    setQuantity(100); // Reset to default
-                                                    setIsDripFeed(false);
-                                                }}
-                                                className={cn(
-                                                    "relative group border rounded-[2.5rem] p-6 transition-all flex flex-col justify-between overflow-hidden min-h-[340px] cursor-pointer",
-                                                    service.isHot
-                                                        ? "bg-gradient-to-br from-orange-500 via-rose-600 to-purple-700 border-white/20 shadow-[0_20px_50px_-10px_rgba(244,63,94,0.3)]"
-                                                        : "bg-gradient-to-br from-slate-900 via-blue-950 to-blue-900 border-white/10 shadow-[0_20px_50px_-10px_rgba(30,58,138,0.3)]"
-                                                )}
-                                            >
-                                                {/* Animated Holographic Glow */}
-                                                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
-                                                    <div className="absolute -inset-[100%] animate-[spin_8s_linear_infinite] bg-[conic-gradient(from_0deg,transparent,rgba(255,255,255,0.1),transparent,rgba(255,255,255,0.1),transparent)]" />
-                                                </div>
-
-                                                {/* Card Background Patterns */}
-                                                <div className="absolute top-0 right-0 p-8 opacity-5">
-                                                    <BrandIcon name={platform.toLowerCase() as any} size={150} />
-                                                </div>
-
-                                                <div className="flex-1 flex flex-col z-10 relative">
-                                                    <div className="flex flex-col gap-3 mb-4">
-                                                        <div className="flex items-start justify-between gap-2">
-                                                            {service.isHot ? (
-                                                                <div className="flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full px-3 py-1 gap-1 shrink-0 ring-1 ring-white/30">
-                                                                    <Flame size={12} className="text-white fill-white animate-pulse" />
-                                                                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">Хит продаж</span>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="flex items-center gap-1.5 bg-white/5 backdrop-blur-sm px-2 py-1 rounded-full border border-white/10">
-                                                                    {service.isBest && <ShieldCheck size={12} className="text-emerald-400" />}
-                                                                    {service.isCheap && <TrendingUp size={12} className="text-blue-400" />}
-                                                                    <span className="text-[8px] font-bold text-white/40 uppercase tracking-tighter">Verified</span>
-                                                                </div>
-                                                            )}
-                                                            <div className={cn("px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest shrink-0 shadow-sm", service.isHot ? "bg-white text-orange-600" : "bg-blue-500 text-white")}>
-                                                                {service.quality === "HIGH" ? "Ultra-HD" : "Stable"}
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex w-full">
-                                                            <div className={cn("px-2 py-0.5 rounded border text-[8px] font-bold tracking-widest font-mono shrink-0", service.isHot ? "border-white/30 text-white/60" : "border-white/10 text-white/30")}>
-                                                                #SMM-{service.numericId}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <h4 className="text-[18px] font-extrabold text-white leading-[1.3] mb-4 group-hover:text-blue-200 transition-colors drop-shadow-md">
-                                                        {service.name}
-                                                    </h4>
-
-                                                    <div className="hidden md:block">
-                                                        <p className={cn("text-[11px] font-medium leading-relaxed border-t pt-4 line-clamp-3 italic pr-1", service.isHot ? "text-orange-100/70 border-white/20" : "text-white/40 border-white/10")}>
-                                                            {service.description || "Индивидуальный тариф с повышенным приоритетом выполнения заказа."}&nbsp;
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-end justify-between mt-8 z-10 relative">
-                                                    <div className="min-w-0 flex-1 pr-2 group/price">
-                                                        <span className={cn("block text-[9px] font-bold uppercase tracking-widest mb-1.5 opacity-50", service.isHot ? "text-orange-200" : "text-blue-300")}>Цена за 1</span>
-                                                        <div className="flex items-baseline gap-1 overflow-visible">
-                                                            <span className="text-2xl 2xl:text-3xl font-extrabold text-white tracking-tight tabular-nums drop-shadow-xl inline-block">
-                                                                {formatAmount(service.pricePerUnit)}
-                                                            </span>
-                                                            <span className="text-xs font-bold text-white/40 shrink-0">₽</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className={cn("w-14 h-14 shrink-0 rounded-full flex items-center justify-center transition-all border-4 shadow-2xl overflow-hidden group-hover:rotate-12", service.isHot ? "bg-white text-rose-600 border-white/20 group-hover:scale-110" : "bg-blue-500 text-white border-white/10 group-hover:scale-110")}>
-                                                        <Zap size={24} className={cn(service.isHot ? "fill-rose-500" : "fill-white")} />
-                                                    </div>
-                                                </div>
-
-                                                {/* Bottom Gloss Overlay */}
-                                                <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
-                                            </motion.div>
-                                        ))}
-                                    </AnimatePresence>
-                                </div>
-                            ) : (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    className="flex flex-col items-center justify-center py-20 text-center px-6 bg-slate-50/50 rounded-[3rem] border border-dashed border-slate-200"
-                                >
-                                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-6 text-slate-300">
-                                        <Info size={32} />
-                                    </div>
-                                    <h3 className="text-lg font-extrabold text-slate-400 uppercase tracking-widest mb-2">Категория пуста</h3>
-                                    <p className="text-xs font-medium text-slate-400 max-w-xs leading-relaxed">
-                                        Мы еще не добавили услуги в этот раздел для {translatePlatform(platform)}. Пожалуйста, выберите другую категорию.
-                                    </p>
-                                </motion.div>
-                            )}
-                        </div>
-
-                        {/* 4. Glass-Footer Bar */}
-                        <div className="mt-auto px-8 py-6 bg-white/40 backdrop-blur-md border-t border-slate-50 flex items-center justify-between rounded-t-[3rem] shadow-[0_-10px_40px_rgba(0,0,0,0.02)]">
-                            <div className="flex items-center gap-6">
-                                <div className="flex items-center gap-2">
-                                    <Clock3 size={14} className="text-emerald-500" />
-                                    <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Старт через 1-5 мин.</span>
-                                </div>
-                                <div className="h-4 w-[1px] bg-slate-200 hidden sm:block" />
-                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider hidden sm:block">
-                                    Сервис официально верифицирован Smmplan
-                                </div>
-                            </div>
-                            <div className="flex -space-x-3">
-                                {[1, 2, 3, 4, 5].map(i => (
-                                    <div key={i} className="w-8 h-8 rounded-full border-4 border-white bg-slate-100 overflow-hidden shadow-xl">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={`https://i.pravatar.cc/100?u=v4${i}`} className="w-full h-full object-cover grayscale opacity-70" alt="avatar" />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="pt-16 pb-8 text-center max-w-2xl mx-auto px-6"
-                    >
-                        <div className="flex flex-col gap-6 md:gap-10 mb-16 items-center">
-                            {/* Row 1 */}
-                            <div className="flex justify-center gap-6 md:gap-10 opacity-70 hover:opacity-100 transition-all duration-700">
-                                {["TELEGRAM", "INSTAGRAM", "TIKTOK", "VK", "YOUTUBE", "LIKEE"].map((p) => (
-                                    <motion.div
-                                        key={p}
-                                        whileHover={{ scale: 1.4, rotate: 5 }}
-                                        className="transition-all cursor-crosshair"
-                                    >
-                                        {platformIconComponents[p]}
-                                    </motion.div>
-                                ))}
-                            </div>
-                            {/* Row 2 */}
-                            <div className="flex justify-center gap-6 md:gap-10 opacity-70 hover:opacity-100 transition-all duration-700">
-                                {["TWITCH", "OK", "FACEBOOK", "THREADS", "DISCORD", "TWITTER"].map((p) => (
-                                    <motion.div
-                                        key={p}
-                                        whileHover={{ scale: 1.4, rotate: -5 }}
-                                        className="transition-all cursor-crosshair"
-                                    >
-                                        {platformIconComponents[p]}
-                                    </motion.div>
-                                ))}
-                            </div>
-                        </div>
-                        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 uppercase tracking-[0.1em] md:tracking-[0.2em] mb-4 leading-tight">
-                            Мгновенный <span className="text-blue-600">рост</span>
-                        </h2>
-                        <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest leading-loose">
-                            Вставьте ссылку, чтобы ИИ подобрал <br className="hidden md:block" /> лучшую стратегию продвижения
-                        </p>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Checkout Interface (Sheet/Modal) */}
-            {typeof document !== 'undefined' ? createPortal(
-                <AnimatePresence>
-                    {selectedService && (
-                        <>
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                onClick={() => setSelectedService(null)}
-                                className="fixed inset-0 bg-slate-950/40 backdrop-blur-md z-[100]"
-                            />
-                            <motion.div
-                                initial={{ y: "100%", opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                exit={{ y: "100%", opacity: 0 }}
-                                transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                                className="fixed pb-safe bottom-0 left-0 right-0 md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:bottom-auto md:w-full md:max-w-lg bg-white rounded-t-[2rem] md:rounded-[2rem] z-[101] px-5 md:px-6 pt-3 pb-5 shadow-[0_-20px_100px_rgba(37,99,235,0.2)] md:shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
-                            >
-                                <div className="w-8 h-1 bg-slate-100 rounded-full mx-auto mb-3 md:hidden shrink-0" />
-
-                                <div className="flex items-start justify-between mb-3 shrink-0">
-                                    <div className="space-y-0.5">
-                                        <h3 className="text-xl md:text-xl font-extrabold text-slate-900 leading-tight">
-                                            Оформление <span className="text-blue-600">заказа</span>
-                                        </h3>
-                                        <div className="flex items-center gap-2">
-                                            <span className="px-2 py-0.5 bg-slate-100 rounded text-[8px] font-bold uppercase tracking-widest text-slate-500 line-clamp-1 max-w-[200px]">
-                                                {selectedService.name}
-                                            </span>
-                                            <span className="px-2 py-0.5 bg-blue-50 rounded text-[8px] font-bold uppercase tracking-widest text-blue-600 shrink-0">
-                                                ID: {selectedService.numericId}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => setSelectedService(null)}
-                                        className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors shrink-0"
-                                    >
-                                        <X size={16} />
-                                    </button>
-                                </div>
-
-                                <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-4 pr-1 pb-2">
-                                    {/* Service Info Block */}
-                                    <div className="space-y-3 p-4 bg-slate-50/80 rounded-2xl border border-slate-100">
-                                        <div className="space-y-1.5">
-                                            <h4 className="text-[9px] font-bold uppercase text-slate-400 tracking-widest flex items-center gap-1.5">
-                                                <Info size={12} className="text-blue-500" /> Описание услуги
-                                            </h4>
-                                            <p className="text-[11px] font-medium text-slate-700 leading-relaxed whitespace-pre-wrap">
-                                                {selectedService.description || "Стандартное описание недоступно."}
-                                            </p>
-                                        </div>
-
-                                        {selectedService.requirements && (
-                                            <div className="space-y-1.5 pt-3 border-t border-slate-200">
-                                                <h4 className="text-[9px] font-bold uppercase text-orange-500 tracking-widest flex items-center gap-1.5">
-                                                    <Flame size={12} className="text-orange-500" /> Обязательные требования
-                                                </h4>
-                                                <p className="text-[11px] font-bold text-slate-800 leading-relaxed whitespace-pre-wrap">
-                                                    {selectedService.requirements}
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Link Input Block */}
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Ссылка</label>
-                                        </div>
-                                        <div className="relative group">
-                                            <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 w-4 h-4 group-focus-within:scale-110 transition-transform" />
-                                            <input
-                                                type="text"
-                                                value={link}
-                                                onChange={(e) => setLink(e.target.value)}
-                                                placeholder="https://"
-                                                className={cn(
-                                                    "w-full h-10 pl-10 pr-3 bg-slate-50 border-2 rounded-xl text-sm font-bold text-slate-900 outline-none transition-all",
-                                                    link && !isLinkValid ? "border-rose-500 bg-rose-50/30" : "border-slate-100 focus:border-blue-500 focus:bg-white"
-                                                )}
-                                            />
-                                        </div>
-                                        <div className="flex items-center gap-1.5 ml-1 text-slate-400">
-                                            <Info size={10} className="shrink-0" />
-                                            <p className="text-[8px] font-bold uppercase tracking-wider">{getWebSmartHint(selectedService.platform)}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Quantity Block */}
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Количество {isDripFeed ? "(за 1 запуск)" : ""}</label>
-                                            <span className="text-[9px] font-bold text-blue-600">Штук</span>
-                                        </div>
-                                        <div className="relative group">
-                                            <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 w-4 h-4 group-focus-within:scale-110 transition-transform" />
-                                            <input
-                                                type="number"
-                                                value={quantity}
-                                                onChange={(e) => setQuantity(Number(e.target.value))}
-                                                className="w-full h-10 pl-10 pr-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-base font-black text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Guest Email Input */}
-                                    {!session && (
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <label className="text-[9px] font-bold uppercase tracking-widest text-slate-400">ВАШ EMAIL (ДЛЯ ДОСТУПА)</label>
-                                            </div>
-                                            <div className="relative group">
-                                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 w-4 h-4 group-focus-within:scale-110 transition-transform" />
-                                                <input
-                                                    type="email"
-                                                    value={email}
-                                                    onChange={(e) => setEmail(e.target.value)}
-                                                    placeholder="example@mail.com"
-                                                    className={cn(
-                                                        "w-full h-10 pl-10 pr-3 bg-slate-50 border-2 rounded-xl text-sm font-black text-slate-900 outline-none transition-all",
-                                                        email && !isEmailValid ? "border-rose-500 bg-rose-50/30" : "border-slate-100 focus:border-blue-500 focus:bg-white"
-                                                    )}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Drip Feed Toggle */}
-                                    <div className="p-3 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition-all shrink-0", isDripFeed ? "bg-blue-600 text-white" : "bg-white text-blue-600 border border-blue-100")}>
-                                                    <Clock3 size={16} />
-                                                </div>
-                                                <div>
-                                                    <h4 className="text-[11px] font-bold text-slate-900 uppercase tracking-tight">Постепенная подача</h4>
-                                                    <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Drip-feed</p>
-                                                </div>
-                                            </div>
-                                            <div
-                                                onClick={() => setIsDripFeed(!isDripFeed)}
-                                                className={cn("w-9 h-5 rounded-full relative cursor-pointer transition-all p-0.5 shrink-0", isDripFeed ? "bg-blue-600" : "bg-slate-200")}
-                                            >
-                                                <motion.div
-                                                    animate={{ x: isDripFeed ? 16 : 0 }}
-                                                    className="w-4 h-4 bg-white rounded-full shadow-sm"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {isDripFeed && (
-                                            <motion.div
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: "auto" }}
-                                                exit={{ opacity: 0, height: 0 }}
-                                                className="grid grid-cols-2 gap-4 pt-4 border-t border-blue-100"
-                                            >
-                                                <div className="space-y-1">
-                                                    <label className="text-[8px] font-black uppercase text-blue-700 ml-1">Запусков</label>
-                                                    <input
-                                                        type="number"
-                                                        value={runs}
-                                                        onChange={(e) => setRuns(Number(e.target.value))}
-                                                        className="w-full h-8 px-2 bg-white border border-blue-200 rounded text-sm font-black text-blue-900 outline-none focus:border-blue-500"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[8px] font-black uppercase text-blue-700 ml-1">Интервал (мин)</label>
-                                                    <input
-                                                        type="number"
-                                                        value={interval}
-                                                        onChange={(e) => setInterval(Number(e.target.value))}
-                                                        className="w-full h-8 px-2 bg-white border border-blue-200 rounded text-sm font-black text-blue-900 outline-none focus:border-blue-500"
-                                                    />
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </div>
-
-                                    {/* Scheduled Order Toggle */}
-                                    <div className="p-3 bg-amber-50/50 rounded-2xl border border-amber-100 space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition-all shrink-0", isScheduled ? "bg-amber-500 text-white" : "bg-white text-amber-500 border border-amber-100")}>
-                                                    <Clock3 size={16} />
-                                                </div>
-                                                <div>
-                                                    <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-tight">Отложенный запуск</h4>
-                                                    <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Schedule</p>
-                                                </div>
-                                            </div>
-                                            <div
-                                                onClick={() => setIsScheduled(!isScheduled)}
-                                                className={cn("w-9 h-5 rounded-full relative cursor-pointer transition-all p-0.5 shrink-0", isScheduled ? "bg-amber-500" : "bg-slate-200")}
-                                            >
-                                                <motion.div
-                                                    animate={{ x: isScheduled ? 16 : 0 }}
-                                                    className="w-4 h-4 bg-white rounded-full shadow-sm"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {isScheduled && (
-                                            <motion.div
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: "auto" }}
-                                                exit={{ opacity: 0, height: 0 }}
-                                                className="grid grid-cols-1 gap-4 pt-4 border-t border-amber-100"
-                                            >
-                                                <div className="space-y-2">
-                                                    <label className="text-[8px] font-black uppercase text-amber-700 ml-1">Дата и время</label>
-                                                    <input
-                                                        type="datetime-local"
-                                                        value={scheduleTime}
-                                                        onChange={(e) => setScheduleTime(e.target.value)}
-                                                        required={isScheduled}
-                                                        className="w-full h-10 px-3 bg-white border border-amber-200 rounded-xl text-sm font-black text-slate-950 outline-none focus:border-amber-500"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-[8px] font-black uppercase text-amber-700 ml-1">Повтор (каждые N мин)</label>
-                                                    <input
-                                                        type="number"
-                                                        placeholder="Оставьте пустым для разового"
-                                                        value={repeatInterval}
-                                                        onChange={(e) => setRepeatInterval(e.target.value === "" ? "" : parseInt(e.target.value))}
-                                                        className="w-full h-10 px-3 bg-white border border-amber-200 rounded-xl text-sm font-black text-slate-950 outline-none focus:border-amber-500"
-                                                    />
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </div>
-
-                                    {/* Price Summary */}
-                                    <div className="flex items-center justify-between px-1 pt-1">
-                                        <div className="space-y-0.5">
-                                            <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest">Общая сумма</span>
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-2xl md:text-3xl font-black text-slate-950 tracking-tighter tabular-nums">
-                                                    {formatAmount(totalPrice)}
-                                                </span>
-                                                <span className="text-sm font-black text-slate-300 italic pr-1">₽&nbsp;</span>
-                                            </div>
-                                        </div>
-                                        <div className="text-right space-y-0.5">
-                                            <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                                                {isDripFeed ? `${quantity * runs} ед.` : `${quantity} ед.`}
-                                            </span>
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-[9px] font-bold text-emerald-500 flex items-center gap-1">
-                                                    <ShieldCheck size={10} /> Качество Гарантировано
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {checkoutWarning && (
-                                        <div className="bg-amber-50/80 border border-amber-200/50 rounded-xl p-3 flex items-start flex-col gap-2 mt-2 relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/10 rounded-full -mr-8 -mt-8 blur-xl pointer-events-none" />
-                                            <div className="flex items-center gap-2 relative z-10 w-full mb-1">
-                                                <Flame size={14} className="text-amber-500 shrink-0" />
-                                                <h4 className="text-[9px] font-black uppercase tracking-widest text-amber-700">Обратите внимание</h4>
-                                            </div>
-                                            <p className="text-[10px] font-bold text-amber-900/80 leading-relaxed italic pr-1 relative z-10">
-                                                {checkoutWarning}
-                                            </p>
-                                        </div>
-                                    )}
-                                    <div className="flex items-start gap-2.5 px-3 py-2 bg-slate-50/50 rounded-xl border border-slate-100 mt-2">
-                                        <input
-                                            type="checkbox"
-                                            id="instant_consent"
-                                            checked={consent}
-                                            onChange={(e) => setConsent(e.target.checked)}
-                                            className="mt-1 shrink-0 w-3.5 h-3.5 rounded border-slate-200 text-blue-600 focus:ring-blue-500/20 cursor-pointer"
-                                        />
-                                        <label htmlFor="instant_consent" className="text-[9px] text-slate-500 font-medium leading-relaxed">
-                                            Я даю согласие на обработку моих персональных данных в соответствии с{' '}
-                                            <a href="/docs/policy" target="_blank" className="text-blue-600 hover:underline">Политикой конфиденциальности</a>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <button
-                                    onClick={handleOrder}
-                                    disabled={!canSubmit}
-                                    className={cn(
-                                        "w-full h-12 shrink-0 mt-2 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 group overflow-hidden relative",
-                                        canSubmit 
-                                            ? "bg-slate-900 text-white hover:bg-black" 
-                                            : "bg-slate-100 text-slate-400 cursor-not-allowed opacity-70"
-                                    )}
-                                >
-                                    {canSubmit && <div className="absolute inset-0 bg-blue-600 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />}
-                                    <div className="relative z-10 flex items-center gap-2">
-                                        <span className="text-sm font-black uppercase tracking-widest">
-                                            {isSubmitting ? "Обработка..." : "Подтвердить заказ"}
-                                        </span>
-                                        {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} className={cn(canSubmit ? "fill-white" : "fill-slate-300")} />}
-                                    </div>
-                                </button>
-                            </motion.div>
-                        </>
-                    )}
-                </AnimatePresence>, document.body) : null}
-        </div>
     );
 };
-
-

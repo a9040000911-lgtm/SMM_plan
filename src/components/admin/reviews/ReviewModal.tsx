@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react';
 import { X, Star, Save, Loader2 } from 'lucide-react';
-import { ReviewStatus } from '@/generated/client';
+import { ReviewStatus } from '@prisma/client';
 import { upsertAdminReview } from '@/app/admin/reviews/actions';
 import { toast } from 'sonner';
 

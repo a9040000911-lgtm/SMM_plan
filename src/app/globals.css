@@ -1,4 +1,5 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+@source "../../src";
 
 @utility no-scrollbar {
   -ms-overflow-style: none;
@@ -11,7 +12,7 @@
 
 @utility custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
 
   &::-webkit-scrollbar {
     width: 5px;
@@ -23,13 +24,13 @@
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.1);
     border-radius: 10px;
     transition: all 0.2s ease;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -80,10 +81,19 @@
   --background: #FFFFFF;
   --foreground: #020617;
 
-  --primary: #2563EB;
+  /* HSL Brand Engine */
+  --brand-h: 221;
+  --brand-s: 83%;
+  --brand-l: 53%;
+  
+  --primary: hsl(var(--brand-h), var(--brand-s), var(--brand-l));
   --primary-foreground: #FFFFFF;
 
-  --accent: #10B981;
+  --accent-h: 160;
+  --accent-s: 84%;
+  --accent-l: 39%;
+  --accent: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+  
   --border: rgba(15, 23, 42, 0.08);
   --card: #FFFFFF;
 }
@@ -97,11 +107,83 @@
 
 @layer utilities {
   .glass {
-    @apply bg-white/60 backdrop-blur-2xl border border-white/40 shadow-xl;
+    @apply bg-white/60 backdrop-blur-3xl border border-white/20 shadow-[0_50px_100px_-20px_rgba(0,136,204,0.12)];
+    position: relative;
+    overflow: hidden;
   }
-  
-  .glass-dark {
-    @apply bg-slate-900/60 backdrop-blur-2xl border border-white/10 shadow-xl;
+
+  .glass::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+    pointer-events: none;
+  }
+
+  /* Liquid Glass - Extra Depth */
+  .glass-deep {
+    @apply bg-white/40 backdrop-blur-3xl border border-white/10 shadow-[0_80px_150px_-30px_rgba(0,0,0,0.1)];
+  }
+
+  /* Chameleon UI Tokens (Platform Specific) */
+  .theme-tg { --platform-accent: #2AABEE; --platform-glow: rgba(42,171,238,0.2); }
+  .theme-vk { --platform-accent: #4C75A3; --platform-glow: rgba(76,117,163,0.2); }
+  .theme-inst { --platform-accent: #E1306C; --platform-glow: rgba(225,48,108,0.2); }
+  .theme-yt { --platform-accent: #FF0000; --platform-glow: rgba(255,0,0,0.2); }
+  .theme-default { --platform-accent: #2563EB; --platform-glow: rgba(37,99,235,0.2); }
+
+  /* Multi-Tenant Global Themes */
+  .theme-crypto {
+    --background: #0B0F19; /* Deep dark slate */
+    --foreground: #F8FAFC;
+    --brand-h: 260; /* Purple/Neon */
+    --brand-s: 100%;
+    --brand-l: 65%;
+    --card: rgba(15, 23, 42, 0.4);
+    --border: rgba(255, 255, 255, 0.1);
+  }
+
+  .theme-beauty {
+    --background: #FFF5F7; /* Pastel pink */
+    --foreground: #4A154B;
+    --brand-h: 335; /* Rose */
+    --brand-s: 85%;
+    --brand-l: 65%;
+    --card: rgba(255, 255, 255, 0.8);
+    --border: rgba(255, 192, 203, 0.4);
+  }
+
+  /* Shared dynamic platform border using currently active accent */
+  .platform-border {
+    border-color: var(--platform-accent);
+    box-shadow: 0 0 40px var(--platform-glow);
+  }
+
+  /* Fix for italic text clipping (slanted fonts) */
+  .italic {
+    padding-right: 0.15em;
+    margin-right: -0.15em;
+  }
+
+  /* AI Hub Animations */
+  @keyframes scan-line {
+    0% { transform: translateY(-100%); opacity: 0; }
+    50% { opacity: 1; }
+    100% { transform: translateY(200%); opacity: 0; }
+  }
+
+  .scan-animation {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--platform-accent), transparent);
+    animation: scan-line 2s infinite ease-in-out;
+    z-index: 30;
   }
 
   .shadow-premium {
@@ -109,12 +191,21 @@
   }
 
   .mesh-bg {
-    background-color: #f0fdf4;
+    background-color: #f8fafc;
     background-image: 
-      radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
-      radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
-      radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+      radial-gradient(at 0% 0%, hsla(var(--brand-h),100%,95%,1) 0, transparent 50%), 
+      radial-gradient(at 50% 0%, hsla(var(--brand-h),100%,92%,1) 0, transparent 50%), 
+      radial-gradient(at 100% 0%, hsla(var(--brand-h),100%,95%,1) 0, transparent 50%);
     background-size: cover;
     background-position: center;
+  }
+
+  /* Visionary Glow Effects */
+  .glow-primary {
+    box-shadow: 0 0 20px hsla(var(--brand-h), var(--brand-s), var(--brand-l), 0.2);
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 20px hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.2);
   }
 }

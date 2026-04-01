@@ -53,6 +53,15 @@ export async function POST(req: NextRequest) {
       await PromoService.processAutomationRules('REGISTRATION', { userId: user.id, value: 0, projectId: projectId });
     } catch (e) { console.error('Failed to process registration promo:', e); }
 
+    // Send Welcome Email (Onboarding Pipeline)
+    try {
+      const { EmailMarketingService } = await import('@/services/marketing/email.service');
+      // Fire-and-forget background execution, no await
+      EmailMarketingService.sendWelcomeEmail(user.email || 'guest@example.com', user.username || 'User', projectId as string).catch(e => console.error('Email error:', e));
+    } catch (e) {
+      console.error('Failed to init welcome email:', e);
+    }
+
     return NextResponse.json({
       success: true,
       user: { id: user.id, email: user.email, projectId: user.projectId }

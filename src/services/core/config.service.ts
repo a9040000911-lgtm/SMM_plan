@@ -105,7 +105,7 @@ export class ConfigService {
 
         return {
             model: map.AI_SELECTED_MODEL || 'gemini-3-flash-preview',
-            modelList: map.AI_MODEL_LIST || 'gemini-3-flash-preview, gemini-3.1-pro-preview',
+            modelList: map.AI_MODEL_LIST || 'gemini-3-flash-preview, gemini-3-flash',
             proxy: map.AI_PROXY || process.env.AI_PROXY || null,
             apiKey: process.env.GEMINI_API_KEY
         };

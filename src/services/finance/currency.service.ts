@@ -6,7 +6,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
-import { Currency } from '@/generated/client';
+import { Currency } from '@prisma/client';
 
 export class CurrencyService {
   /**

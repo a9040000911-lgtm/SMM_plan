@@ -8,9 +8,10 @@
 import React, { useState } from 'react';
 import { AdminCard, Button, StatusBadge, ActionButton } from '@/components/admin/ui';
 import { togglePromoCodeAction, deletePromoCodeAction, createPromoCodeAction } from './actions';
-import { Copy, Trash2, Power, Plus, Tag, Percent, FileText, Loader2, X, Globe, Briefcase } from 'lucide-react';
+import { Copy, Trash2, Power, Plus, Tag, Percent, FileText, Loader2, X, Globe, Briefcase, Ticket } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/utils/ui';
+import { AdminTableCard } from '@/components/admin/core/admin-table-card';
 
 interface PromoCodesListProps {
     initialCodes: any[];
@@ -214,8 +215,7 @@ export function PromoCodesList({ initialCodes, projects, activeProjectId = null 
             )}
 
             {/* LIST TABLE */}
-            <AdminCard title="Список промокодов">
-                <div className="overflow-x-auto">
+            <AdminTableCard title="Список промокодов" icon={Ticket}>
                     <table className="w-full text-left border-collapse text-[13px]">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200">
@@ -302,8 +302,7 @@ export function PromoCodesList({ initialCodes, projects, activeProjectId = null 
                             )}
                         </tbody>
                     </table>
-                </div>
-            </AdminCard>
+            </AdminTableCard>
         </div>
     );
 }

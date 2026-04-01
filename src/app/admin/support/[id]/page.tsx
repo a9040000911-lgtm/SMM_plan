@@ -1,18 +1,16 @@
-/**
- * (c) 2024-2026 Smmplan. All rights reserved.
- * Created by Artem (http://artmspektr.ru)
- * Unauthorized copying of this file is strictly prohibited.
- */
-
-import React from 'react';
+import React, { Suspense } from 'react';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { TicketChat } from '@/components/admin/support/ticket-chat';
 import { formatAmount } from '@/utils/formatter';
 import { SupportPresence } from '@/components/admin/support/support-presence';
 import { SupportAIAnalysis } from '@/components/admin/support/support-ai-analysis';
+import { SupportOrderContext } from '@/components/admin/support/support-order-context';
+import { SupportSlaTimer } from '@/components/admin/support/support-sla-timer';
+import { SupportQuickBalance } from '@/components/admin/support/support-quick-balance';
+import { SupportCustomerHistory } from '@/components/admin/support/support-customer-history';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +19,10 @@ async function getTicket(id: string) {
     where: { id },
     include: {
       user: true,
-      messages: { orderBy: { createdAt: 'asc' } }
+      messages: { orderBy: { createdAt: 'asc' } },
+      order: {
+        include: { internalService: true, project: true }
+      }
     }
   });
 
@@ -50,17 +51,21 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/admin/support" className="p-2 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
+          <Link href="/admin/support" className="p-2 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors shrink-0">
             <ArrowLeft size={20} className="text-slate-600" />
           </Link>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-800">{ticket.subject}</h2>
-            <div className="flex items-center gap-2 mt-1 text-xs text-slate-400 font-medium">
-              <span>Тикет #{ticket.id.split('-')[0].toUpperCase()}</span>
-              <span>•</span>
-              <span suppressHydrationWarning>{new Date(ticket.createdAt).toLocaleDateString()}</span>
+          <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-800">{ticket.subject}</h2>
+              <div className="flex items-center gap-2 mt-1 text-xs text-slate-400 font-medium">
+                <span>Тикет #{ticket.id.split('-')[0].toUpperCase()}</span>
+                <span>•</span>
+                <span suppressHydrationWarning>{new Date(ticket.createdAt).toLocaleDateString()}</span>
+              </div>
             </div>
+            {/* SLA Timer */}
+            <SupportSlaTimer messages={ticket.messages} status={ticket.status} />
           </div>
         </div>
       </div>
@@ -83,7 +88,9 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
                 {(ticket.user.username || 'U').substring(0, 2).toUpperCase()}
               </div>
               <h4 className="font-black text-slate-800">@{ticket.user.username || 'user'}</h4>
-              <p className="text-[10px] text-slate-400 font-mono mt-1 truncate w-full">{ticket.user.id}</p>
+              <p className="text-[10px] text-slate-400 font-mono mt-1 w-full flex justify-center gap-1">
+                 <span>ID:</span> <span className="truncate max-w-[120px]">{ticket.user.id}</span>
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4 border-t border-b border-slate-50 py-4">
@@ -103,7 +110,20 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
             >
               Профиль клиента
             </Link>
+
+            {/* Quick Balance Form */}
+            <SupportQuickBalance 
+                userId={ticket.user.id} 
+                orderId={ticket.order?.id} 
+                orderStatus={ticket.order?.status} 
+            />
           </div>
+
+          {ticket.order && <SupportOrderContext order={ticket.order} />}
+
+          <Suspense fallback={<div className="p-4 bg-white rounded-lg border flex justify-center text-slate-400"><Loader2 className="animate-spin" /></div>}>
+             <SupportCustomerHistory userId={ticket.user.id} />
+          </Suspense>
 
           <SupportAIAnalysis ticketId={ticket.id} />
 

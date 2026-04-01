@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
-import { Provider, Order } from '@/generated/client';
+import { Provider, Order } from '@prisma/client';
 import { IProvider } from './base-provider';
 import { VexboostProvider } from './vexboost.provider';
 import { StreamPromotionProvider } from './stream-promotion.provider';
@@ -88,8 +88,14 @@ export class ProviderService {
 
     const internalService = await prisma.internalService.findUnique({
       where: { id: order.internalServiceId },
-      select: { platform: true, category: true }
+      select: {
+          socialPlatform: { select: { slug: true } },
+          serviceCategory: { select: { categoryType: true } }
+      }
     });
+
+    const category = internalService?.serviceCategory?.categoryType as string | undefined;
+    const platform = internalService?.socialPlatform?.slug?.toUpperCase() as string | undefined;
 
     const extraParams: any = {
       comments: order.comments || undefined,
@@ -105,7 +111,7 @@ export class ProviderService {
       const adaptedLink = IntelligenceEngine.formatForProvider(intelResult, providerInfo.name);
 
       // --- LINK VALIDATION (Intelligence Engine already covers most, but keep custom logic if needed) ---
-      if (internalService?.platform === 'TELEGRAM' && internalService?.category === 'REFERRALS') {
+      if (platform === 'TELEGRAM' && category === 'REFERRALS') {
         if (!adaptedLink.includes('start=')) {
           throw new Error(`[Intelligence] Ошибка: ссылка для "Рефералы в бот" должна содержать '?start='`);
         }
@@ -174,7 +180,7 @@ export class ProviderService {
         const adaptedLink = IntelligenceEngine.formatForProvider(intelResult, providerInfo.name);
 
         // --- LINK VALIDATION ---
-        if (internalService?.platform === 'TELEGRAM' && internalService?.category === 'REFERRALS') {
+        if (platform === 'TELEGRAM' && category === 'REFERRALS') {
           if (!adaptedLink.includes('start=')) {
             throw new Error(`[Intelligence] Ошибка: ссылка для "Рефералы в бот" должна содержать '?start='`);
           }

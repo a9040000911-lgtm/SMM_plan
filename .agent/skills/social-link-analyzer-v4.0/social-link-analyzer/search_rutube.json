@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://gist.github.com/rodrigoborgesdeoliveira/987683cfbfcc8d800192da1e73adc486",
+    "name": "Example of the YouTube videos URL formats - GitHub Gist",
+    "snippet": "Example of the YouTube videos URL formats. GitHub Gist: instantly share code, notes, and snippets.",
+    "host_name": "gist.github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/LifeProTips/comments/247c2u/lpt_youtube_how_to_play_all_videos_from_a_channel",
+    "name": "LPT: Youtube: how to play all videos from a channel as a playlist",
+    "snippet": "Play all videos from a channel as a playlist, just by clicking a button on said channel. This feature is now hidden, but still accessible by adding an URL ...",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/7693218/youtube-i-d-parsing-for-new-url-formats",
+    "name": "Youtube I.D parsing for new URL formats - Stack Overflow",
+    "snippet": "I need to match the Youtube ID itself compatible with all the possible youtube link formats. Not exclusively beginning with youtube.com. Regex for youtube URL Patterns between YouTube m. and normal site urls More results from stackoverflow.com",
+    "host_name": "stackoverflow.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.quora.com/How-can-I-get-all-of-the-URLs-of-playlists-from-YouTube",
+    "name": "How to get all of the URLs of playlists from YouTube - Quora",
+    "snippet": "Method 1. Time-wasting method Step 1. Get the individual url using youtube-dl with -F option (youtube-dl -F playlist) ex)",
+    "host_name": "www.quora.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch%3Fv%3DoH6NmXziDZQ",
+    "name": "How to Create a YouTube Playlist - YouTube",
+    "snippet": "OTHER YOUTUBE CHANNELS: Joe's Personal Channel: https://link.ubitronic... DISCLAIMER: This video and description may contain affiliate links ... Missing: URL formats patterns",
+    "host_name": "www.youtube.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ftp.broadwayinfosys.com/blog/extract-youtube-channel-video-links-the-ultimate-guide-1764809612",
+    "name": "Extract YouTube Channel Video Links: The Ultimate Guide",
+    "snippet": "The API allows you to programmatically access YouTube data, including video links, playlists, and channel information. This is the official ...",
+    "host_name": "ftp.broadwayinfosys.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.metaslider.com/docs/youtube-url-formats",
+    "name": "What YouTube URL Formats Can You Use in MetaSlider?",
+    "snippet": "MetaSlider Pro accepts a wide variety of URL formats, including YouTube Shorts videos. Using the YouTube Slides option, MetaSlider Pro allows you to add these ...",
+    "host_name": "www.metaslider.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://webapps.stackexchange.com/questions/120451/how-to-create-a-playlist-form-a-list-of-links-not-from-bookmarks",
+    "name": "How to create a playlist form a list of links (not from bookmarks)?",
+    "snippet": "The only working solution now, in 2022, is to use extension Multiselect for YouTube to select all videos and save them to new proper playlist.",
+    "host_name": "webapps.stackexchange.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.google.com/youtube/v3/docs/channels",
+    "name": "Channels | YouTube Data API - Google for Developers",
+    "snippet": "A channel resource contains information about a YouTube channel. Methods The API supports the following methods for channels resources.",
+    "host_name": "developers.google.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://socialmediaagency.one/youtube-url-parameters-for-video-autoplay-start-end-loop-repeat-subtitles-co-list",
+    "name": "Youtube URL parameters for video: Autoplay, Start, End, Loop",
+    "snippet": "Here you will find the list, with important extensions for Youtube URLs, for embedding on websites and in online stores.",
+    "host_name": "socialmediaagency.one",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -20,7 +20,7 @@ import { UserConversationPanel } from '@/components/admin/support/user-conversat
 
 type FilterType = 'active' | 'all';
 
-export function SupportUnified() {
+export function SupportUnified({ initialProjectId }: { initialProjectId: string | null }) {
     // State
     const [users, setUsers] = useState<UserListItem[]>([]);
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export function SupportUnified() {
 
     // Project selection
     const [availableProjects, setAvailableProjects] = useState<Array<{ id: string; name: string; color: string; slug: string }>>([]);
-    const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+    const selectedProjectId = initialProjectId === 'all' ? null : initialProjectId;
     const selectedProject = availableProjects.find(p => p.id === selectedProjectId);
 
     // Reset pagination when filters change
@@ -240,41 +240,6 @@ export function SupportUnified() {
                         </div>
                     </div>
 
-                    {/* Project Switcher */}
-                    {availableProjects.length > 0 && (
-                        <div className="flex flex-wrap gap-1 items-center">
-                            <button
-                                onClick={() => setSelectedProjectId(null)}
-                                className={`px-2.5 py-1.5 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all ${!selectedProjectId
-                                    ? 'bg-slate-800 text-white shadow-md shadow-slate-200'
-                                    : 'bg-white border border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'
-                                    }`}
-                            >
-                                Все
-                            </button>
-                            {availableProjects.map(p => {
-                                const isSelected = selectedProjectId === p.id;
-                                return (
-                                    <button
-                                        key={p.id}
-                                        onClick={() => setSelectedProjectId(p.id)}
-                                        className={`px-2.5 py-1.5 rounded-md text-[9px] font-bold uppercase tracking-wide transition-all flex items-center gap-1.5 border`}
-                                        style={{
-                                            backgroundColor: isSelected ? p.color : '#ffffff',
-                                            color: isSelected ? '#ffffff' : '#64748b', // White text on selected (assuming contrast), slate on unselected
-                                            borderColor: isSelected ? p.color : '#e2e8f0',
-                                            textShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
-                                        }}
-                                    >
-                                        {!isSelected && (
-                                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: p.color }} />
-                                        )}
-                                        {p.name}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
 
                     {/* Search */}
                     <div className="relative">

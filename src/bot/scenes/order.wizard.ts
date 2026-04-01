@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { UnifiedPaymentService } from '@/services/payments/unified-payment.service';
 import { formatAmount } from '@/utils/formatter';
 import { PricingService } from '@/services/finance';
+import { SessionService } from '@/services/core';
 import { escapeHtml } from '../utils/formatter';
 
 export const ORDER_WIZARD = 'order-wizard';
@@ -22,9 +23,14 @@ async function showFinalConfirmation(ctx: any) {
   });
   if (!user) return ctx.scene.leave();
 
-  const details = await PricingService.calculateOrderDetails(user.id, service.id, qty, ctx.project.id);
-  const { finalPrice, discountAmount } = details;
+  const state = await SessionService.get(Number(tgId), String(ctx.project.id));
+  const appliedPromo = state?.appliedPromo;
+
+  const details = await PricingService.calculateOrderDetails(user.id, service.id, qty, ctx.project.id, appliedPromo?.code);
+  const { finalPrice, discountAmount, promoId } = details;
+  
   ctx.wizard.state.orderData.totalPrice = finalPrice;
+  ctx.wizard.state.orderData.promoId = promoId;
 
   const override = service.projectOverrides?.[0];
   const displayName = override?.customName || service.name;
@@ -90,8 +96,9 @@ export const orderWizard = new Scenes.WizardScene(
 
       ctx.wizard.state.orderData = {
         service: preSelected,
-        platformName: socialPlatform?.name || preSelected.platform,
-        platformSlug: socialPlatform?.slug || preSelected.platform.toLowerCase(),
+        platformName: socialPlatform?.name || 'Unknown',
+        platformSlug: socialPlatform?.slug || 'other',
+        platformEnum: socialPlatform?.slug?.toUpperCase() || 'OTHER',
         minQty: preSelected.minQty,
         maxQty: preSelected.maxQty
       };
@@ -116,7 +123,8 @@ export const orderWizard = new Scenes.WizardScene(
     // Если услуга уже выбрана в каталоге
     if (ctx.wizard.state.orderData?.service) {
       const service = ctx.wizard.state.orderData.service;
-      const validation = LinkService.validate(link, service.platform, service.targetType);
+      const platformEnum = (service.socialPlatform?.slug?.toUpperCase() || ctx.wizard.state.orderData.platformEnum || 'OTHER') as import('@prisma/client').Platform;
+      const validation = LinkService.validate(link, platformEnum, service.targetType);
 
       if (!validation.isValid) {
         return ctx.reply(`❌ <b>Эта ссылка не подходит для данной услуги!</b>\n\n${validation.error || 'Убедитесь, что ссылка корректна.'}\nПришлите другую ссылку или нажмите Отмена:`, {
@@ -171,11 +179,11 @@ export const orderWizard = new Scenes.WizardScene(
     const targetTypes = LinkService.getCompatibleTypes(analysis.targetType, analysis.platform);
     const services = await prisma.internalService.findMany({
       where: {
-        platform: analysis.platform,
+        socialPlatform: { slug: analysis.platform.toLowerCase() },
         isActive: true,
         targetType: { in: targetTypes },
         isPrivate: analysis.isPrivate === true,
-        category: analysis.possibleCategories?.length ? { in: analysis.possibleCategories } : undefined,
+        serviceCategory: analysis.possibleCategories?.length ? { categoryType: { in: analysis.possibleCategories } } : undefined,
         categoryId: { not: null }
       },
       distinct: ['categoryId'],
@@ -295,7 +303,7 @@ orderWizard.action(/^select_cat_(.+)$/, async (ctx: any) => {
     where: {
       categoryId,
       isActive: true,
-      platform,
+      socialPlatform: { slug: platform.toLowerCase() },
       isPrivate: isPrivate === true,
       targetType: { in: targetTypes }
     },
@@ -329,7 +337,7 @@ orderWizard.action(/^select_group_(.+)$/, async (ctx: any) => {
   const categoryId = ctx.match[1];
   const { platform, isPrivate } = ctx.wizard.state.orderData;
   const svcs = await prisma.internalService.findMany({
-    where: { categoryId, isActive: true, platform, isPrivate: isPrivate === true },
+    where: { categoryId, isActive: true, socialPlatform: { slug: platform.toLowerCase() }, isPrivate: isPrivate === true },
     include: { serviceCategory: true }
   });
   if (svcs.length === 0) return ctx.answerCbQuery('В этой группе нет доступных тарифов');
@@ -351,6 +359,7 @@ orderWizard.action(/^select_svc_(.+)$/, async (ctx: any) => {
     where: { id: serviceId },
     include: {
       serviceCategory: true,
+      socialPlatform: true,
       projectOverrides: {
         where: { projectId: ctx.project.id }
       }
@@ -359,7 +368,8 @@ orderWizard.action(/^select_svc_(.+)$/, async (ctx: any) => {
   if (!service) return ctx.answerCbQuery('Услуга не найдена');
 
   const link = ctx.wizard.state.orderData.link;
-  const validation = LinkService.validate(link, service.platform, service.targetType);
+  const svcPlatformEnum = (service.socialPlatform?.slug?.toUpperCase() || 'OTHER') as import('@prisma/client').Platform;
+  const validation = LinkService.validate(link, svcPlatformEnum, service.targetType);
   if (!validation.isValid) return ctx.answerCbQuery('❌ ' + (validation.error || 'Эта ссылка не подходит'), { show_alert: true });
 
   ctx.wizard.state.orderData.service = service;
@@ -388,7 +398,7 @@ orderWizard.action(/^select_svc_(.+)$/, async (ctx: any) => {
 });
 
 orderWizard.action('confirm_order', async (ctx: any) => {
-  const { service, qty, totalPrice, link, isDripFeed, runs, interval } = ctx.wizard.state.orderData;
+  const { service, qty, totalPrice, link, isDripFeed, runs, interval, promoId } = ctx.wizard.state.orderData;
   const tgId = ctx.from.id;
   try {
     const user = await prisma.user.findUnique({ where: { tgId: BigInt(tgId) } });
@@ -399,12 +409,20 @@ orderWizard.action('confirm_order', async (ctx: any) => {
       await initiateOrder({
         userId: user.id, serviceId: service.id, projectId: ctx.project.id, link, qty, totalPrice,
         tgId: Number(tgId), username: ctx.from.username || undefined,
-        isDripFeed, dripFeed: isDripFeed ? { runs, interval } : undefined
+        isDripFeed, dripFeed: isDripFeed ? { runs, interval } : undefined,
+        promoId
       });
+      
+      const state = await SessionService.get(Number(tgId), String(ctx.project.id));
+      if (state && state.appliedPromo) {
+          delete state.appliedPromo;
+          await SessionService.set(Number(tgId), state, String(ctx.project.id));
+      }
+      
       await ctx.editMessageText('✅ <b>Заказ успешно создан!</b>\nОн уже передан в работу.', { parse_mode: 'HTML' });
     } else {
       const amountToPay = totalPrice.minus(user.balance);
-      const res = await UnifiedPaymentService.createPayment(ctx.project.id, user.id, amountToPay.toNumber(), `Доплата за заказ: ${service.name}`, { source: 'BOT', serviceId: service.id });
+      const res = await UnifiedPaymentService.createPayment(ctx.project.id, user.id, amountToPay.toNumber(), `Доплата за заказ: ${service.name}`, { source: 'BOT', serviceId: service.id, promoId });
       if (res.success && res.confirmationUrl) {
         await prisma.transaction.create({
           data: {
@@ -436,11 +454,11 @@ orderWizard.action('back_to_cats', async (ctx: any) => {
 
   const services = await prisma.internalService.findMany({
     where: {
-      platform,
+      socialPlatform: { slug: platform.toLowerCase() },
       isActive: true,
       targetType: { in: targetTypes },
       isPrivate: isPrivate === true,
-      category: possibleCategories?.length ? { in: possibleCategories } : undefined,
+      serviceCategory: possibleCategories?.length ? { categoryType: { in: possibleCategories } } : undefined,
       categoryId: { not: null }
     },
     distinct: ['categoryId'],

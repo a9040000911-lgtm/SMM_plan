@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { PlatformParser, AnalysisResult } from './types';
-import { Platform, Category } from '@/generated/client';
+import { Platform, Category } from '@/services/types';
 import { TelegramParser } from './platforms/telegram';
 import { VkParser } from './platforms/vk';
 import { InstagramParser } from './platforms/instagram';
@@ -16,6 +16,16 @@ import { MusicParser } from './platforms/music';
 import { TwitchParser } from './platforms/twitch';
 import { LikeeParser } from './platforms/likee';
 import { TwitterParser } from './platforms/twitter';
+import { FacebookParser } from './platforms/facebook';
+import { RedditParser } from './platforms/reddit';
+import { LinkedinParser } from './platforms/linkedin';
+import { ThreadsParser } from './platforms/threads';
+import { RutubeParser } from './platforms/rutube';
+import { DzenParser } from './platforms/dzen';
+import { SteamParser } from './platforms/steam';
+import { GoogleParser } from './platforms/google';
+import { TrovoParser } from './platforms/trovo';
+import { YandexParser } from './platforms/yandex';
 
 const PARSERS: PlatformParser[] = [
   TelegramParser,
@@ -29,6 +39,16 @@ const PARSERS: PlatformParser[] = [
   MusicParser,
   TwitchParser,
   LikeeParser,
+  FacebookParser,
+  RedditParser,
+  LinkedinParser,
+  ThreadsParser,
+  RutubeParser,
+  DzenParser,
+  SteamParser,
+  GoogleParser,
+  TrovoParser,
+  YandexParser,
 ];
 
 export function analyzeLink(link: string): AnalysisResult | null {
@@ -36,6 +56,11 @@ export function analyzeLink(link: string): AnalysisResult | null {
 
   if (!url.startsWith('http') && !url.includes('.')) {
     return null; 
+  }
+
+  // Double check: if it has spaces or no dots, it's probably just text
+  if (link.trim().includes(' ') && !url.startsWith('http')) {
+    return null;
   }
 
   if (!url.startsWith('http')) {
@@ -163,6 +188,34 @@ export function mapObjectTypeToTargetType(objectType: string | undefined): 'CHAN
     'MAX_GROUP': 'CHANNEL',
     'MAX_PROFILE': 'CHANNEL',
     'MAX_BOT': 'EXTERNAL',
+
+    // New Platforms
+    'FB_PROFILE': 'CHANNEL',
+    'FB_POST': 'POST',
+    'RD_USER': 'CHANNEL',
+    'RD_SUBREDDIT': 'CHANNEL',
+    'RD_POST': 'POST',
+    'LI_PROFILE': 'CHANNEL',
+    'LI_COMPANY': 'CHANNEL',
+    'LI_POST': 'POST',
+    'TH_PROFILE': 'CHANNEL',
+    'TH_POST': 'POST',
+    'RT_CHANNEL': 'CHANNEL',
+    'RT_VIDEO': 'POST',
+    'DZ_CHANNEL': 'CHANNEL',
+    'DZ_ARTICLE': 'POST',
+    'DZ_VIDEO': 'POST',
+    // New
+    'STEAM_PROFILE': 'CHANNEL',
+    'STEAM_GROUP': 'CHANNEL',
+    'STEAM_WORKSHOP': 'POST',
+    'STEAM_APP': 'POST',
+    'GOOGLE_MAPS': 'POST',
+    'GOOGLE_SEARCH': 'EXTERNAL',
+    'GOOGLE_BUSINESS': 'POST',
+    'TROVO_CHANNEL': 'CHANNEL',
+    'YANDEX_MAPS': 'POST',
+    'YANDEX_SEARCH': 'EXTERNAL',
   };
 
   return (typeMap[objectType] as any) || 'POST';

@@ -8,13 +8,15 @@
 import React from 'react';
 import { PromoCarousel } from '@/components/cms/widgets/PromoCarousel';
 import { PromoModal } from '@/components/cms/widgets/PromoModal';
+import { CmsHero } from '@/components/cms/blocks/cms-hero';
 
 import { useCmsBridge } from '@/components/cms/CmsBridge';
 
 export type CmsBlock = {
     id: string;
-    type: 'PROMO_CAROUSEL' | 'PROMO_MODAL' | 'CUSTOM_HTML' | 'BANNER';
+    type: 'PROMO_CAROUSEL' | 'PROMO_MODAL' | 'CUSTOM_HTML' | 'BANNER' | 'HERO' | 'FEATURES' | 'STATS';
     data: any;
+    content?: any; // Fallback for some DB structures
     isActive: boolean;
     position?: 'top' | 'bottom' | 'middle';
     slot?: string;
@@ -55,6 +57,8 @@ export function BlockRenderer({ blocks, position, slot }: BlockRendererProps) {
                         return wrapper(<PromoCarousel data={blockData} />);
                     case 'PROMO_MODAL':
                         return wrapper(<PromoModal data={blockData} />);
+                    case 'HERO':
+                        return wrapper(<CmsHero data={blockData} />);
                     default:
                         return null;
                 }

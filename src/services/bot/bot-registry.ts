@@ -7,7 +7,8 @@
 import { Telegraf } from 'telegraf';
 import { ConfigService } from '@/services/core/config.service';
 
-const TOKEN = ConfigService.getSystemConfig().defaultBotToken;
+const systemConfig = ConfigService.getSystemConfig();
+const TOKEN = systemConfig?.defaultBotToken;
 
 // Создаем инстанс бота один раз (Singleton)
 const globalForBot = global as unknown as {

@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { Role } from '@/generated/client';
+import { Role } from '@prisma/client';
 import { updateUserAction } from '@/app/admin/users/actions';
 import { toast } from 'sonner';
 import { Loader2, RefreshCw, Copy, Check, Zap, Shield } from 'lucide-react';

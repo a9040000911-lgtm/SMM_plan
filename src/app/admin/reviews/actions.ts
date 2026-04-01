@@ -9,7 +9,7 @@ import { revalidatePath } from 'next/cache';
 import { getAdminSession } from '@/utils/admin-session';
 import { AdminDataService } from '@/services/admin/admin-data.service';
 import { AdminContext } from '@/services/types';
-import { ReviewStatus } from '@/generated/client';
+import { ReviewStatus } from '@prisma/client';
 
 async function getCtx(): Promise<AdminContext> {
     const session = await getAdminSession();
@@ -28,7 +28,7 @@ export async function updateReviewStatus(reviewId: string, status: ReviewStatus)
     
     if (result.success) {
         revalidatePath('/admin/reviews');
-        revalidatePath('/admin/content');
+        revalidatePath('/admin/cms/content');
         revalidatePath('/');
         return { success: true };
     } else {
@@ -53,7 +53,7 @@ export async function upsertAdminReview(
     
     if (result.success) {
         revalidatePath('/admin/reviews');
-        revalidatePath('/admin/content');
+        revalidatePath('/admin/cms/content');
         revalidatePath('/');
         return { success: true };
     } else {
@@ -67,7 +67,7 @@ export async function deleteReview(reviewId: string) {
     
     if (result.success) {
         revalidatePath('/admin/reviews');
-        revalidatePath('/admin/content');
+        revalidatePath('/admin/cms/content');
         revalidatePath('/');
         return { success: true };
     } else {

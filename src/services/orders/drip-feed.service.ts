@@ -6,7 +6,7 @@
 import { prisma } from '@/lib/prisma';
 import { ProviderService } from '@/services/providers';
 import { dripFeedQueue } from '@/services/core/queues';
-import { Order } from '@/generated/client';
+import { Order } from '@prisma/client';
 import { createLogger } from '@/lib/logger';
 
 export class DripFeedService {
@@ -80,6 +80,7 @@ export class DripFeedService {
 
         const mappings = order.internalService.providerMappings;
         const qtyToOrder = Math.floor(order.quantity / order.runs);
+        const userPaidPer1000 = order.totalPrice.mul(1000).div(order.quantity);
 
         // Пробуем запустить через Smart Switching
         let success = false;
@@ -90,11 +91,30 @@ export class DripFeedService {
                 continue;
             }
 
+            // 4. Margin Protection Gate: не уйти в убыток при смене провайдера
+            const providerSvc = await prisma.providerService.findFirst({
+                where: { providerId: m.providerId, provider: { name: m.provider.name }, isActive: true },
+                orderBy: { rawPrice: 'asc' }
+            });
+            if (providerSvc) {
+                const { Decimal } = await import('decimal.js');
+                const rawPrice = new Decimal(providerSvc.rawPrice as any);
+                if (rawPrice.gte(userPaidPer1000)) {
+                    this.logger.warn(`[DripFeed Margin Guard] Skipping ${m.provider.name}: provider price (${rawPrice}) >= user price (${userPaidPer1000}). Protecting margin.`);
+                    continue;
+                }
+            }
+
             const res = await ProviderService.createOrder(order, qtyToOrder, { providerId: m.providerId, providerServiceId: m.providerServiceId.toString() });
             if (res.success) {
                 success = true;
                 const nextRun = order.currentRun + 1;
                 const isFinished = nextRun >= order.runs;
+
+                // Фиксируем актуальный costPrice для этого рана (для корректных Refund/B2B)
+                const runCostPrice = providerSvc
+                    ? new (await import('decimal.js')).Decimal(providerSvc.rawPrice as any).div(1000).mul(qtyToOrder)
+                    : undefined;
 
                 await prisma.order.update({
                     where: { id: order.id },
@@ -104,14 +124,15 @@ export class DripFeedService {
                         status: 'PROCESSING',
                         currentRun: nextRun,
                         nextRunAt: isFinished ? null : new Date(Date.now() + order.interval * 60000),
-                        providerRawResponse: res.rawData || { info: `Run ${nextRun} successful` }
+                        providerRawResponse: res.rawData || { info: `Run ${nextRun} successful` },
+                        ...(runCostPrice ? { costPrice: runCostPrice } : {})
                     }
                 });
 
                 if (!isFinished) {
                     await dripFeedQueue.add(`run-${order.id}-${nextRun + 1}`,
                         { orderId: order.id },
-                        { delay: order.interval * 60000 }
+                        { delay: order.interval * 60000, jobId: `run-${order.id}-${nextRun + 1}` }
                     );
                 }
                 break;
@@ -122,13 +143,18 @@ export class DripFeedService {
                     where: { id: order.id },
                     data: { nextRunAt: new Date(Date.now() + 60 * 60000) } // Ждем час
                 });
-                await dripFeedQueue.add(`delay-overlap-${order.id}`, { orderId: order.id }, { delay: 60 * 60000 });
+                await dripFeedQueue.add(`delay-overlap-${order.id}`, { orderId: order.id }, { delay: 60 * 60000, jobId: `delay-overlap-${order.id}-${Date.now()}` });
                 return;
             }
         }
 
         if (!success) {
-            this.logger.error(`[Drip-feed] Run failed for order ${orderId} - all providers failed.`);
+            this.logger.error(`[Drip-feed] Run ${order.currentRun + 1} failed for order ${orderId} - all providers failed. Refunding remaining runs.`);
+            // Если все провайдеры отвалились, нужно вернуть средства за невыполненные раны, чтобы заказ не завис в пустоте.
+            const remainingRuns = order.runs - order.currentRun;
+            const remainingQty = remainingRuns * qtyToOrder;
+            const { OrderRefundService } = await import('@/services/orders/order-refund.service');
+            await OrderRefundService.handleRefund(order as any, 'PARTIAL', remainingQty, { error: 'All providers failed during Drip-Feed run' });
         }
     }
 

@@ -9,8 +9,10 @@ import {
   PlusCircle,
   MinusCircle,
   RotateCcw,
-  Hash
+  Hash,
+  ReceiptText
 } from 'lucide-react';
+import { AdminTableCard } from '@/components/admin/core/admin-table-card';
 import { formatAmount } from '@/utils/formatter';
 import { ProjectService } from '@/services/core';
 import Link from 'next/link';
@@ -154,8 +156,8 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
     <div className="space-y-6 text-[13px]">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight italic uppercase">Финансовый журнал</h2>
-          <p className="text-sm text-slate-500 font-medium">История операций (всего: {totalMatchingTxs})</p>
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight italic uppercase">Транзакции</h2>
+          <p className="text-sm text-slate-500 font-medium">История пополнений, списаний и движение средств (всего: {totalMatchingTxs})</p>
         </div>
         <div className="flex items-center gap-4">
           <LiveRefresh />
@@ -173,7 +175,11 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
         isGlobalAdmin={isGlobalAdmin}
       />
 
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden font-medium">
+      <AdminTableCard 
+        title="Список транзакций" 
+        icon={ReceiptText}
+        className="font-medium"
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -250,7 +256,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
             </tbody>
           </table>
         </div>
-      </div>
+      </AdminTableCard>
 
       <Pagination totalPages={Math.ceil(totalMatchingTxs / PAGE_SIZE)} />
     </div>

@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://dev.to/techdude/build-a-social-media-automation-tool-using-smm-panel-api-2m8c",
+    "name": "Build a Social Media Automation Tool Using SMM Panel API",
+    "snippet": "Most SMM panel APIs follow a common REST or HTTP POST request structure. You send a request containing your API key and required parameters, and ... Missing: formats | Show results with: formats",
+    "host_name": "dev.to",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://airsmm.com/blog/smm-panel-api-guide",
+    "name": "SMM Panel API Guide: Automate & Scale Social Media Growth",
+    "snippet": "An SMM Panel API allows you to connect your website, app, or reseller panel directly with an SMM service provider and automate the entire order process.",
+    "host_name": "airsmm.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://buythefans.com/blog/smm-panel-api-provider",
+    "name": "SMM Panel API Provider: The Complete Guide for Resellers",
+    "snippet": "An SMM panel API (Application Programming Interface) allows your website or panel to automatically send and receive service orders from another provider.",
+    "host_name": "buythefans.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch%3Fv%3DM-0w74eL408",
+    "name": "1] Build a Real Instagram SMM Panel SaaS — Next.js 15  - YouTube",
+    "snippet": "... social media orders Admin dashboard to manage users, orders, balances & services ... Provider Page 03:29:11 - Add axios config file 03:31:38 ... Missing: endpoints formats",
+    "host_name": "www.youtube.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.blackhatworld.com/seo/looking-for-reliable-smm-panel-api-recommendations.1761462",
+    "name": "Looking for Reliable SMM Panel API — Recommendations?",
+    "snippet": "Ideally, I'm looking for a panel that offers: Fast and stable API access; Wide range of social media services (Instagram, TikTok, YouTube, etc.) ...",
+    "host_name": "www.blackhatworld.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.bazaarvoice.com/articles/%23!portal-basics/smm",
+    "name": "Social media management integration - Bazaarvoice Knowledge Base",
+    "snippet": "The API returns data in a machine-readable format, which you will incorporate into your own application that you must build, host, and maintain.",
+    "host_name": "docs.bazaarvoice.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.tribuneindia.com/partner-exclusives/how-do-smm-panels-work",
+    "name": "How Do SMM Panels Work? - The Tribune",
+    "snippet": "An SMM panel is an automated marketing platform that sells engagement services such as followers, likes, views, comments, members, votes, and ...",
+    "host_name": "www.tribuneindia.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.postman.com/templates/collections/social-media-api",
+    "name": "Social media API Collection Template - Postman",
+    "snippet": "The template contains a set of pre-designed endpoints and examples demonstrating the must-have features of a social media API. The template includes a blueprint ... Missing: SMM | Show results with: SMM",
+    "host_name": "www.postman.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://mixpost.app",
+    "name": "Mixpost — Open Source, Self-Hosted Social Media Management",
+    "snippet": "Manage & schedule posts across 10+ social networks from your own server. Open-source, privacy-first. Free Lite edition available.",
+    "host_name": "mixpost.app",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://bulkmedya.org/top-smm-panel-with-api-for-resellers",
+    "name": "Top SMM Panel with API for Resellers - Bulk Medya",
+    "snippet": "Look for services that provide multiple API endpoints for different social platforms, detailed response formats, and sample code in various programming ...",
+    "host_name": "bulkmedya.org",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

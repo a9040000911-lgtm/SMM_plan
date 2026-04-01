@@ -17,7 +17,7 @@ describe('LinkService Soft Validation Tests', () => {
             const result = LinkService.validate('https://t.me/durov/123', 'TELEGRAM', 'CHANNEL');
             expect(result.isValid).toBe(true);
             expect(result.isWarning).toBe(true);
-            expect(result.warning).toMatch(/Возможно, ссылка не того типа/);
+            expect(result.warning).toMatch(/Внимание! Вы выбрали услугу на канал\/сообщество, но прислали ссылку на пост\/публикацию/);
         });
 
         test('should return isWarning: true for OTHER unknown platforms via fallback', () => {

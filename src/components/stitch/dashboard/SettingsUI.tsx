@@ -126,10 +126,10 @@ export function SettingsUI({ userData: initialUserData }: SettingsUIProps) {
     };
 
     return (
-        <div className="space-y-12 pb-24">
+        <div className="max-w-6xl mx-auto px-6 space-y-12 pb-24 pt-10">
             {/* Header */}
             <div className="space-y-2">
-                <h1 className="text-5xl font-black text-slate-950 tracking-tighter uppercase italic">
+                <h1 className="text-5xl md:text-8xl font-black text-slate-950 tracking-tighter uppercase italic pr-2 overflow-visible leading-[0.85]">
                     Персональные <span className="text-blue-600">Настройки</span>
                 </h1>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Управление безопасностью и личными данными</p>

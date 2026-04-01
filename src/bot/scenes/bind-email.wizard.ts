@@ -7,6 +7,7 @@ import { Scenes, Markup } from 'telegraf';
 import { prisma } from '@/lib/prisma';
 import { send2FACodeEmail } from '@/services/mail.service';
 import { formatAmount } from '@/utils/formatter';
+import { RateLimiterService } from '../utils/rate-limiter';
 
 export const BIND_EMAIL_WIZARD = 'bind-email-wizard';
 
@@ -34,6 +35,18 @@ export const bindEmailWizard = new Scenes.WizardScene<any>(
 
         ctx.wizard.state.email = email;
         ctx.wizard.state.code = code;
+
+        // Anti-Spam Check
+        const limit = await RateLimiterService.checkEmailLimit(ctx.from!.id, ctx.project.id);
+        if (!limit.allowed) {
+            return ctx.reply(`⚠️ Вы запрашивали код слишком часто. Пожалуйста, подождите ${(limit.remainingDelaySec / 60).toFixed(0)} минут.`, {
+                ...Markup.inlineKeyboard([[Markup.button.callback('🔙 Назад', 'cancel_scene')]])
+            });
+        }
+
+        if (limit.attempts === 4) {
+            await ctx.reply('⚠️ <b>ПРЕДУПРЕЖДЕНИЕ:</b> Это ваша предпоследняя попытка привязки. При следующей ошибке функция отправки писем будет заблокирована на 10 минут из-за подозрений в спаме.', { parse_mode: 'HTML' });
+        }
 
         await ctx.reply('⏳ <b>Отправляем код подтверждения...</b>', { parse_mode: 'HTML' });
 

@@ -4,6 +4,7 @@ import * as dotenv from 'dotenv';
 import { ServiceSyncService } from '../src/services/providers/sync.service';
 
 dotenv.config();
+process.env.ALLOW_LOCAL_MOCKS = 'true';
 const prisma = new PrismaClient();
 
 async function main() {

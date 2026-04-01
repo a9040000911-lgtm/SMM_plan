@@ -9,25 +9,45 @@ import { getClientProjectId } from "@/utils/project-resolver";
 import { CmsService } from "@/services/cms/cms.service";
 import { toPlainObject } from "@/utils/serialization";
 
+import { getTenantDomain, getTenantConfig } from "@/lib/tenant/server";
+
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-    title: "Smmplan | Продвижение в соцсетях №1: Telegram, Instagram, VK, YouTube",
-    description: "Надежная платформа для быстрого продвижения в социальных сетях. Заказывайте подписчиков, лайки, просмотры и реакции в один клик с гарантией качества и моментальным стартом.",
-    openGraph: {
-        title: "Smmplan — Лучший SMM сервис для вашего бизнеса и блога",
-        description: "Эффективная раскрутка аккаунтов. Живая аудитория, стабильные просмотры и безопасные методы работы.",
-    }
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const domain = await getTenantDomain();
+    const config = await getTenantConfig();
+    const scheme = domain === 'localhost' || domain.includes(':') ? 'http' : 'https';
+
+    return {
+        title: `${config.name} | Продвижение в соцсетях №1: Telegram, Instagram, VK, YouTube`,
+        description: config.description || "Надежная платформа для быстрого продвижения в социальных сетях. Заказывайте подписчиков, лайки, просмотры и реакции в один клик с гарантией качества и моментальным стартом.",
+        openGraph: {
+            title: `${config.name} — Лучший SMM сервис для вашего бизнеса и блога`,
+            description: config.description || "Эффективная раскрутка аккаунтов. Живая аудитория, стабильные просмотры и безопасные методы работы.",
+        },
+        alternates: {
+            canonical: `${scheme}://${domain}`
+        }
+    };
+}
 
 export default async function HomePage() {
     let projectId: string | null = null;
     let cmsStrings: Record<string, string> = {};
     let cmsBlocks: any[] = [];
     let reviews: any[] = [];
+    let projectConfig: any = null;
+
+    let tenantDomain = 'smmplan.pro';
+    let tenantName = 'Smmplan';
+    let tenantScheme = 'https';
 
     try {
         projectId = await getClientProjectId();
+        tenantDomain = await getTenantDomain();
+        tenantScheme = tenantDomain === 'localhost' || tenantDomain.includes(':') ? 'http' : 'https';
+        const configContext = await getTenantConfig();
+        tenantName = configContext.name || 'Smmplan';
 
         // Fetch CMS content for the home page
         cmsStrings = await CmsService.getProjectStrings(projectId);
@@ -36,6 +56,14 @@ export default async function HomePage() {
         // Fetch only approved reviews for this project
         const reviewResult = await CmsService.getApprovedReviews(projectId);
         reviews = reviewResult.success ? reviewResult.data : [];
+
+        if (projectId) {
+            const { ProjectService } = await import("@/services/core");
+            const project = await ProjectService.getById(projectId);
+            if (project) {
+                projectConfig = project.config;
+            }
+        }
     } catch (e) {
         console.error('[HomePage] Error fetching initial data:', e);
     }
@@ -50,6 +78,7 @@ export default async function HomePage() {
                 projectId={projectId} 
                 cmsContent={cmsStrings}
                 cmsBlocks={cmsBlocks}
+                projectConfig={projectConfig}
             />
 
             {/* Structured Data (JSON-LD) */}
@@ -59,11 +88,11 @@ export default async function HomePage() {
                     __html: JSON.stringify({
                         "@context": "https://schema.org",
                         "@type": "WebSite",
-                        "name": "Smmplan",
-                        "url": "https://smmplan.ru",
+                        "name": tenantName,
+                        "url": `${tenantScheme}://${tenantDomain}`,
                         "potentialAction": {
                             "@type": "SearchAction",
-                            "target": "https://smmplan.ru/catalog?q={search_term_string}",
+                            "target": `${tenantScheme}://${tenantDomain}/catalog?search={search_term_string}`,
                             "query-input": "required name=search_term_string"
                         }
                     })
@@ -75,13 +104,10 @@ export default async function HomePage() {
                     __html: JSON.stringify({
                         "@context": "https://schema.org",
                         "@type": "Organization",
-                        "name": "Smmplan",
-                        "url": "https://smmplan.ru",
-                        "logo": "https://smmplan.ru/logo.png",
-                        "sameAs": [
-                            "https://t.me/smmplan",
-                            "https://vk.com/smmplan"
-                        ]
+                        "name": tenantName,
+                        "url": `${tenantScheme}://${tenantDomain}`,
+                        "logo": `${tenantScheme}://${tenantDomain}/logo.png`,
+                        "sameAs": [] // Can be populated from tenant configuration later if needed
                     })
                 }}
             />

@@ -12,8 +12,12 @@ import { InfoTooltip } from '@/components/admin/core/info-tooltip';
 import { ServiceSelector } from '@/components/admin/services/service-selector';
 import { toast } from 'sonner';
 
-const PLATFORMS = ['TELEGRAM', 'INSTAGRAM', 'VK', 'TIKTOK', 'YOUTUBE', 'TWITCH', 'WHATSAPP', 'SPOTIFY', 'SOUNDCLOUD', 'LINKEDIN', 'PINTEREST', 'SNAPCHAT', 'TROVO', 'KWAI', 'MESSENGER_MAX', 'OTHER'];
-const CATEGORIES = ['SUBSCRIBERS', 'LIKES', 'VIEWS', 'REACTIONS', 'REPOSTS', 'COMMENTS', 'TRAFFIC', 'DISLIKES', 'OTHER'];
+import { 
+    PLATFORMS, 
+    CATEGORIES, 
+    PLATFORM_LABELS 
+} from '@/services/providers/smart-analyzer.logic';
+import { getActivityLabel } from '@/utils/order-utils';
 
 const TARGET_TYPES = [
     { value: 'CHANNEL', label: 'Канал / Группа / Сообщество (Подписчики)' },
@@ -166,7 +170,7 @@ export function NewServiceForm({
                                 onChange={handleChange}
                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold uppercase"
                             >
-                                {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
+                                {PLATFORMS.map(p => <option key={p} value={p}>{PLATFORM_LABELS[p] || p}</option>)}
                             </select>
                         </div>
                         <div className="space-y-2">
@@ -179,7 +183,7 @@ export function NewServiceForm({
                                 onChange={handleChange}
                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold uppercase"
                             >
-                                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                {CATEGORIES.map(c => <option key={c} value={c}>{getActivityLabel(c)}</option>)}
                             </select>
                         </div>
                     </div>

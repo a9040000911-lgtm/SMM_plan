@@ -38,8 +38,8 @@ export async function createNewsAction(formData: FormData) {
   const result = await AdminServices.management.createNews(ctx, data);
   if (!result.success) throw new Error(result.error.message);
 
-  revalidatePath('/admin/content');
-  redirect('/admin/content?tab=news');
+  revalidatePath('/admin/cms/content');
+  redirect('/admin/cms/content?tab=news');
 }
 
 export async function deleteNewsAction(id: string) {
@@ -47,7 +47,7 @@ export async function deleteNewsAction(id: string) {
   const result = await AdminServices.management.deleteNews(ctx, id);
   
   if (result.success) {
-    revalidatePath('/admin/content');
+    revalidatePath('/admin/cms/content');
     return { success: true };
   } else {
     return { success: false, error: 'Не удалось удалить новость.' };

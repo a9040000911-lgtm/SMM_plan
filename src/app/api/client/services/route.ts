@@ -45,13 +45,14 @@ export async function GET(_req: NextRequest) {
             },
             include: {
                 serviceCategory: true,
+                socialPlatform: true,
                 projectOverrides: {
                     where: { projectId: projectId || undefined }
                 }
             },
             orderBy: [
-                { platform: 'asc' },
-                { category: 'asc' },
+                { socialPlatform: { slug: 'asc' } },
+                { serviceCategory: { priority: 'asc' } },
                 { pricePer1000: 'asc' }
             ]
         });
@@ -71,19 +72,20 @@ export async function GET(_req: NextRequest) {
             const override = s.projectOverrides?.[0];
             if (override && !override.isActive) return; // Hidden by override
 
-            if (!catalog[s.platform]) catalog[s.platform] = {};
+            const platformSlug = s.socialPlatform?.slug?.toUpperCase() || 'OTHER';
+            if (!catalog[platformSlug]) catalog[platformSlug] = {};
 
             const category = s.serviceCategory;
             const catName = category?.name || 'Другое';
 
-            if (!catalog[s.platform][catName]) {
-                catalog[s.platform][catName] = {
+            if (!catalog[platformSlug][catName]) {
+                catalog[platformSlug][catName] = {
                     metadata: {
                         id: category?.id || 'other',
                         description: category?.description || '',
                         icon: category?.icon || '',
                         targetType: category?.targetType || s.targetType,
-                        category: category?.categoryType || s.category
+                        category: category?.categoryType || 'OTHER'
                     },
                     services: []
                 };
@@ -93,7 +95,7 @@ export async function GET(_req: NextRequest) {
                 ? override.customPrice.toNumber()
                 : (s.pricePer1000 ? s.pricePer1000.toNumber() : 0);
 
-            catalog[s.platform][catName].services.push({
+            catalog[platformSlug][catName].services.push({
                 id: s.numericId.toString(),
                 name: s.name,
                 tierName: 'Стандарт',
@@ -103,8 +105,8 @@ export async function GET(_req: NextRequest) {
                 min: s.minQty,
                 max: s.maxQty,
                 unit: s.unitName,
-                platform: s.platform,
-                category: category?.categoryType || s.category,
+                platform: platformSlug,
+                category: category?.categoryType || 'OTHER',
                 targetType: category?.targetType || s.targetType,
                 isBest: s.isCurated,
                 tierPriority: 99,

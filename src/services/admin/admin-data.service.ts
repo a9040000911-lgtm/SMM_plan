@@ -5,7 +5,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@/generated/client";
+import { Prisma } from "@prisma/client";
 import { AdminContext, AdminServiceResult } from "../types";
 import { LoyaltyService } from "../users/loyalty.service";
 import { ReferralLeaderboardService } from "../users/referral-leaderboard.service";
@@ -14,6 +14,11 @@ import { safeAdminExecute } from "../utils";
 import { Decimal } from "decimal.js";
 import { toPlainObject } from "@/utils/serialization";
 import { z } from "zod";
+import { AdminDashboardService } from "./microservices/admin-dashboard.service";
+import { AdminOrderService } from "./microservices/admin-order.service";
+import { AdminUserService } from "./microservices/admin-user.service";
+import { AdminFinanceService } from "./microservices/admin-finance.service";
+import { AdminStatisticsService } from "./microservices/admin-statistics.service";
 
 export interface UserFilters {
     role?: string;
@@ -32,6 +37,7 @@ export interface OrderFilters {
     serviceId?: string;
     dateFrom?: string;
     dateTo?: string;
+    stuck?: boolean;
     page: number;
     limit: number;
 }
@@ -94,69 +100,7 @@ export class AdminDataService {
         totalMatching: number;
         totalGlobal: number;
     }>> {
-        return safeAdminExecute(ctx, 'GET_USERS_PAGED', async () => {
-            const skip = (filters.page - 1) * filters.limit;
-            const where: Prisma.UserWhereInput = {};
-
-            if (!ctx.isGlobalAdmin) {
-                where.OR = [
-                    { projectId: { in: ctx.allowedProjects } },
-                    { accessibleProjects: { some: { id: { in: ctx.allowedProjects } } } }
-                ];
-            }
-
-            if (filters.role && filters.role !== 'ALL') {
-                where.role = filters.role as any;
-            }
-
-            if (filters.search) {
-                const isNumeric = /^\d+$/.test(filters.search);
-                where.OR = [
-                    { username: { contains: filters.search, mode: 'insensitive' } },
-                    { email: { contains: filters.search, mode: 'insensitive' } },
-                    { id: { contains: filters.search, mode: 'insensitive' } },
-                    isNumeric ? { tgId: BigInt(filters.search) } : undefined
-                ].filter(Boolean) as Prisma.UserWhereInput[];
-            }
-
-            const [users, totalMatching, totalGlobal] = await Promise.all([
-                prisma.user.findMany({
-                    where,
-                    take: filters.limit,
-                    skip: skip,
-                    orderBy: { createdAt: 'desc' },
-                }),
-                prisma.user.count({ where }),
-                prisma.user.count()
-            ]);
-
-            const enrichedUsers = await Promise.all(users.map(async (user, i) => {
-                const spent = Number(user.spent);
-                const loyalty = await LoyaltyService.getLoyaltyInfo(user.id, spent, user.projectId);
-                const partnerLevel = ReferralLeaderboardService.calculateTier(spent);
-                const partnerPercent = await LoyaltyService.getReferralPercent(user.id, user.projectId || 'DEFAULT');
-
-                return {
-                    id: user.id,
-                    index: skip + i + 1,
-                    username: user.username,
-                    email: user.email,
-                    tgId: user.tgId?.toString() || null,
-                    balance: user.balance.toString(),
-                    spent: user.spent.toString(),
-                    referralEarnings: user.referralEarnings.toString(),
-                    role: user.role,
-                    createdAt: user.createdAt,
-                    discount: loyalty.totalDiscount,
-                    partnerLevel,
-                    partnerPercent,
-                    isBanned: user.isPermanentlyBanned || (user.banExpiresAt && user.banExpiresAt > new Date()),
-                    isGlobalAdmin: user.isGlobalAdmin,
-                };
-            }));
-
-            return toPlainObject({ users: enrichedUsers, totalMatching, totalGlobal });
-        });
+        return AdminUserService.getUsersPaged(ctx, filters);
     }
 
     /**
@@ -185,111 +129,14 @@ export class AdminDataService {
         projects: any[];
         providers: any[];
     }>> {
-        try {
-            const skip = (filters.page - 1) * filters.limit;
-            const where: Prisma.OrderWhereInput = {};
+        return AdminOrderService.getOrdersPaged(ctx, filters);
+    }
 
-            if (!ctx.isGlobalAdmin) {
-                where.projectId = { in: ctx.allowedProjects };
-            }
-
-            if (filters.status && filters.status !== 'ALL') {
-                where.status = filters.status as any;
-            }
-            if (filters.platform && filters.platform !== 'ALL') {
-                where.internalService = { platform: filters.platform as any };
-            }
-            if (filters.projectId && filters.projectId !== 'ALL') {
-                where.projectId = filters.projectId;
-            }
-            if (filters.provider && filters.provider !== 'ALL') {
-                where.internalService = { providerMappings: { some: { providerId: filters.provider } } };
-            }
-            if (filters.category && filters.category !== 'ALL') {
-                where.internalService = { category: filters.category as any };
-            }
-            if (filters.serviceId && filters.serviceId !== 'ALL') {
-                where.internalServiceId = filters.serviceId;
-            }
-            if (filters.dateFrom || filters.dateTo) {
-                where.createdAt = {};
-                if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-                if (filters.dateTo) where.createdAt.lte = new Date(filters.dateTo);
-            }
-            if (filters.search) {
-                const isNumeric = /^\d+$/.test(filters.search);
-                where.OR = [
-                    ...(isNumeric ? [{ id: parseInt(filters.search) }] : []),
-                    { externalId: { contains: filters.search, mode: 'insensitive' } },
-                    { link: { contains: filters.search, mode: 'insensitive' } }
-                ];
-            }
-
-            const [orders, totalMatching, allProjects, allProviders] = await Promise.all([
-                prisma.order.findMany({
-                    where,
-                    take: filters.limit,
-                    skip: skip,
-                    orderBy: { createdAt: 'desc' },
-                    include: {
-                        user: true,
-                        project: true,
-                        internalService: {
-                            include: {
-                                providerMappings: {
-                                    include: {
-                                        provider: true
-                                    }
-                                }
-                            }
-                        },
-                    },
-                }),
-                prisma.order.count({ where }),
-                prisma.project.findMany({
-                    orderBy: { name: 'asc' },
-                    select: { id: true, name: true, brandColor: true }
-                }),
-                prisma.provider.findMany({
-                    orderBy: { name: 'asc' },
-                    select: { id: true, name: true }
-                })
-            ]);
-
-            return {
-                success: true,
-                data: toPlainObject({
-                    orders: orders.map(o => ({
-                        ...o,
-                        totalPrice: o.totalPrice?.toNumber() || 0,
-                        costPrice: o.costPrice?.toNumber() || 0,
-                        discountAmount: o.discountAmount?.toNumber() || 0,
-                        refundedAmount: o.refundedAmount?.toNumber ? o.refundedAmount.toNumber() : Number(o.refundedAmount || 0),
-                        internalService: o.internalService ? {
-                            ...o.internalService,
-                            pricePer1000: o.internalService.pricePer1000?.toNumber ? o.internalService.pricePer1000.toNumber() : Number(o.internalService.pricePer1000 || 0),
-                            lastProviderPrice: o.internalService.lastProviderPrice?.toNumber ? o.internalService.lastProviderPrice.toNumber() : (o.internalService.lastProviderPrice ? Number(o.internalService.lastProviderPrice) : null),
-                            marketPrice: o.internalService.marketPrice?.toNumber ? o.internalService.marketPrice.toNumber() : (o.internalService.marketPrice ? Number(o.internalService.marketPrice) : null),
-                            markup: o.internalService.markup?.toNumber ? o.internalService.markup.toNumber() : (o.internalService.markup ? Number(o.internalService.markup) : null),
-                            providerPriceOriginal: o.internalService.providerPriceOriginal?.toNumber ? o.internalService.providerPriceOriginal.toNumber() : (o.internalService.providerPriceOriginal ? Number(o.internalService.providerPriceOriginal) : null),
-                            providerMappings: o.internalService.providerMappings?.map((pm: any) => ({
-                                ...pm,
-                                customPrice: pm.customPrice?.toNumber ? pm.customPrice.toNumber() : (pm.customPrice ? Number(pm.customPrice) : null),
-                                provider: pm.provider
-                            }))
-                        } : null
-                    })),
-                    totalMatching,
-                    projects: allProjects,
-                    providers: allProviders
-                })
-            };
-        } catch (error: any) {
-            return {
-                success: false,
-                error: { code: 'ADMIN_ORDERS_FETCH_FAILED', message: error.message }
-            };
-        }
+    /**
+     * Gets statistics for stuck orders.
+     */
+    static async getStuckStats(ctx: AdminContext): Promise<AdminServiceResult<{ pendingCount: number; processingCount: number; totalStuck: number }>> {
+        return AdminOrderService.getStuckStats(ctx);
     }
 
     /**
@@ -372,7 +219,7 @@ export class AdminDataService {
     /**
      * Gets history logs for a specific service.
      */
-    static async getServiceHistory(ctx: AdminContext, serviceId: string): Promise<AdminServiceResult<import('@/generated/client').AdminLog[]>> {
+    static async getServiceHistory(ctx: AdminContext, serviceId: string): Promise<AdminServiceResult<any[]>> {
         try {
             const logs = await prisma.adminLog.findMany({
                 where: {
@@ -639,20 +486,105 @@ export class AdminDataService {
     /**
      * Batch imports services from providers.
      */
-    static async importProviderServices(ctx: AdminContext, items: any[], _settings: any, projectId?: string): Promise<AdminServiceResult<{ count: number }>> {
-        try {
-            // ServiceSyncService imported but not used yet in the placeholder loop
+    static async importProviderServices(ctx: AdminContext, items: any[], settings: any, _projectId?: string): Promise<AdminServiceResult<{ count: number }>> {
+        return safeAdminExecute(ctx, 'IMPORT_PROVIDER_SERVICES', async () => {
+            const { SmartAnalyzerService } = await import('@/services/providers/smart-analyzer.service');
+            const { PricingService } = await import('@/services/finance/pricing.service');
+            const { GuaranteeParser } = await import('@/utils/guarantee-parser');
+
             let count = 0;
-            for (const _item of items) {
-                // Implementation of simplified import or calling SyncService
-                // For now, assume simplified creation or delegation
+
+            for (const item of items) {
+                const providerService = await prisma.providerService.findUnique({
+                    where: { id: String(item.id) },
+                    include: { provider: true }
+                });
+
+                if (!providerService) continue;
+
+                const platform = (settings.platform || providerService.platform || 'OTHER') as any;
+                const category = (settings.category || providerService.category || 'OTHER') as any;
+                const targetType = (settings.targetType || 'CHANNEL') as any;
+
+                const rawPrice = providerService.rawPrice.toNumber();
+                const finalPrice = await PricingService.calculateRetailPrice(new Decimal(rawPrice), {
+                    category,
+                    providerName: providerService.provider.name
+                });
+
+                const internalId = `${platform}_${category}_${providerService.id}`.toLowerCase();
+                
+                // Resolve category in DB
+                const categoryObj = await SmartAnalyzerService.resolveCategory(prisma, platform, category, targetType, null);
+
+                await prisma.internalService.upsert({
+                    where: { id: internalId },
+                    update: {
+                        name: providerService.name,
+                        serviceCategory: { connect: { id: categoryObj.id } },
+                        ...(categoryObj.socialPlatformId ? { socialPlatform: { connect: { id: categoryObj.socialPlatformId } } } : {}),
+                        pricePer1000: finalPrice,
+                        lastProviderPrice: rawPrice,
+                        minQty: (providerService.rawData as any)?.min || 10,
+                        maxQty: (providerService.rawData as any)?.max || 100000,
+                        targetType,
+                        description: (providerService.rawData as any)?.description || 'Импортировано из API.',
+                        geo: (providerService.rawData as any)?.geo || 'GLOBAL',
+                        guaranteeDays: GuaranteeParser.parse(providerService.name + ' ' + ((providerService.rawData as any)?.description || '')),
+                    },
+                    create: {
+                        id: internalId,
+                        name: providerService.name,
+                        platform: 'OTHER',
+                        category: 'OTHER',
+                        serviceCategory: { connect: { id: categoryObj.id } },
+                        ...(categoryObj.socialPlatformId ? { socialPlatform: { connect: { id: categoryObj.socialPlatformId } } } : {}),
+                        pricePer1000: finalPrice,
+                        lastProviderPrice: rawPrice,
+                        minQty: (providerService.rawData as any)?.min || 10,
+                        maxQty: (providerService.rawData as any)?.max || 100000,
+                        targetType,
+                        description: (providerService.rawData as any)?.description || 'Импортировано из API.',
+                        geo: (providerService.rawData as any)?.geo || 'GLOBAL',
+                    } as any
+                });
+
+                // Create or update mapping
+                const existingMapping = await prisma.internalServiceMapping.findFirst({
+                    where: {
+                        projectId: providerService.provider.projectId || null,
+                        internalServiceId: internalId,
+                        providerId: providerService.providerId
+                    }
+                });
+
+                if (existingMapping) {
+                    await prisma.internalServiceMapping.update({
+                        where: { id: existingMapping.id },
+                        data: {
+                            providerServiceId: providerService.id,
+                            isActive: true,
+                            priority: 1
+                        }
+                    });
+                } else {
+                    await prisma.internalServiceMapping.create({
+                        data: {
+                            internalServiceId: internalId,
+                            providerId: providerService.providerId,
+                            providerServiceId: providerService.id,
+                            projectId: providerService.provider.projectId || null,
+                            isActive: true,
+                            priority: 1
+                        }
+                    });
+                }
+
                 count++;
             }
-            await this.createAdminLog(ctx, 'BATCH_IMPORT', `Imported ${count} services from providers`, projectId);
-            return { success: true, data: { count } };
-        } catch (error: any) {
-            return { success: false, error: { code: 'IMPORT_FAILED', message: error.message } };
-        }
+
+            return { count };
+        });
     }
 
 
@@ -691,11 +623,15 @@ export class AdminDataService {
         try {
             let project;
             if (requestedProjectId) {
-                project = await prisma.project.findUnique({ where: { id: requestedProjectId } });
+                project = await prisma.project.findUnique({ 
+                    where: { id: requestedProjectId }
+                });
             }
 
             if (!project) {
-                project = await prisma.project.findFirst({ orderBy: { createdAt: 'asc' } });
+                project = await prisma.project.findFirst({ 
+                    orderBy: { createdAt: 'asc' }
+                });
             }
 
             if (!project) throw new Error('No projects found');
@@ -713,11 +649,22 @@ export class AdminDataService {
             const globalSettingsMap: Record<string, string> = {};
             globalSettings.forEach(s => globalSettingsMap[s.key] = s.value);
 
+            const { CryptoService } = await import('@/services/core/crypto.service');
+            const decryptedPaymentSettings = typeof project.paymentSettings === 'string' 
+                ? CryptoService.decryptJson(project.paymentSettings) 
+                : project.paymentSettings;
+            
+            const decryptedConfig = typeof project.config === 'string'
+                ? CryptoService.decryptJson(project.config)
+                : project.config;
+
             return {
                 success: true,
                 data: {
                     project: {
                         ...project,
+                        paymentSettings: decryptedPaymentSettings,
+                        config: decryptedConfig,
                         createdAt: project.createdAt.toISOString(),
                         updatedAt: project.updatedAt.toISOString(),
                     },
@@ -739,71 +686,7 @@ export class AdminDataService {
      * Gets global statistics for the admin dashboard.
      */
     static async getGlobalStats(ctx: AdminContext): Promise<AdminServiceResult<any>> {
-        try {
-            const whereClause: any = {};
-            if (!ctx.isGlobalAdmin) {
-                whereClause.projectId = { in: ctx.allowedProjects };
-            }
-
-            const [revenue, orderCount, userCount, openTickets, stuckOrders, latestOrders] = await Promise.all([
-                prisma.transaction.aggregate({
-                    where: {
-                        type: 'DEPOSIT',
-                        status: 'COMPLETED',
-                        ...(!ctx.isGlobalAdmin ? { user: { projectId: { in: ctx.allowedProjects } } } : {})
-                    },
-                    _sum: { amount: true }
-                }),
-                prisma.order.count({ where: whereClause }),
-                prisma.user.count({ where: !ctx.isGlobalAdmin ? { projectId: { in: ctx.allowedProjects } } : {} }),
-                prisma.supportTicket.count({
-                    where: {
-                        status: 'OPEN',
-                        ...(!ctx.isGlobalAdmin ? { projectId: { in: ctx.allowedProjects } } : {})
-                    }
-                }),
-                prisma.order.count({
-                    where: {
-                        ...whereClause,
-                        status: 'PENDING' // Changed from ERROR to PENDING as ERROR is not in OrderStatus enum
-                    }
-                }),
-                prisma.order.findMany({
-                    where: whereClause,
-                    take: 10,
-                    orderBy: { createdAt: 'desc' },
-                    include: {
-                        user: { select: { username: true, email: true } },
-                        internalService: { select: { name: true } }
-                    }
-                })
-            ]);
-
-            return {
-                success: true,
-                data: toPlainObject({
-                    revenue: Number(revenue._sum.amount || 0),
-                    orderCount,
-                    userCount,
-                    openTicketsCount: openTickets,
-                    stuckOrdersCount: stuckOrders,
-                    latestOrders: latestOrders.map(o => ({
-                        ...o,
-                        totalPrice: o.totalPrice.toNumber(),
-                        costPrice: o.costPrice?.toNumber() || 0,
-                        discountAmount: o.discountAmount?.toNumber() || 0,
-                        refundedAmount: o.refundedAmount?.toNumber() || 0,
-                        user: o.user,
-                        internalService: o.internalService
-                    }))
-                })
-            };
-        } catch (error: any) {
-            return {
-                success: false,
-                error: { code: 'ADMIN_STATS_FETCH_FAILED', message: error.message }
-            };
-        }
+        return AdminDashboardService.getGlobalStats(ctx);
     }
 
     /**
@@ -813,47 +696,26 @@ export class AdminDataService {
         expenses: any[];
         allProjects: any[];
     }>> {
-        try {
-            const where: any = {};
-            if (!ctx.isGlobalAdmin) {
-                where.projectId = { in: ctx.allowedProjects };
-            }
+        return AdminFinanceService.getExpensesData(ctx);
+    }
 
-            const [expenses, allProjects] = await Promise.all([
-                prisma.businessExpense.findMany({
-                    where,
-                    orderBy: { date: 'desc' },
-                    take: 50,
-                }),
-                prisma.project.findMany({
-                    where: ctx.isGlobalAdmin ? {} : { id: { in: ctx.allowedProjects } },
-                    select: { id: true, name: true, createdAt: true, updatedAt: true }
-                })
-            ]);
+    static async getTreasuryData(ctx: AdminContext): Promise<AdminServiceResult<{
+        totalUserBalanceRUB: number;
+        providersAssetsRUB: number;
+        providerDetails: any[];
+        currencyRates: any;
+        dailyRevenue: number;
+        dailyCost: number;
+        failoverLeakage: number;
+    }>> {
+        return AdminFinanceService.getTreasuryData(ctx);
+    }
 
-            return {
-                success: true,
-                data: {
-                    expenses: expenses.map(e => ({
-                        ...e,
-                        amount: e.amount.toNumber(),
-                        date: e.date.toISOString(),
-                        createdAt: e.createdAt.toISOString(),
-                        updatedAt: e.updatedAt.toISOString(),
-                    })),
-                    allProjects: allProjects.map(p => ({
-                        ...p,
-                        createdAt: p.createdAt.toISOString(),
-                        updatedAt: p.updatedAt.toISOString(),
-                    }))
-                }
-            };
-        } catch (error: any) {
-            return {
-                success: false,
-                error: { code: 'ADMIN_EXPENSES_FETCH_FAILED', message: error.message }
-            };
-        }
+    /**
+     * Gets daily charts data.
+     */
+    static async getDailyChartData(ctx: AdminContext, period: '7' | '30' | 'all' = '30'): Promise<AdminServiceResult<any[]>> {
+        return AdminStatisticsService.getDailyChartData(ctx, period);
     }
 
     /**
@@ -871,9 +733,7 @@ export class AdminDataService {
 
             if (!ctx.isGlobalAdmin) {
                 staffWhere.accessibleProjects = {
-                    some: {
-                        id: { in: ctx.allowedProjects }
-                    }
+                    some: { id: { in: ctx.allowedProjects } }
                 };
             }
 
@@ -881,7 +741,7 @@ export class AdminDataService {
                 prisma.user.findMany({
                     where: staffWhere,
                     include: {
-                        accessibleProjects: { select: { id: true } }
+                        accessibleProjects: { select: { id: true, name: true } }
                     },
                     orderBy: { role: 'asc' }
                 }),
@@ -891,13 +751,13 @@ export class AdminDataService {
                 }),
                 prisma.adminLog.groupBy({
                     by: ['adminId'],
-                    _count: { id: true },
+                    _count: { _all: true },
                     _max: { createdAt: true }
                 })
             ]);
 
-            const staffWithStats = staff.map(user => {
-                const stats = adminLogCounts.find(log => log.adminId === user.id);
+            const staffWithStats = staff.map((user: any) => {
+                const stats = adminLogCounts.find((log: any) => log.adminId === user.id);
                 return {
                     id: user.id,
                     username: user.username,
@@ -905,9 +765,9 @@ export class AdminDataService {
                     role: user.role,
                     isGlobalAdmin: user.isGlobalAdmin,
                     permissions: user.permissions || [],
-                    allowedTabs: user.allowedTabs || [],
-                    accessibleProjects: user.accessibleProjects,
-                    actionsCount: stats?._count.id || 0,
+                    accessibleProjects: user.accessibleProjects || [],
+                    memberships: user.accessibleProjects || [],  // alias for UI compat
+                    actionsCount: stats?._count?._all || 0,
                     lastActionAt: stats?._max.createdAt || null
                 };
             });
@@ -1224,8 +1084,7 @@ export class AdminDataService {
                             { id: { contains: query } }
                         ]
                     },
-                    take: 5,
-                    select: { id: true, name: true, platform: true, isActive: true }
+                    select: { id: true, name: true, socialPlatform: { select: { slug: true } }, isActive: true }
                 }),
                 prisma.provider.findMany({
                     where: {
@@ -1403,16 +1262,24 @@ export class AdminDataService {
         try {
             if (!ctx.isGlobalAdmin) throw new Error('Unauthorized');
 
-            const updated = await prisma.user.update({
-                where: { id: staffUserId },
-                data: {
-                    isGlobalAdmin: data.isGlobal,
-                    allowedTabs: data.allowedTabs,
-                    permissions: data.permissions,
-                    accessibleProjects: {
-                        set: data.projectIds.map(id => ({ id }))
+            const updated = await prisma.$transaction(async (tx) => {
+                // Reset project access then reconnect via implicit StaffProjects M2M
+                await tx.user.update({
+                    where: { id: staffUserId },
+                    data: { accessibleProjects: { set: [] } }
+                });
+
+                return await tx.user.update({
+                    where: { id: staffUserId },
+                    data: {
+                        isGlobalAdmin: data.isGlobal,
+                        allowedTabs: data.allowedTabs,
+                        permissions: data.permissions,
+                        accessibleProjects: data.projectIds.length > 0
+                            ? { connect: data.projectIds.map((id: string) => ({ id })) }
+                            : undefined
                     }
-                }
+                });
             });
 
             return { success: true, data: updated };
@@ -1443,9 +1310,9 @@ export class AdminDataService {
                     isGlobalAdmin: employeeData.isGlobalAdmin || false,
                     allowedTabs: employeeData.allowedTabs || [],
                     projectId: employeeData.projectIds?.length ? employeeData.projectIds[0] : null,
-                    accessibleProjects: {
-                        connect: (employeeData.projectIds || []).map((id: string) => ({ id }))
-                    }
+                    accessibleProjects: employeeData.projectIds?.length
+                        ? { connect: employeeData.projectIds.map((id: string) => ({ id })) }
+                        : undefined
                 }
             });
 
@@ -1554,7 +1421,7 @@ export class AdminDataService {
                         slot: b.slot || 'DEFAULT',
                         content: b.data as any,
                         order: i,
-                        isPublished: true
+                        isPublished: b.isActive ?? true
                     };
 
                     if (b.id && !b.id.startsWith('temp-')) {
@@ -1577,9 +1444,17 @@ export class AdminDataService {
     }
 
     /**
-     * Creates an admin action log.
+     * Creates an admin action log with optional audit data.
      */
-    static async createAdminLog(ctx: AdminContext, action: string, details: string, targetId?: string, metadata?: any): Promise<AdminServiceResult<any>> {
+    static async createAdminLog(
+        ctx: AdminContext, 
+        action: string, 
+        details: string, 
+        targetId?: string, 
+        metadata?: any,
+        oldValue?: any,
+        newValue?: any
+    ): Promise<AdminServiceResult<any>> {
         return safeAdminExecute(ctx, action, async () => {
             return await prisma.adminLog.create({
                 data: {
@@ -1587,7 +1462,11 @@ export class AdminDataService {
                     action,
                     details,
                     targetId: targetId || null,
-                    metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : undefined
+                    metadata: metadata || oldValue || newValue ? {
+                        ...(metadata ? JSON.parse(JSON.stringify(metadata)) : {}),
+                        oldValue: oldValue ? JSON.parse(JSON.stringify(oldValue)) : undefined,
+                        newValue: newValue ? JSON.parse(JSON.stringify(newValue)) : undefined
+                    } : null
                 }
             });
         });
@@ -1748,14 +1627,15 @@ export class AdminDataService {
             // Aggregate categories
             const activeServices = await prisma.internalService.findMany({
                 where: { id: { in: categoryStats.map(s => s.internalServiceId) } },
-                select: { id: true, category: true }
+                select: { id: true, serviceCategory: { select: { categoryType: true } } }
             });
 
             const categoryMap: Record<string, number> = {};
             categoryStats.forEach(stat => {
                 const service = activeServices.find(s => s.id === stat.internalServiceId);
                 if (service) {
-                    categoryMap[service.category] = (categoryMap[service.category] || 0) + stat._count.id;
+                    const catType = service.serviceCategory?.categoryType || 'OTHER';
+                    categoryMap[catType] = (categoryMap[catType] || 0) + stat._count.id;
                 }
             });
 
@@ -1896,16 +1776,39 @@ export class AdminDataService {
 
             const oldService = await prisma.internalService.findUnique({
                 where: { id: serviceId },
-                select: { pricePer1000: true, markup: true, lastProviderPrice: true, category: true, platform: true }
+                select: { pricePer1000: true, markup: true, lastProviderPrice: true, serviceCategory: { select: { categoryType: true } } }
             });
 
             if (!oldService) throw new Error('Service not found');
+
+            // --- FINANCIAL SAFETY: Защита от убытков (B2B Financial Modeling Skill) ---
+            if (validatedData.pricePer1000 !== undefined && oldService.lastProviderPrice) {
+                const providerPricePer1000 = new Decimal(oldService.lastProviderPrice);
+                const safetyFloor = PricingService.getSafetyPrice(providerPricePer1000);
+                const manualPrice = new Decimal(validatedData.pricePer1000);
+                
+                if (manualPrice.lt(safetyFloor) && manualPrice.gt(0)) {
+                    throw new Error(
+                        `PRICE_BELOW_SAFETY_FLOOR: Цена ${manualPrice.toFixed(2)}₽ ниже минимально допустимой ${safetyFloor.toFixed(2)}₽. ` +
+                        `Себестоимость провайдера: ${providerPricePer1000.toFixed(2)}₽. ` +
+                        `Минимальная наценка должна покрывать налоги (УСН 6% + НДС 5%) и эквайринг (3.5%).`
+                    );
+                }
+                
+                const recommendedPrice = providerPricePer1000.mul(5);
+                if (manualPrice.lt(recommendedPrice)) {
+                    console.warn(
+                        `[PRICING WARNING] Услуга ${serviceId}: ` +
+                        `Установленная цена ${manualPrice.toFixed(2)}₽ ниже рекомендованной ${recommendedPrice.toFixed(2)}₽ (x5 от провайдера).`
+                    );
+                }
+            }
 
             // Logic for automatic price calculation if markup is updated or price is missing
             if (validatedData.markup !== undefined || validatedData.pricePer1000 === undefined) {
                 if (oldService.lastProviderPrice && validatedData.markup !== undefined) {
                     validatedData.pricePer1000 = await PricingService.calculateRetailPrice(oldService.lastProviderPrice, {
-                        category: oldService.category as any,
+                        category: oldService.serviceCategory?.categoryType as any || 'OTHER',
                         projectId: ctx.isGlobalAdmin ? undefined : (activeProjectId || ctx.allowedProjects[0])
                     });
                 }
@@ -1957,8 +1860,8 @@ export class AdminDataService {
     static async getInternalServices(ctx: AdminContext, filters: { platform?: any, category?: any, search?: string, take?: number }): Promise<AdminServiceResult<any[]>> {
         try {
             const where: any = {};
-            if (filters.platform && filters.platform !== 'ALL') where.platform = filters.platform;
-            if (filters.category && filters.category !== 'ALL') where.category = filters.category;
+            if (filters.platform && filters.platform !== 'ALL') where.socialPlatform = { slug: filters.platform };
+            if (filters.category && filters.category !== 'ALL') where.serviceCategory = { categoryType: filters.category };
             if (filters.search) {
                 where.OR = [
                     { id: { contains: filters.search, mode: 'insensitive' } },
@@ -1968,7 +1871,7 @@ export class AdminDataService {
 
             const services = await prisma.internalService.findMany({
                 where,
-                select: { id: true, name: true, platform: true, category: true, isActive: true },
+                select: { id: true, name: true, socialPlatform: { select: { slug: true } }, serviceCategory: { select: { categoryType: true } }, isActive: true },
                 orderBy: { name: 'asc' },
                 take: filters.take || 100
             });
@@ -2122,7 +2025,7 @@ export class AdminDataService {
                 include: {
                     providerMappings: { include: { provider: true, providerService: true } },
                 },
-                orderBy: [{ platform: 'asc' }, { category: 'asc' }, { rating: 'desc' }]
+                orderBy: [{ socialPlatform: { slug: 'asc' } }, { serviceCategory: { categoryType: 'asc' } }, { rating: 'desc' }]
             });
             return { success: true, data: services };
         } catch (error: any) {
@@ -2144,19 +2047,21 @@ export class AdminDataService {
                     slug: (data.slug as string) || (data.name as string)?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'service',
                     name: data.name as string,
                     description: data.description as string,
+                    platform: 'OTHER',
+                    category: 'OTHER',
                     pricePer1000: price,
                     minQty: Number(data.minQty || 10),
                     maxQty: Number(data.maxQty || 100000),
                     type: (data.type as any) || 'REGULAR',
-                    category: data.category as any,
-                    platform: data.platform as any,
+                    categoryId: data.categoryId || null,
+                    socialPlatformId: data.socialPlatformId || null,
                     targetType: (data.targetType as string) || 'ALL',
                     allowedTargetTypes: Array.isArray(data.allowedTargetTypes) ? data.allowedTargetTypes : [],
                     isActive: data.isActive === 'true' || data.isActive === true,
                     priceUnit: 1000,
                     unitName: 'шт',
                     geo: 'Mixed',
-                }
+                } as any
             });
 
             await this.createAdminLog(ctx, 'CREATE_SERVICE', `Created service ${data.name} (${serviceId})`);
@@ -2178,12 +2083,14 @@ export class AdminDataService {
                     slug: data.id,
                     name: data.name,
                     description: data.description,
+                    platform: 'OTHER',
+                    category: 'OTHER',
                     requirements: data.requirements,
                     pricePer1000: new Decimal(data.pricePer1000),
                     minQty: data.minQty,
                     maxQty: data.maxQty,
-                    platform: data.platform,
-                    category: data.category,
+                    categoryId: data.categoryId || null,
+                    socialPlatformId: data.socialPlatformId || null,
                     targetType: data.targetType,
                     allowedTargetTypes: data.allowedTargetTypes || [],
                     isActive: true,
@@ -2197,7 +2104,7 @@ export class AdminDataService {
                             projectId: null
                         }))
                     }
-                }
+                } as any
             });
 
             await this.createAdminLog(ctx, 'CREATE_MANUAL_SERVICE', `Created manual service ${data.name}`);
@@ -2345,10 +2252,10 @@ export class AdminDataService {
             const { SmartAnalyzerService } = await import('@/services/providers/smart-analyzer.service');
             const services = await prisma.internalService.findMany({
                 where: projectId ? { projectOverrides: { some: { projectId } } } : {},
-                select: { platform: true, category: true }
+                select: { socialPlatform: { select: { slug: true } }, serviceCategory: { select: { categoryType: true } } }
             });
 
-            const uniquePairs = Array.from(new Set(services.map(s => `${s.platform}:${s.category}`)));
+            const uniquePairs = Array.from(new Set(services.map(s => `${s.socialPlatform?.slug || 'other'}:${s.serviceCategory?.categoryType || 'OTHER'}`)));
             let count = 0;
 
             for (const pair of uniquePairs) {
@@ -2697,7 +2604,7 @@ export class AdminDataService {
             if (!ctx.isGlobalAdmin) throw new Error('Unauthorized');
             await prisma.internalService.updateMany({
                 where: { id: { in: serviceIds } },
-                data: { categoryId: targetCategoryId, platform: targetPlatform as any, category: targetCategoryEnum as any }
+                data: { categoryId: targetCategoryId }
             });
             await this.createAdminLog(ctx, 'BULK_MOVE_SERVICES', `Moved ${serviceIds.length} services to category ${targetCategoryId}`);
             return { success: true, data: serviceIds.length };
@@ -2766,7 +2673,7 @@ export class AdminDataService {
      */
     static async createUser(ctx: AdminContext, data: any): Promise<AdminServiceResult<any>> {
         try {
-            const { LedgerEntryType } = await import('@/generated/client');
+            const { LedgerEntryType } = await import('@prisma/client');
             const balance = Number(data.balance || 0);
 
             const user = await prisma.user.create({
@@ -2803,7 +2710,7 @@ export class AdminDataService {
         try {
             const { userId, amount, reason } = data;
             await this.checkUserAccess(ctx, userId);
-            const { LedgerEntryType } = await import('@/generated/client');
+            const { LedgerEntryType } = await import('@prisma/client');
             const user = await prisma.user.findUnique({ where: { id: userId } });
             if (!user) throw new Error('User not found');
 
@@ -2867,7 +2774,7 @@ export class AdminDataService {
 
                 if (!balanceAmount.equals(oldBalance)) {
                     updateData.balance = balanceAmount;
-                    const { LedgerEntryType } = await import('@/generated/client');
+                    const { LedgerEntryType } = await import('@prisma/client');
                     await prisma.ledgerEntry.create({
                         data: {
                             userId,
@@ -3166,9 +3073,19 @@ export class AdminDataService {
             await prisma.$transaction(async (tx) => {
                 // 1. Project direct fields
                 if (data.project) {
+                    const projectData = { ...data.project };
+                    const { CryptoService } = await import('@/services/core/crypto.service');
+
+                    if (projectData.paymentSettings) {
+                        projectData.paymentSettings = CryptoService.encryptJson(projectData.paymentSettings) as any;
+                    }
+                    if (projectData.config) {
+                        projectData.config = CryptoService.encryptJson(projectData.config) as any;
+                    }
+
                     await tx.project.update({
                         where: { id: projectId },
-                        data: data.project
+                        data: projectData
                     });
                 }
 
@@ -3290,7 +3207,7 @@ export class AdminDataService {
     /**
      * Generates a 2FA code for an admin and sends it via available channels.
      */
-    static async generate2FACode(ctx: AdminContext, userId: string): Promise<AdminServiceResult<{ sentTo: string }>> {
+    static async generate2FACode(ctx: AdminContext, userId: string, type: 'LOGIN' | 'SETTINGS' = 'LOGIN'): Promise<AdminServiceResult<{ sentTo: string }>> {
         try {
             const user = await prisma.user.findUnique({ where: { id: userId } });
             if (!user) throw new Error('User not found');
@@ -3311,7 +3228,7 @@ export class AdminDataService {
             }
             if (user.email) {
                 const { send2FACodeEmail } = await import('@/services/mail.service');
-                await send2FACodeEmail(user.email, code);
+                await send2FACodeEmail(user.email, code, type);
                 sentTo = sentTo === 'Telegram' ? 'Telegram & Email' : 'Email';
             }
 
@@ -3712,6 +3629,9 @@ export class AdminDataService {
         try {
             const where: any = {};
             if (projectId && projectId !== 'all') {
+                if (!ctx.isGlobalAdmin && !ctx.allowedProjects.includes(projectId)) {
+                    throw new Error('Forbidden access to project');
+                }
                 where.OR = [{ projectId: null }, { projectId }];
             } else if (!ctx.isGlobalAdmin) {
                 where.projectId = { in: ctx.allowedProjects };
@@ -3749,6 +3669,7 @@ export class AdminDataService {
      */
     static async createProvider(ctx: AdminContext, data: any): Promise<AdminServiceResult<any>> {
         try {
+            if (!ctx.isGlobalAdmin) throw new Error('Action restricted to global admins');
             const exists = await prisma.provider.findFirst({
                 where: { name: data.name, projectId: data.projectId || null }
             });
@@ -3781,6 +3702,7 @@ export class AdminDataService {
      */
     static async updateProvider(ctx: AdminContext, id: string, data: any, isCritical: boolean): Promise<AdminServiceResult<any>> {
         try {
+            if (!ctx.isGlobalAdmin) throw new Error('Action restricted to global admins');
             const provider = await prisma.provider.update({
                 where: { id },
                 data: {
@@ -3811,6 +3733,7 @@ export class AdminDataService {
      */
     static async deleteProvider(ctx: AdminContext, id: string): Promise<AdminServiceResult<any>> {
         try {
+            if (!ctx.isGlobalAdmin) throw new Error('Action restricted to global admins');
             await prisma.provider.delete({ where: { id } });
             await this.createAdminLog(ctx, 'DELETE_PROVIDER', `Deleted provider ${id}`);
             return { success: true, data: {} };
@@ -3824,6 +3747,7 @@ export class AdminDataService {
      */
     static async addProviderPayment(ctx: AdminContext, data: any): Promise<AdminServiceResult<any>> {
         try {
+            if (!ctx.isGlobalAdmin) throw new Error('Action restricted to global admins');
             const pmt = await prisma.providerPayment.create({
                 data: {
                     providerId: data.providerId,
@@ -3847,6 +3771,9 @@ export class AdminDataService {
         try {
             const where: any = {};
             if (projectId && projectId !== 'all') {
+                if (!ctx.isGlobalAdmin && !ctx.allowedProjects.includes(projectId)) {
+                    throw new Error('Forbidden access to project');
+                }
                 where.projectId = projectId;
             } else if (!ctx.isGlobalAdmin) {
                 where.projectId = { in: ctx.allowedProjects };
@@ -4105,6 +4032,7 @@ export class AdminDataService {
             const macro = await prisma.supportMacro.findUnique({ where: { id: macroId } });
 
             if (!ticket || !macro) throw new Error('Ticket or Macro not found');
+            await this.checkProjectAuth(ctx, ticket.projectId);
 
             const actions = macro.actions as any[];
             const results: string[] = [];
@@ -4265,12 +4193,19 @@ export class AdminDataService {
             const where: any = { mappings: { none: {} } };
             if (!filter.showIgnored) where.isIgnored = false;
             if (filter.search) {
-                where.OR = [{ name: { contains: filter.search, mode: 'insensitive' } }];
-                const num = Number(filter.search);
-                if (!isNaN(num)) where.OR.push({ id: { equals: String(num) } });
+                const searchStr = String(filter.search).toLowerCase();
+                where.OR = [
+                    { name: { contains: searchStr, mode: 'insensitive' } },
+                    { id: { contains: searchStr } }
+                ];
             }
             if (filter.provider) where.provider = { name: filter.provider };
-            if (filter.platform && filter.platform !== 'ALL') where.name = { contains: filter.platform, mode: 'insensitive' };
+            if (filter.platform && filter.platform !== 'ALL') {
+                where.OR = [
+                    { platform: filter.platform },
+                    { socialPlatform: { slug: { equals: filter.platform, mode: 'insensitive' } } }
+                ];
+            }
             
             if (filter.priceMin !== undefined || filter.priceMax !== undefined) {
                 where.rawPrice = {};
@@ -4324,8 +4259,14 @@ export class AdminDataService {
             const skip = (page - 1) * limit;
 
             const userConditions: any = {};
-            if (projectId) userConditions.projectId = projectId;
-            else if (!ctx.isGlobalAdmin) userConditions.projectId = { in: ctx.allowedProjects };
+            if (projectId) {
+                if (!ctx.isGlobalAdmin && !ctx.allowedProjects.includes(projectId)) {
+                    throw new Error('Forbidden access to project');
+                }
+                userConditions.projectId = projectId;
+            } else if (!ctx.isGlobalAdmin) {
+                userConditions.projectId = { in: ctx.allowedProjects };
+            }
 
             if (search) {
                 userConditions.OR = [

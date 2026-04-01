@@ -4,6 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
+import { redis } from '@/lib/redis';
 import { SessionService } from '@/services/core';
 import { LinkService } from '@/services/providers';
 import { TicketService } from '@/services/support';
@@ -51,6 +52,18 @@ export async function handleText(ctx: any) {
     }
 
     if (state?.isWaitingForCatalogSearch) {
+        if (text.length < 3) {
+            return ctx.reply('⚠️ Запрос слишком короткий. Введите минимум 3 символа:', getProjectMenu(ctx.project));
+        }
+
+        const rateLimitKey = `rl:search:${projectId}:${userId}`;
+        const searchesAtMinute = await redis.incr(rateLimitKey);
+        if (searchesAtMinute === 1) await redis.expire(rateLimitKey, 60);
+
+        if (searchesAtMinute > 15) {
+            return ctx.reply('🛑 Слишком много запросов поиска. Подождите пару минут.', getProjectMenu(ctx.project));
+        }
+
         const services = await prisma.internalService.findMany({
             where: { isActive: true, OR: [{ name: { contains: text, mode: 'insensitive' } }, { description: { contains: text, mode: 'insensitive' } }] },
             include: { projectOverrides: { where: { projectId } } },
@@ -83,11 +96,12 @@ export async function handleText(ctx: any) {
         if (!analysis) return ctx.reply('❌ Ссылка не распознана. Попробуйте еще раз или выберите другую категорию.', getProjectMenu(ctx.project));
 
         // Подгружаем услугу для валидации типа ссылки
-        const service = await prisma.internalService.findUnique({ where: { id: state.serviceId } });
+        const service = await prisma.internalService.findUnique({ where: { id: state.serviceId }, include: { socialPlatform: true } });
         if (!service) return ctx.reply('❌ Услуга не найдена.', getProjectMenu(ctx.project));
 
         // ВАЛИДАЦИЯ: Проверяем тип ссылки против типа услуги (например, POST vs CHANNEL)
-        const validation = LinkService.validate(normalizedText, service.platform, service.targetType);
+        const svcPlatformEnum = (service.socialPlatform?.slug?.toUpperCase() || 'OTHER') as import('@prisma/client').Platform;
+        const validation = LinkService.validate(normalizedText, svcPlatformEnum, service.targetType);
         if (!validation.isValid) {
             return ctx.reply(`❌ ${validation.error || 'Эта ссылка не подходит для данной услуги'}.`, getProjectMenu(ctx.project));
         }

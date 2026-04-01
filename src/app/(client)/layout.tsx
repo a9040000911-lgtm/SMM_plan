@@ -9,6 +9,7 @@ import { Header } from "@/components/stitch/layout/Header";
 import { Footer } from "@/components/stitch/layout/Footer";
 import { MobileAppNav } from "@/components/stitch/layout/MobileAppNav";
 import { FloatingActionButtons } from "@/components/client/FloatingActionButtons";
+import { StatsSection } from "@/components/stitch/sections/StatsSection";
 
 import { getClientProjectId } from "@/utils/project-resolver";
 import { ProjectService } from "@/services/core";
@@ -57,6 +58,7 @@ export default async function ClientLayout({ children }: { children: React.React
                             enableBugReporter={enableBugReporter}
                             enableReviews={enableReviews}
                         />
+                        <StatsSection />
                         <Footer cmsContent={cmsStrings} />
                         <MobileAppNav />
                     </div>

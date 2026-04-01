@@ -7,22 +7,19 @@ import { NextRequest } from 'next/server';
 import { proxy as handleProxy } from './utils/proxy-logic';
 
 /**
- * Global Middleware for Smmplan
+ * Global Proxy for Smmplan (Next.js 16 Convention)
  * This is the entry point for all requests.
- * It handles:
- * 1. Security headers
- * 2. Rate limiting
- * 3. Support/Admin authorization
- * 4. Multi-site rewrites
  */
 export async function proxy(request: NextRequest) {
     // Use the existing proxy logic which handles rate limiting, admin auth, and rewrites
     return await handleProxy(request);
 }
 
+// Next.js 16 expects 'proxy' or default export in proxy.ts
+export default proxy;
+
 /**
- * Configure which paths are processed by the middleware.
- * We include everything except static assets and internal API.
+ * Configure which paths are processed by the proxy.
  */
 export const config = {
     matcher: [
@@ -37,5 +34,3 @@ export const config = {
         '/((?!api/internal|_next/static|_next/image|favicon.ico|.*\\.).*)',
     ],
 };
-
-

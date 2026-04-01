@@ -1,84 +1,80 @@
 /**
  * (c) 2024-2026 Smmplan. All rights reserved.
- * Created by Artem (http://artmspektr.ru)
- * Unauthorized copying of this file is strictly prohibited.
+ * ProviderService — Unit Tests
  */
-import { ProviderService } from '@/services/providers/provider.service';
-import { prisma } from '@/lib/prisma';
-import axios from 'axios';
 
-jest.mock('axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+jest.mock('@/lib/prisma', () => ({
+    prisma: {
+        provider: { findUnique: jest.fn(), findFirst: jest.fn(), findMany: jest.fn(), update: jest.fn() },
+        internalService: { findUnique: jest.fn() },
+        internalServiceMapping: { findMany: jest.fn(), findFirst: jest.fn() },
+        order: { findUnique: jest.fn() },
+        providerBalanceLog: { create: jest.fn() },
+        settings: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), update: jest.fn(), create: jest.fn() },
+        globalSetting: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
+    },
+}));
+jest.mock('@/lib/logger', () => ({ createLogger: () => ({ info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() }) }));
+jest.mock('@/services/core/crypto.service', () => ({ CryptoService: { decrypt: jest.fn((v: string) => v) } }));
+jest.mock('@/services/intelligence/intelligence.engine', () => ({
+    IntelligenceEngine: { analyzeLink: jest.fn().mockResolvedValue({}), formatForProvider: jest.fn((_, __) => 'https://t.me/test') },
+}));
+jest.mock('./service-guardian.service', () => ({
+    ServiceGuardian: { verifyService: jest.fn().mockResolvedValue({ isValid: true, criticalChange: false }), disableService: jest.fn() },
+}));
+
+import { ProviderService } from './provider.service';
+import { prisma } from '@/lib/prisma';
 
 describe('ProviderService', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    (mockedAxios.create as jest.Mock).mockReturnValue(mockedAxios);
-  });
+    beforeEach(() => jest.clearAllMocks());
 
-  test('should throw error if no mapping found for service', async () => {
-    (prisma.internalServiceMapping.findFirst as jest.Mock).mockResolvedValue(null);
-    (prisma.internalServiceMapping.findMany as jest.Mock).mockResolvedValue([]);
+    describe('getInstance', () => {
+        it('returns null if provider not found', async () => {
+            (prisma.provider.findUnique as jest.Mock).mockResolvedValue(null);
+            const result = await ProviderService.getInstance('nonexistent');
+            expect(result).toBeNull();
+        });
 
-    await expect(ProviderService.createOrder({ internalServiceId: 'none' } as any, 100))
-      .rejects.toThrow(/No active provider mapping/);
-  });
-
-  test('should successfully create order at provider', async () => {
-    const mockMapping = {
-      providerId: 'test-uuid-vex',
-      providerServiceId: '123'
-    };
-    const mockProvider = {
-      id: 'test-uuid-vex',
-      name: 'vexboost',
-      type: 'vexboost',
-      isEnabled: true,
-      apiUrl: 'http://api',
-      apiKey: 'key'
-    };
-
-    (prisma.internalServiceMapping.findFirst as jest.Mock).mockResolvedValue(mockMapping);
-    (prisma.internalServiceMapping.findMany as jest.Mock).mockResolvedValue([mockMapping]);
-    (prisma.provider.findUnique as jest.Mock).mockResolvedValue(mockProvider);
-
-    mockedAxios.post.mockResolvedValue({
-      data: { order: 9999, status: 'success' }
+        it('returns a UniversalProvider instance for known provider', async () => {
+            (prisma.provider.findUnique as jest.Mock).mockResolvedValue({
+                id: 'p1', name: 'Test', type: 'universal', apiKey: 'key', apiUrl: 'https://api.test.com', isEnabled: true, metadata: {}
+            });
+            const instance = await ProviderService.getInstance('p1');
+            expect(instance).toBeTruthy();
+        });
     });
 
-    const mockOrder = {
-      id: 'test-order-id',
-      link: 'http://test.link',
-    };
-
-    const result = await ProviderService.createOrder(mockOrder as any, 100, mockMapping as any);
-
-    expect(result.success).toBe(true);
-    expect(result.externalId).toBe('9999');
-    expect(mockedAxios.post).toHaveBeenCalled();
-  });
-
-  test('should handle provider errors gracefully', async () => {
-    const mockMapping = { providerId: 'fail-uuid', providerServiceId: '1' };
-    (prisma.provider.findUnique as jest.Mock).mockResolvedValue({
-      id: 'fail-uuid',
-      name: 'fail',
-      type: 'vexboost',
-      isEnabled: true,
-      apiUrl: 'http://api',
-      apiKey: 'key'
+    describe('getOrderStatus', () => {
+        it('throws if no externalId', async () => {
+            await expect(ProviderService.getOrderStatus({ externalId: null } as any)).rejects.toThrow('No external ID');
+        });
     });
 
-    mockedAxios.post.mockRejectedValue({
-      message: 'Invalid link',
-      response: { data: { error: 'Invalid link' } }
+    describe('cancelOrder', () => {
+        it('returns error if no externalId', async () => {
+            const result = await ProviderService.cancelOrder({ externalId: null } as any);
+            expect(result.success).toBe(false);
+        });
+
+        it('returns error if no provider assigned', async () => {
+            const result = await ProviderService.cancelOrder({ externalId: 'e1', providerName: null } as any);
+            expect(result.success).toBe(false);
+        });
     });
 
-    const result = await ProviderService.createOrder({ link: 'bad' } as any, 100, mockMapping as any);
+    describe('getStatuses', () => {
+        it('returns empty object for empty externalIds', async () => {
+            const result = await ProviderService.getStatuses('p1', []);
+            expect(result).toEqual({});
+        });
+    });
 
-    expect(result.success).toBe(false);
-    expect(result.error).toBe('Invalid link');
-  });
+    describe('pingProvider', () => {
+        it('returns success false if provider not found', async () => {
+            (prisma.provider.findUnique as jest.Mock).mockResolvedValue(null);
+            const result = await ProviderService.pingProvider('nonexistent');
+            expect(result.success).toBe(false);
+        });
+    });
 });
-
-

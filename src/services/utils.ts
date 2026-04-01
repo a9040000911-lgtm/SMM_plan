@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma';
 
 /**
  * Стандартизированная обертка для безопасного выполнения административных действий.
- * Автоматически логирует ошибки и возвращает типизированный результат.
+ * Автоматически логирует ВСЕ действия (успешные и неуспешные) в AdminLog для аудита.
  */
 export async function safeAdminExecute<T>(
     ctx: AdminContext,
@@ -19,6 +19,23 @@ export async function safeAdminExecute<T>(
 ): Promise<AdminServiceResult<T>> {
     try {
         const result = await fn();
+
+        // Fire-and-forget: логируем успешное действие в аудит-лог
+        prisma.adminLog.create({
+            data: {
+                adminId: ctx.userId,
+                action: actionName,
+                targetId: projectId || 'SYSTEM',
+                details: 'OK',
+                metadata: {
+                    timestamp: new Date().toISOString(),
+                    success: true
+                }
+            }
+        }).catch((logErr) => {
+            console.error('[AuditLog] Failed to log success:', logErr);
+        });
+
         return { success: true, data: result };
     } catch (error: any) {
         console.error(`[AdminServiceError] ${actionName}:`, error);
@@ -31,10 +48,10 @@ export async function safeAdminExecute<T>(
                     action: `ERROR_${actionName}`,
                     targetId: projectId || 'SYSTEM',
                     details: error.message || 'Unknown error',
-                    metadata: JSON.stringify({
+                    metadata: {
                         stack: error.stack,
                         timestamp: new Date().toISOString()
-                    })
+                    }
                 }
             });
         } catch (logError) {

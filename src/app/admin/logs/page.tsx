@@ -11,6 +11,7 @@ import { History, Filter, Calendar as CalendarIcon, RefreshCw, ChevronLeft, Chev
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { DatePicker } from '@/components/admin/ui/date-picker';
+import { AdminTableCard } from '@/components/admin/core/admin-table-card';
 
 export default function LogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -147,9 +148,8 @@ export default function LogsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      <AdminTableCard title="Журнал действий" icon={History}>
+        <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-black text-slate-400 uppercase tracking-wider">Дата и время</th>
@@ -197,7 +197,6 @@ export default function LogsPage() {
               )}
             </tbody>
           </table>
-        </div>
 
         {/* Pagination */}
         <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
@@ -224,7 +223,7 @@ export default function LogsPage() {
             </button>
           </div>
         </div>
-      </div>
+      </AdminTableCard>
     </div>
   );
 }

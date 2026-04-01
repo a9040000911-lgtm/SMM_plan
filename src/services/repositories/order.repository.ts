@@ -5,7 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@/generated/client';
+import { Prisma } from '@prisma/client';
 import { Decimal } from 'decimal.js';
 
 export class OrderRepository {

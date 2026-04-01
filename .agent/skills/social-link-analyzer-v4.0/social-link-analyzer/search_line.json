@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://developers.line.biz/en/docs/line-login/using-line-url-scheme",
+    "name": "Using LINE features with the LINE URL scheme",
+    "snippet": "You can open Sticker Shop, LIFF app or camera with the LINE URL scheme. The LINE URL scheme works with LINE Official Accounts too. Read more",
+    "host_name": "developers.line.biz",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/25379997630/posts/10160777809092631",
+    "name": "Line group URL invite feature",
+    "snippet": "Question now resolved. For both styles of group there is a tab to \"copy link \" on the \"invite\"button.",
+    "host_name": "www.facebook.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://designsystem.line.me/LDSM/components/profile-ex-en",
+    "name": "Profile - Components",
+    "snippet": "Profile in LINE Design System signifies the circular component, which represents the user on a screen. Images or graphics set by the user are applied as a ... Read more",
+    "host_name": "designsystem.line.me",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/49980635/how-to-open-line-app-with-specified-line-user-id-chat-screen",
+    "name": "How to open line app with specified line user id chat screen?",
+    "snippet": "I am opening LINE app from my native iOS app and my requirement is, i need to open line app with specified user chat screen. I am not able to ... Read more",
+    "host_name": "stackoverflow.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.line.me/line/ios/?contentId=20023873",
+    "name": "Organizing your chats with chat folders | LINE Help Center",
+    "snippet": "The Chat folders feature lets you group your chats into separate folders so you can find them more easily. Read more",
+    "host_name": "help.line.me",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.line.me/line/smartphone/categoryId/20007849?contentid=20005392&lang=en",
+    "name": "Group basics | LINE Help Center",
+    "snippet": "Creating/joining/inviting others to groups · Changing group settings · Leaving/blocking/deleting a group · About the mention feature for addressing ... Read more",
+    "host_name": "help.line.me",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://creative.line.me/blog/34",
+    "name": "LINE Profile, the best way to express yourself",
+    "snippet": "16 Nov 2020 — Profiles are like personal billboards, where you first reveal yourself to others, and all told the feature gets about 190 million monthly page views. Read more",
+    "host_name": "creative.line.me",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help.line.me/line/smartphone?lang=en&contentId=10010573",
+    "name": "Creating a group from a multi-person chat",
+    "snippet": "Click Create a group . 3. Select the friends you want to add and click Next. 4. Enter a group name, set a profile icon and then click Create. Read more",
+    "host_name": "help.line.me",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.line.biz/en/docs/messaging-api/group-chats",
+    "name": "Group chats and multi-person chats - LINE Developers",
+    "snippet": "LINE has two types of chats with multiple users: group chats and multi-person chats. The users in a group chat or multi-person chat are called members. Read more",
+    "host_name": "developers.line.biz",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://help2.line.me/official_account/ios/pc?lang=en&contentId=20011711",
+    "name": "About group chats | LINE Official Account Help Center",
+    "snippet": "1. Tap the account you want to configure in the Accounts list. 2. Tap Settings > Responses. 3. Under Toggle responses, turn ON Chat . Was this page helpful? Read more",
+    "host_name": "help2.line.me",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

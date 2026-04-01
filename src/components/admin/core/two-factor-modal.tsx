@@ -37,8 +37,8 @@ export function TwoFactorModal({ isOpen, onClose, onSubmit, isPending }: TwoFact
                     </button>
                 </div>
 
-                <div className="p-4 bg-blue-50 text-blue-700 text-sm rounded-xl">
-                    Мы отправили код подтверждения в ваш Telegram. Введите его ниже для сохранения изменений.
+                <div className="p-4 bg-blue-50 text-blue-700 text-sm rounded-xl font-medium">
+                    Мы отправили код подтверждения в ваш Telegram и на Почту. Введите его ниже для сохранения изменений.
                 </div>
 
                 <form onSubmit={(e) => { e.preventDefault(); onSubmit(code); }} className="space-y-4">
@@ -47,7 +47,7 @@ export function TwoFactorModal({ isOpen, onClose, onSubmit, isPending }: TwoFact
                             type="text"
                             value={code}
                             onChange={(e) => setCode(e.target.value)}
-                            placeholder="Код из Telegram (6 цифр)"
+                            placeholder="Код подтверждения (6 цифр)"
                             className="w-full text-center text-2xl tracking-widest font-mono py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none"
                             autoFocus
                             maxLength={6}

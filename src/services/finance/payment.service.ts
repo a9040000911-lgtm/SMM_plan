@@ -118,6 +118,63 @@ export class PaymentService {
     }
   }
 
+  static async createB2BPayment(
+    amount: number,
+    organizationId: string,
+    returnUrl: string
+  ): Promise<PaymentResult> {
+    try {
+      const idempotenceKey = crypto.randomUUID();
+      // B2B Payments ALWAYS use the Global Smmplan Configuration
+      const sysConfig = await ConfigService.getPaymentConfig();
+      const legalDescription = `Пополнение B2B баланса организации (ID: ${organizationId})`;
+
+      const response = await axios.post(
+        YOOKASSA_API_URL,
+        {
+          amount: {
+            value: amount.toFixed(2),
+            currency: 'RUB',
+          },
+          confirmation: {
+            type: 'redirect',
+            return_url: returnUrl,
+          },
+          capture: true,
+          description: legalDescription,
+          metadata: {
+            organization_id: organizationId,
+            type: 'B2B_TOPUP',
+            source: 'WEB'
+          }
+        },
+        {
+          headers: {
+            'Authorization': await this.getAuthHeader(sysConfig.shopId, sysConfig.secretKey),
+            'Idempotence-Key': idempotenceKey,
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        }
+      );
+
+      return {
+        success: true,
+        paymentId: response.data.id,
+        confirmationUrl: response.data.confirmation.confirmation_url,
+      };
+    } catch (error) {
+      const err = error as any;
+      console.error('--- YOOKASSA API ERROR (Create B2B) ---');
+      console.error('Details:', JSON.stringify(err.response?.data, null, 2));
+
+      return {
+        success: false,
+        error: `Ошибка создания B2B платежа: ${err.message}`
+      };
+    }
+  }
+
   static async getPaymentStatus(paymentId: string, credentials?: { shopId: string, secretKey: string }): Promise<{ success: boolean; status: string; raw?: any }> {
     try {
       const response = await axios.get(`${YOOKASSA_API_URL}/${paymentId}`, {

@@ -80,7 +80,7 @@ export function LeaveReviewModal({ isOpen, onClose, projectId }: LeaveReviewModa
     const modalContent = (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[9999] grid place-items-center p-4 overflow-y-auto custom-scrollbar bg-slate-900/60 backdrop-blur-md pb-20 pt-20">
+                <div className="fixed inset-0 z-[9999] grid place-items-center p-4 overflow-y-auto no-scrollbar bg-slate-900/60 backdrop-blur-md pb-20 pt-20">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -116,7 +116,7 @@ export function LeaveReviewModal({ isOpen, onClose, projectId }: LeaveReviewModa
                         </div>
 
                         {/* Content: Scrollable */}
-                        <div className="flex-1 overflow-y-auto p-8 pt-5 custom-scrollbar bg-white overscroll-contain">
+                        <div className="flex-1 overflow-y-auto p-8 pt-5 no-scrollbar bg-white overscroll-contain">
                             <form onSubmit={handleSubmit} className="space-y-8 pb-10">
                                 <div className="space-y-4">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Оценка сервиса</label>

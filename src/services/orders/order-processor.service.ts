@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { Decimal } from 'decimal.js';
-import { OrderStatus } from '@/generated/client';
+import { OrderStatus } from '@prisma/client';
 import { OrderActivationService } from './order-activation.service';
 import { PaymentConfirmationService } from './payment-confirmation.service';
 import { OrderQueueService } from './order-queue.service';

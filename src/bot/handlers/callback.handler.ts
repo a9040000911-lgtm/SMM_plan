@@ -116,10 +116,18 @@ export function registerCallbackHandlers(bot: any) {
         const services = await prisma.internalService.findMany({
             where: {
                 socialPlatform: { slug },
-                isActive: true
-            }
+                isActive: true,
+                categoryId: { not: null }
+            },
+            include: { serviceCategory: true }
         });
-        const cats = Array.from(new Set(services.map(s => s.category)));
+        const catsMap = new Map<string, string>();
+        for (const s of services) {
+            if (s.serviceCategory && !catsMap.has(s.serviceCategory.categoryType)) {
+                catsMap.set(s.serviceCategory.categoryType, s.serviceCategory.categoryType);
+            }
+        }
+        const cats = Array.from(catsMap.keys());
         const buttons = cats.map(cat => [Markup.button.callback(categoryNames[cat] || cat, `cat_${slug}_${cat}`)]);
         buttons.push([Markup.button.callback('🔙 Назад', 'browse_catalog')]);
         await ctx.editMessageText(`📂 <b>${platformName}</b>: Выберите категорию`, { parse_mode: 'HTML', ...Markup.inlineKeyboard(buttons) });

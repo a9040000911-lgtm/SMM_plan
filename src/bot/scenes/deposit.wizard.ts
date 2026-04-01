@@ -7,6 +7,7 @@ import { Scenes, Markup } from 'telegraf';
 import { prisma } from '@/lib/prisma';
 import { formatAmount } from '@/utils/formatter';
 import { UnifiedPaymentService } from '@/services/payments/unified-payment.service';
+import { RateLimiterService } from '../utils/rate-limiter';
 
 export const DEPOSIT_WIZARD = 'deposit-wizard';
 
@@ -48,6 +49,11 @@ export const depositWizard = new Scenes.WizardScene(
 
         await ctx.reply('⏳ <i>Генерируем защищенную ссылку на оплату...</i>', { parse_mode: 'HTML' });
 
+        const limit = await RateLimiterService.checkPaymentLinkLimit(user.id, ctx.project.id);
+        if (!limit.allowed) {
+            return ctx.reply('🛑 <b>Слишком много запросов на оплату подряд.</b>\nМы приостановили создание новых счетов для защиты от мошенничества. Попробуйте снова через час.', { parse_mode: 'HTML' });
+        }
+
         try {
             // Используем централизованный backend service
             const payment = await UnifiedPaymentService.createPayment(
@@ -72,6 +78,10 @@ export const depositWizard = new Scenes.WizardScene(
                         ])
                     }
                 );
+                
+                if (limit.attempts >= 28) {
+                    await ctx.reply('⚠️ <b>ПРЕДУПРЕЖДЕНИЕ:</b> Вы достигли лимита (почти 30 счетов подряд). Если вы создадите еще пару счетов, бот временно заблокирует платежную функцию.', { parse_mode: 'HTML' });
+                }
             } else {
                 throw new Error(payment.error || 'Payment creation failed');
             }

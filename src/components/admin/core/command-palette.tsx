@@ -5,7 +5,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Search,
@@ -16,24 +16,41 @@ import {
   ArrowRight,
   Loader2,
   Package,
-  Database
+  Database,
+  BookOpen,
+  Copy,
+  Check,
+  Sparkles,
 } from 'lucide-react';
 import { globalSearchAction } from '@/app/admin/global-search-action';
+import { knowledgeBase } from '@/data/kb-content';
+import { searchKnowledgeBase, type KBSearchResult } from '@/components/admin/knowledge-base/kb-search';
+
+type PaletteMode = 'search' | 'knowledge';
 
 export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
+  const [mode, setMode] = useState<PaletteMode>('search');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any>(null);
+  const [kbResults, setKbResults] = useState<KBSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Обработка горячих клавиш Ctrl+K
+  // Hotkeys: Ctrl+K for search, Ctrl+Shift+K for knowledge
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
-        setIsOpen(prev => !prev);
+        if (e.shiftKey) {
+          setIsOpen(true);
+          setMode('knowledge');
+        } else {
+          setIsOpen(prev => !prev);
+          setMode('search');
+        }
       }
       if (e.key === 'Escape') setIsOpen(false);
     };
@@ -41,34 +58,47 @@ export function CommandPalette() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Фокус на инпут при открытии
+  // Focus input on open
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
       setQuery('');
       setResults(null);
+      setKbResults([]);
     }
-  }, [isOpen]);
+  }, [isOpen, mode]);
 
-  // Живой поиск
+  // Live search - different logic per mode
   useEffect(() => {
     const delayDebounce = setTimeout(async () => {
       if (query.length >= 2) {
-        setIsLoading(true);
-        const data = await globalSearchAction(query);
-        setResults(data);
-        setIsLoading(false);
+        if (mode === 'search') {
+          setIsLoading(true);
+          const data = await globalSearchAction(query);
+          setResults(data);
+          setIsLoading(false);
+        } else {
+          const results = searchKnowledgeBase(knowledgeBase, query);
+          setKbResults(results);
+        }
       } else {
         setResults(null);
+        setKbResults([]);
       }
     }, 300);
     return () => clearTimeout(delayDebounce);
-  }, [query]);
+  }, [query, mode]);
 
   const navigateTo = (path: string) => {
     router.push(path);
     setIsOpen(false);
   };
+
+  const copyText = useCallback((text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -77,15 +107,46 @@ export function CommandPalette() {
       {/* Backdrop */}
       <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
 
-      {/* Search Modal */}
+      {/* Modal */}
       <div className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-200">
+        {/* Mode Tabs */}
+        <div className="flex border-b border-slate-100">
+          <button
+            onClick={() => { setMode('search'); setQuery(''); setResults(null); setKbResults([]); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-black uppercase tracking-widest transition-all ${
+              mode === 'search'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+                : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Search size={14} /> Поиск
+          </button>
+          <button
+            onClick={() => { setMode('knowledge'); setQuery(''); setResults(null); setKbResults([]); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-black uppercase tracking-widest transition-all ${
+              mode === 'knowledge'
+                ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50'
+                : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Sparkles size={14} /> Знания
+          </button>
+        </div>
+
+        {/* Search Input */}
         <div className="flex items-center p-6 border-b border-slate-100">
-          <Search className="text-slate-400 mr-4" size={24} />
+          {mode === 'knowledge'
+            ? <BookOpen className="text-indigo-400 mr-4" size={24} />
+            : <Search className="text-slate-400 mr-4" size={24} />
+          }
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ищите что угодно: пользователя, ID заказа или тикета..."
+            placeholder={mode === 'knowledge'
+              ? 'Описание ситуации: \"клиент пропал из поиска\", \"scam\", \"собачки\"...'
+              : 'Ищите что угодно: пользователя, ID заказа или тикета...'
+            }
             className="flex-1 bg-transparent border-none outline-none text-lg font-medium text-slate-800 placeholder:text-slate-300"
           />
           <div className="flex items-center gap-2">
@@ -94,20 +155,106 @@ export function CommandPalette() {
           </div>
         </div>
 
+        {/* Results */}
         <div className="max-h-[60vh] overflow-y-auto p-4 space-y-6">
-          {!results && query.length < 2 && (
+          {/* EMPTY STATE */}
+          {query.length < 2 && (
             <div className="py-12 text-center space-y-2">
               <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto text-slate-300">
-                <Command size={24} />
+                {mode === 'knowledge' ? <BookOpen size={24} /> : <Command size={24} />}
               </div>
-              <p className="text-sm font-bold text-slate-400">Введите минимум 2 символа для начала поиска</p>
-              <p className="text-[10px] text-slate-300 uppercase font-black tracking-widest">Используйте Ctrl + K для вызова</p>
+              <p className="text-sm font-bold text-slate-400">
+                {mode === 'knowledge'
+                  ? 'Опишите ситуацию клиента для поиска макроса'
+                  : 'Введите минимум 2 символа для начала поиска'
+                }
+              </p>
+              <p className="text-[10px] text-slate-300 uppercase font-black tracking-widest">
+                {mode === 'knowledge' ? 'Ctrl + Shift + K' : 'Ctrl + K'}
+              </p>
             </div>
           )}
 
-          {results && (
+          {/* KNOWLEDGE MODE RESULTS */}
+          {mode === 'knowledge' && kbResults.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="px-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                <Sparkles size={12} /> Найдено {kbResults.length} совпадений
+              </h4>
+              {kbResults.map((result, i) => {
+                const isMacro = result.type === 'macro';
+                const macro = isMacro ? (result.item as any) : null;
+
+                return (
+                  <div
+                    key={i}
+                    className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition-all space-y-3"
+                  >
+                    {/* Result Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`p-1.5 rounded-lg ${
+                          isMacro ? 'bg-indigo-100 text-indigo-600' : 'bg-emerald-100 text-emerald-600'
+                        }`}>
+                          {isMacro ? <MessageSquare size={12} /> : <BookOpen size={12} />}
+                        </div>
+                        <span className="text-sm font-bold text-slate-700">{(result.item as any).title}</span>
+                      </div>
+                      <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                        {result.moduleTitle.split(':')[0]}
+                      </span>
+                    </div>
+
+                    {/* Macro Copy Buttons */}
+                    {isMacro && macro && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => copyText(macro.text, `cp-${macro.id}-off`)}
+                          className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-colors"
+                        >
+                          {copiedId === `cp-${macro.id}-off`
+                            ? <><Check size={12} className="text-emerald-400" /> Скопировано!</>
+                            : <><Copy size={12} /> Официальный</>
+                          }
+                        </button>
+                        {macro.textSimple && (
+                          <button
+                            onClick={() => copyText(macro.textSimple, `cp-${macro.id}-sim`)}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-colors border border-emerald-200"
+                          >
+                            {copiedId === `cp-${macro.id}-sim`
+                              ? <><Check size={12} /> Скопировано!</>
+                              : <><Copy size={12} /> Простой</>
+                            }
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Function: Navigate to KB page */}
+                    {!isMacro && (
+                      <button
+                        onClick={() => navigateTo(`/admin/knowledge-base#${(result.item as any).id}`)}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-50 text-blue-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-100 transition-colors border border-blue-200"
+                      >
+                        <ArrowRight size={12} /> Открыть в Базе Знаний
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {mode === 'knowledge' && query.length >= 2 && kbResults.length === 0 && (
+            <div className="py-12 text-center text-slate-400 italic text-sm font-medium">
+              Ничего не найдено. Попробуйте описать ситуацию другими словами.
+            </div>
+          )}
+
+          {/* SEARCH MODE RESULTS */}
+          {mode === 'search' && results && (
             <>
-              {/* РЕЗУЛЬТАТЫ: ПОЛЬЗОВАТЕЛИ */}
               {results.users.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Пользователи</h4>
@@ -128,7 +275,6 @@ export function CommandPalette() {
                 </div>
               )}
 
-              {/* РЕЗУЛЬТАТЫ: ЗАКАЗЫ */}
               {results.orders.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Заказы</h4>
@@ -149,7 +295,6 @@ export function CommandPalette() {
                 </div>
               )}
 
-              {/* РЕЗУЛЬТАТЫ: ТИКЕТЫ */}
               {results.tickets.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Обращения</h4>
@@ -170,7 +315,6 @@ export function CommandPalette() {
                 </div>
               )}
 
-              {/* РЕЗУЛЬТАТЫ: УСЛУГИ */}
               {results.services?.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Услуги</h4>
@@ -191,7 +335,6 @@ export function CommandPalette() {
                 </div>
               )}
 
-              {/* РЕЗУЛЬТАТЫ: ПРОВАЙДЕРЫ */}
               {results.providers?.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Провайдеры</h4>
@@ -219,10 +362,15 @@ export function CommandPalette() {
           )}
         </div>
 
+        {/* Footer */}
         <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-center gap-6">
           <div className="flex items-center gap-1.5">
             <div className="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[9px] font-black text-slate-500">Ctrl + K</div>
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Открыть/Закрыть</span>
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Поиск</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[9px] font-black text-slate-500">Ctrl + Shift + K</div>
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Знания</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[9px] font-black text-slate-500">Esc</div>
@@ -233,5 +381,3 @@ export function CommandPalette() {
     </div>
   );
 }
-
-

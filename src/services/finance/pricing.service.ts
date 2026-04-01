@@ -7,19 +7,22 @@ import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
 import { SettingsService } from '@/services/core/settings.service';
 import { LoyaltyService } from '@/services/users/loyalty.service';
-import { Category } from '@/generated/client';
+import { PromoService } from '@/services/users/promo.service';
+import { Category } from '@prisma/client';
 import { PricingRules } from '@/types/project-settings';
 
 import { MarkupRule, LadderLevel } from '@/services/types';
+import { ACQUIRING_SAFE_MAX, SAFETY_FLOOR_MARKUP, MAX_MARKUP_MULTIPLIER as MAX_MARKUP_CONST } from './financial-constants';
 
 export class PricingService {
     private static readonly LADDER_SETTINGS_KEY = 'PRICING_LADDER';
     private static readonly CATEGORY_MULTIPLIERS_SETTINGS_KEY = 'CATEGORY_MULTIPLIERS';
+    private static readonly AUTO_DECREASE_SETTINGS_KEY = 'PRICING_AUTO_DECREASE';
 
-    // Константы безопасности
-    public static readonly MIN_PROFIT_MARGIN = 1.0; // Железный щит: минимум 100% чистой прибыли (x2 от закупки)
-    public static readonly PAYMENT_GATEWAY_FEE = 0.03; // Комиссия платежного шлюза 3%
-    public static readonly MAX_MARKUP_MULTIPLIER = 151.0; // Максимальный множитель: 15000% наценки (закупка * 151)
+    // Константы безопасности (делегируют к financial-constants.ts)
+    public static readonly MIN_PROFIT_MARGIN = SAFETY_FLOOR_MARKUP; // Минимальная наценка x2 (реальная маржа ~38% после налогов и эквайринга)
+    public static readonly PAYMENT_GATEWAY_FEE = ACQUIRING_SAFE_MAX; // Комиссия платежного шлюза 3.5% (YooKassa safe-константа)
+    public static readonly MAX_MARKUP_MULTIPLIER = MAX_MARKUP_CONST; // Максимальный множитель: 15000% наценки
 
     // Финальная лестница наценок v3.1 (Средняя наценка 1000% / x11)
     private static readonly DEFAULT_LADDER: LadderLevel[] = [
@@ -105,13 +108,35 @@ export class PricingService {
             price = safetyPrice;
         }
 
-        // 4. Психологическое округление вверх
-        if (price.gt(1000)) {
-            return price.toDecimalPlaces(0, Decimal.ROUND_CEIL);
+        // 4. Психологическое "КРАСИВОЕ" округление вверх
+        return this.applyBeautifulRounding(price);
+    }
+
+    /**
+     * Психологическое округление розничных цен за 1000 единиц ПУТЕМ РАСЧЕТА ЗА ШТУКУ.
+     * "Красивая цена в нашем случае, это цена без большого количества цифр после запятой."
+     * Мы математически гарантируем, что при пересчете за 1 штуку никогда не будет больше 2 знаков.
+     */
+    public static applyBeautifulRounding(priceDecimal: Decimal): Decimal {
+        const val = priceDecimal.toNumber();
+        if (val === 0) return new Decimal(0);
+
+        let p: number;
+
+        if (val < 1000) {
+            // Для цен до 1000₽ (меньше 1 рубля за штуку).
+            // Округляем ВВЕРХ до кратного 10, чтобы цена за штуку всегда имела ровно 2 знака (0.01₽ - 0.99₽).
+            // Пример: 142.4₽ -> 150.00₽ (0.15₽/шт). 5₽ -> 10.00₽ (0.01₽/шт).
+            p = Math.ceil(val / 10) * 10;
+        }
+        else {
+            // Для дорогих услуг (> 1000₽, то есть > 1 рубля за штуку).
+            // Округляем ВВЕРХ до кратного 100, чтобы цена за штуку имела максимум 1 знак (1.5₽, 5.5₽).
+            // Пример: 1426₽ -> 1500.00₽ (1.5₽/шт). 5422₽ -> 5500.00₽ (5.5₽/шт).
+            p = Math.ceil(val / 100) * 100;
         }
 
-        // Округляем до 0.1 вверх
-        return price.mul(10).toDecimalPlaces(0, Decimal.ROUND_CEIL).div(10);
+        return new Decimal(p.toFixed(2));
     }
 
     /**
@@ -150,51 +175,49 @@ export class PricingService {
     }
 
     /**
+     * Проверяет, включено ли автоматическое снижение цен (из GlobalSetting).
+     * По умолчанию false — цены только повышаются.
+     */
+    private static async isAutoDecreaseEnabled(): Promise<boolean> {
+        const setting = await prisma.globalSetting.findUnique({
+            where: { key: 'PRICING_AUTO_DECREASE' }
+        });
+        return setting?.value === 'true';
+    }
+
+    /**
      * Проверяет и корректирует цены услуг на основе цен провайдеров
      */
     static async syncInternalPrices(projectId?: string) {
+        // Получаем все активные маппинги, чтобы извлечь уникальные услуги
         const mappings = await prisma.internalServiceMapping.findMany({
             where: { isActive: true },
-            include: {
-                internalService: true,
-                providerService: true,
-                provider: true
-            }
+            select: { internalServiceId: true }
         });
 
+        // Убираем дубликаты
+        const uniqueServiceIds = [...new Set(mappings.map(m => m.internalServiceId))];
         const updates = [];
 
-        for (const mapping of mappings) {
-            if (!mapping.providerService) continue;
-
-            const providerPrice = mapping.providerService.rawPrice;
-            const currentInternalPrice = mapping.internalService.pricePer1000;
-
-            const newPrice = await this.calculateRetailPrice(providerPrice, {
-                providerName: mapping.provider.name,
-                category: mapping.internalService.category,
-                projectId
-            });
-
-            if (currentInternalPrice.lt(newPrice)) {
-                await prisma.internalService.update({
-                    where: { id: mapping.internalServiceId },
-                    data: { pricePer1000: newPrice }
+        // Синхронизируем каждую услугу через консистентный метод (с Average + Anti-Jitter)
+        for (const serviceId of uniqueServiceIds) {
+            const result = await this.syncInternalServicePrice(serviceId, projectId);
+            if (result.priceUpdated && result.direction) {
+                // Если цена обновлена, запишем в результат
+                updates.push({
+                    name: `Service ${serviceId}`,
+                    old: result.oldPrice,
+                    new: result.newPrice.toNumber(),
+                    direction: result.direction
                 });
-
+                
                 await prisma.adminLog.create({
                     data: {
                         adminId: 'system-pricing',
                         action: 'UPDATE_SERVICE',
-                        targetId: mapping.internalServiceId,
-                        details: `Auto-price update: ${currentInternalPrice} -> ${newPrice} (Provider: ${mapping.provider.name})`
+                        targetId: serviceId,
+                        details: `Auto-price ${result.direction}: ${result.oldPrice} -> ${result.newPrice} (Based on Average Cost of ${result.avgCost.toFixed(4)})`
                     }
-                });
-
-                updates.push({
-                    name: mapping.internalService.name,
-                    old: currentInternalPrice.toNumber(),
-                    new: newPrice.toNumber()
                 });
             }
         }
@@ -214,60 +237,99 @@ export class PricingService {
 
         if (mappings.length === 0) return { priceUpdated: false };
 
-        let maxCost = new Decimal(0);
+        const service = mappings[0].internalService;
+        const currentPrice = service.pricePer1000;
+
+        // ─── Вычисляем базовую стоимость ─────────────────────────────────────────
+        let avgCost: Decimal;
         let minCost = new Decimal(Infinity);
         let cheapestMapping = mappings[0];
 
         if (overrideCost) {
-            maxCost = overrideCost;
+            avgCost = overrideCost;
             minCost = overrideCost;
         } else {
+            const validPrices: Decimal[] = [];
             mappings.forEach(m => {
-                if (m.providerService) {
+                if (m.providerService && !m.providerService.rawPrice.isZero()) {
                     const cost = m.providerService.rawPrice;
-                    if (cost.gt(maxCost)) maxCost = cost;
+                    validPrices.push(cost);
                     if (cost.lt(minCost)) {
                         minCost = cost;
                         cheapestMapping = m;
                     }
                 }
             });
+
+            if (validPrices.length === 0) return { priceUpdated: false };
+
+            // Усредняем себестоимость по всем активным провайдерам
+            const sum = validPrices.reduce((acc, p) => acc.add(p), new Decimal(0));
+            avgCost = sum.div(validPrices.length);
         }
 
-        if (maxCost.isZero() || minCost.equals(Infinity)) return { priceUpdated: false };
+        if (avgCost.isZero() || minCost.equals(Infinity)) return { priceUpdated: false };
 
-        const service = mappings[0].internalService;
-
-        const targetPrice = await this.calculateRetailPrice(maxCost, {
+        // ─── Расчёт целевой розничной цены (по avgCost) ──────────────────────────
+        const targetPrice = await this.calculateRetailPrice(avgCost, {
             providerName: cheapestMapping.provider.name,
-            category: service.category,
+            category: service.categoryId as any,
             projectId
         });
 
-        let priceUpdated = false;
-        if (service.pricePer1000.lt(targetPrice)) {
-            await prisma.internalService.update({
-                where: { id: serviceId },
-                data: {
-                    pricePer1000: targetPrice,
-                    lastProviderPrice: maxCost
-                }
-            });
-            priceUpdated = true;
-        } else {
-            await prisma.internalService.update({
-                where: { id: serviceId },
-                data: { lastProviderPrice: maxCost }
-            });
+        // ─── Safety Floor (500% от средней себестоимости) ────────────────────────
+        const safetyPrice = this.getSafetyPrice(avgCost);
+        const finalPrice = targetPrice.lt(safetyPrice) ? safetyPrice : targetPrice;
+
+        // ─── Anti-Jitter: игнорируем изменения < 5% ──────────────────────────────
+        const JITTER_THRESHOLD = 0.05; // 5%
+        if (currentPrice.gt(0)) {
+            const priceDiff = finalPrice.sub(currentPrice).abs().div(currentPrice).toNumber();
+            if (priceDiff < JITTER_THRESHOLD) {
+                // Микроизменение — только обновляем lastProviderPrice, НЕ меняем витрину
+                await prisma.internalService.update({
+                    where: { id: serviceId },
+                    data: { lastProviderPrice: avgCost }
+                });
+                return { priceUpdated: false, avgCost };
+            }
         }
 
+        // ─── Проверяем настройку автоснижения ────────────────────────────────────
+        const allowDecrease = await this.isAutoDecreaseEnabled();
+        const shouldRaise = currentPrice.lt(finalPrice);
+        const shouldLower = allowDecrease && currentPrice.gt(finalPrice);
+
+        if (!shouldRaise && !shouldLower) {
+            await prisma.internalService.update({
+                where: { id: serviceId },
+                data: { lastProviderPrice: avgCost }
+            });
+            return { priceUpdated: false, avgCost };
+        }
+
+        const direction = finalPrice.gt(currentPrice) ? '↑' : '↓';
+        const finalMarkup = avgCost.gt(0)
+            ? finalPrice.sub(avgCost).div(avgCost).mul(100).toDecimalPlaces(2)
+            : new Decimal(0);
+
+        await prisma.internalService.update({
+            where: { id: serviceId },
+            data: {
+                pricePer1000: finalPrice,
+                markup: finalMarkup,
+                lastProviderPrice: avgCost
+            }
+        });
+
         return {
-            priceUpdated,
-            newPrice: priceUpdated ? targetPrice : service.pricePer1000,
-            Cheaper: minCost.lt(maxCost),
+            priceUpdated: true,
+            oldPrice: currentPrice.toNumber(),
+            newPrice: finalPrice,
+            avgCost,
+            direction,
+            Cheaper: minCost.lt(avgCost),
             cheapestProvider: cheapestMapping.provider.name,
-            minCost,
-            maxCost
         };
     }
 
@@ -319,7 +381,7 @@ export class PricingService {
     /**
      * Рассчитывает детали заказа: стоимость, скидку и итоговую цену
      */
-    static async calculateOrderDetails(userId: string, serviceId: string, quantity: number, projectId?: string | null) {
+    static async calculateOrderDetails(userId: string, serviceId: string, quantity: number, projectId?: string | null, promoCodeStr?: string) {
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) throw new Error('User not found');
 
@@ -327,7 +389,18 @@ export class PricingService {
         const basePrice = currentPricePer1000.mul(quantity).div(1000);
 
         const loyalty = await LoyaltyService.getLoyaltyInfo(userId, user.spent, projectId || undefined);
-        const discountPercent = loyalty.totalDiscount;
+        let discountPercent = loyalty.totalDiscount;
+        let promoId: string | undefined;
+
+        if (promoCodeStr) {
+            const promoRes = await PromoService.validatePromo(promoCodeStr, userId, projectId);
+            if (promoRes.valid && promoRes.promo) {
+                discountPercent += promoRes.promo.discountPercent;
+                promoId = promoRes.promo.id;
+            }
+        }
+
+        if (discountPercent > 100) discountPercent = 100;
 
         const discountAmount = basePrice.mul(discountPercent).div(100).toDecimalPlaces(2);
         const finalPrice = basePrice.minus(discountAmount).toDecimalPlaces(2);
@@ -336,7 +409,8 @@ export class PricingService {
             basePrice,
             discountPercent,
             discountAmount,
-            finalPrice
+            finalPrice,
+            promoId
         };
     }
 
@@ -345,7 +419,7 @@ export class PricingService {
      */
     static async getMarkupAnalytics() {
         const services = await prisma.internalService.findMany({
-            select: { id: true, name: true, pricePer1000: true, lastProviderPrice: true, platform: true }
+            select: { id: true, name: true, pricePer1000: true, lastProviderPrice: true, socialPlatformId: true }
         });
 
         const stats = {
@@ -367,7 +441,7 @@ export class PricingService {
             else {
                 stats.abuse++;
                 extremeServices.push({
-                    id: s.id, name: s.name, platform: s.platform,
+                    id: s.id, name: s.name, platform: s.socialPlatformId,
                     markup: Math.round(markupPercent), price: s.pricePer1000.toNumber()
                 });
             }

@@ -31,7 +31,7 @@ export function DashboardUI({ user, stats, recentOrders }: DashboardUIProps) {
     const [quickLink, setQuickLink] = React.useState('');
 
     return (
-        <div className="space-y-6 pb-20">
+        <div className="max-w-6xl mx-auto px-6 space-y-6 pb-20 pt-10">
             {/* Header / Greeting */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -50,7 +50,7 @@ export function DashboardUI({ user, stats, recentOrders }: DashboardUIProps) {
                         )}
                     </div>
                     <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-900 leading-tight">
-                        С возвращением, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 italic pr-1">
+                        С возвращением, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 italic pr-2">
                             {user.username || 'Пользователь'}&nbsp;
                         </span>
                     </h1>
@@ -89,7 +89,7 @@ export function DashboardUI({ user, stats, recentOrders }: DashboardUIProps) {
                             <span className="text-5xl font-black tracking-tighter tabular-nums">
                                 {formatAmount(user.balance)}
                             </span>
-                            <span className="text-xl font-black text-blue-500 italic uppercase pr-1">rub&nbsp;</span>
+                            <span className="text-xl font-black text-blue-500 italic uppercase pr-2">rub&nbsp;</span>
                         </div>
 
                         <div className="flex items-center gap-3 pt-2">
@@ -168,7 +168,7 @@ export function DashboardUI({ user, stats, recentOrders }: DashboardUIProps) {
                         <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Инвестировано</div>
                         <div className="text-3xl font-black text-slate-900 tracking-tighter">
                             {formatAmount(stats.totalSpent)}
-                            <span className="text-sm ml-1 text-slate-300 italic pr-1">₽&nbsp;</span>
+                            <span className="text-sm ml-1 text-slate-300 italic pr-2">₽&nbsp;</span>
                         </div>
                     </div>
 

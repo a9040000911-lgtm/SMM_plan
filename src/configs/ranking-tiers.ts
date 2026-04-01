@@ -3,7 +3,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { Platform, Category } from '@/generated/client';
+import { Platform, Category } from '@prisma/client';
 
 export interface TierDefinition {
   code: string;

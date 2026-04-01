@@ -24,8 +24,9 @@ export async function GET() {
                 _sum: { spent: true },
                 _count: { id: true }
             }),
-            prisma.loyaltyLog.aggregate({
-                _sum: { value: true },
+            prisma.ledgerEntry.aggregate({
+                where: { description: { contains: 'loyalty', mode: 'insensitive' } },
+                _sum: { amount: true },
                 _count: { id: true }
             })
         ]);
@@ -56,7 +57,7 @@ export async function GET() {
 
         return NextResponse.json(sanitizeData({ levels, rules, stats, loyaltyStats }));
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 

@@ -10,7 +10,7 @@ import { AdminTabs } from '@/components/admin/core/admin-tabs';
 
 import TransactionsPage from '../transactions/page';
 import ExpensesPage from '../expenses/page';
-import ReportsPage from '../reports/page';
+import ReportsPage from '../analytics/reports/page';
 
 import { FinanceSummary } from '@/components/admin/finance/finance-summary';
 
@@ -24,6 +24,7 @@ export default async function FinancePage(props: { searchParams: Promise<any> })
     ];
 
     const searchParams = await props.searchParams;
+    const activeTab = searchParams.tab || 'transactions';
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-12 w-full overflow-hidden">
@@ -42,17 +43,9 @@ export default async function FinancePage(props: { searchParams: Promise<any> })
             <FinanceSummary />
 
             <AdminTabs tabs={tabs}>
-                <div>
-                    <TransactionsPage searchParams={searchParams} />
-                </div>
-
-                <div>
-                    <ExpensesPage />
-                </div>
-
-                <div>
-                    <ReportsPage />
-                </div>
+                {activeTab === 'transactions' ? <div><TransactionsPage searchParams={searchParams} /></div> : <div />}
+                {activeTab === 'expenses' ? <div><ExpensesPage /></div> : <div />}
+                {activeTab === 'reports' ? <div><ReportsPage /></div> : <div />}
             </AdminTabs>
         </div>
     );

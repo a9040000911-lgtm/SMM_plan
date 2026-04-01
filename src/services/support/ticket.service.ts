@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
-import { MessageSender } from '@/generated/client';
+import { MessageSender } from '@prisma/client';
 import { BroadcastService } from './broadcast.service';
 
 export class TicketService {
@@ -95,7 +95,12 @@ export class TicketService {
 
     if (adminId && adminId.length > 10) {
       await prisma.adminLog.create({
-        data: { adminId, action: 'TICKET_REPLY', targetId: ticketId, details: `Reply length: ${text.length}` }
+        data: {
+          adminId: adminId,
+          action: 'TICKET_REPLY',
+          targetId: ticketId,
+          details: `Reply length: ${text.length}`
+        }
       }).catch(() => { });
     }
 

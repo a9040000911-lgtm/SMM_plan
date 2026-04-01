@@ -23,12 +23,20 @@ step1_platform.action(/^auto_plt_(.+)$/, async (ctx: any) => {
   };
 
   const services = await prisma.internalService.findMany({
-    where: { socialPlatform: { slug }, isActive: true },
-    distinct: ['category'],
-    select: { category: true }
+    where: { socialPlatform: { slug }, isActive: true, categoryId: { not: null } },
+    include: { serviceCategory: true }
   });
 
-  const buttons = services.map(s => [Markup.button.callback(categoryNames[s.category] || s.category, `auto_cat_${s.category}`)]);
+  // Deduplicate by categoryType
+  const seenCategories = new Map<string, string>();
+  for (const s of services) {
+    if (s.serviceCategory && !seenCategories.has(s.serviceCategory.categoryType)) {
+      seenCategories.set(s.serviceCategory.categoryType, s.serviceCategory.categoryType);
+    }
+  }
+  const uniqueCategories = Array.from(seenCategories.keys());
+
+  const buttons = uniqueCategories.map(cat => [Markup.button.callback(categoryNames[cat] || cat, `auto_cat_${cat}`)]);
   buttons.push([Markup.button.callback('🔙 Назад', 'back_to_start')]);
 
   await ctx.editMessageText(`📂 <b>${ctx.wizard.state.autoData.platformName}</b>\nВыберите категорию услуг:`, {
@@ -52,7 +60,7 @@ step2_category.action(/^auto_cat_(.+)$/, async (ctx: any) => {
   ctx.wizard.state.autoData.category = category;
 
   const svcs = await prisma.internalService.findMany({
-    where: { socialPlatform: { slug: platformSlug }, category: category as any, isActive: true },
+    where: { socialPlatform: { slug: platformSlug }, serviceCategory: { categoryType: category as any }, isActive: true },
     orderBy: { pricePer1000: 'asc' }
   });
 

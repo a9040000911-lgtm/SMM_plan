@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createManualServiceAction, updateManualServiceAction, upsertProjectOverrideAction, enhanceDescriptionAction } from '@/app/admin/services/actions';
-import { Platform, Category } from '@/generated/client';
+import { Platform, Category } from '@prisma/client';
 import { PLATFORM_LABELS, TARGET_TYPE_LABELS } from '@/services/providers/smart-analyzer.logic';
 
 interface ServiceEditorModalProps {

@@ -1,44 +1,68 @@
-/**
- * (c) 2024-2026 Smmplan. All rights reserved.
- * Created by Artem (http://artmspektr.ru)
- * Unauthorized copying of this file is strictly prohibited.
- */
 import { MetadataRoute } from 'next';
+import prisma from '@/lib/prisma';
+import { getClientProjectId } from '@/utils/project-resolver';
+import { getTenantDomain } from '@/lib/tenant/server';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const baseUrl = 'https://smmplan.ru';
+    const domain = await getTenantDomain();
+    const baseUrl = `https://${domain}`;
+    const projectId = await getClientProjectId();
 
-    // Static routes
-    const routes = [
-        '',
-        '/catalog',
-        '/faq',
-        '/glossary',
-        '/referrals',
-        '/mass',
-        '/docs/offer',
-        '/docs/policy',
-        '/docs/refund',
-        '/docs/rules',
-    ].map((route) => ({
-        url: `${baseUrl}${route}`,
-        lastModified: new Date().toISOString(),
-        changeFrequency: 'daily' as const,
-        priority: route === '' ? 1 : 0.8,
-    }));
+    // Base Static Routes
+    const routes: MetadataRoute.Sitemap = [
+        {
+            url: baseUrl,
+            lastModified: new Date(),
+            changeFrequency: 'daily',
+            priority: 1.0,
+        },
+        {
+            url: `${baseUrl}/catalog`,
+            lastModified: new Date(),
+            changeFrequency: 'always',
+            priority: 0.9,
+        },
+        {
+            url: `${baseUrl}/buy`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.8,
+        },
+    ];
 
-    // In a real scenario, we would also fetch all public services/categories from DB:
-    /*
-    const categories = await prisma.serviceCategory.findMany({ where: { isActive: true } });
-    const categoryRoutes = categories.map(cat => ({
-      url: `${baseUrl}/catalog/${cat.slug}`,
-      lastModified: new Date().toISOString(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    }));
-    */
+    if (!projectId) return routes;
 
-    return [...routes];
+    // Fetch Platforms for /buy/[platform]
+    const platforms = await prisma.socialPlatform.findMany({
+        where: { isActive: true },
+        select: { slug: true, updatedAt: true },
+    });
+
+    platforms.forEach((platform) => {
+        routes.push({
+            url: `${baseUrl}/buy/${platform.slug.toLowerCase()}`,
+            lastModified: platform.updatedAt,
+            changeFrequency: 'weekly',
+            priority: 0.8,
+        });
+    });
+
+    // Fetch Service Categories for /buy/[platform]/[category]
+    const categories = await prisma.serviceCategory.findMany({
+        where: { isActive: true, projectId },
+        select: { slug: true, name: true, updatedAt: true, socialPlatform: { select: { slug: true } } },
+    });
+
+    categories.forEach((cat) => {
+        if (cat.socialPlatform?.slug) {
+            routes.push({
+                url: `${baseUrl}/buy/${cat.socialPlatform.slug.toLowerCase()}/${encodeURIComponent(cat.slug || cat.name.toLowerCase())}`,
+                lastModified: cat.updatedAt,
+                changeFrequency: 'weekly',
+                priority: 0.7,
+            });
+        }
+    });
+
+    return routes;
 }
-
-

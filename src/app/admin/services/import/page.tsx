@@ -20,7 +20,7 @@ import { Sparkles } from 'lucide-react';
 import { InfoTooltip } from '@/components/admin/core/info-tooltip';
 import { toast } from 'sonner';
 import { getActivityLabel } from '@/utils/order-utils';
-
+import { AdminTableCard } from '@/components/admin/core/admin-table-card';
 import {
   PLATFORMS, CATEGORIES, PLATFORM_LABELS, TARGET_TYPES,
   SmartAnalyzerLogic as SmartAnalyzerService
@@ -406,7 +406,7 @@ export default function ServiceImportPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+      <AdminTableCard title="Импорт услуг из API" icon={PackagePlus}>
         <table className="w-full text-left border-collapse text-[13px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
@@ -595,7 +595,7 @@ export default function ServiceImportPage() {
             <p className="text-slate-400 font-bold">Ничего не найдено с такими фильтрами.</p>
           </div>
         )}
-      </div>
+      </AdminTableCard>
 
       <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 gap-4">
         <div className="text-xs text-slate-500 font-bold">

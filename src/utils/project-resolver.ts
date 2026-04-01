@@ -14,7 +14,7 @@ export async function getProjectByHostname(): Promise<string | null> {
     try {
         const { headers } = await import('next/headers');
         const headersList = await headers();
-        const host = headersList.get('host');
+        const host = headersList.get('x-tenant-domain') || headersList.get('host');
 
         if (host) {
             const cleanHost = host.split(':')[0].toLowerCase();

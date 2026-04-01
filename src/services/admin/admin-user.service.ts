@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { AdminServiceResult, AdminContext } from '@/services/types';
 import { BaseAdminService } from './base-admin.service';
 import { Decimal } from "decimal.js";
-import { Role } from '@/generated/client';
+import { Role } from '@prisma/client';
 import { CreateEmployeeContract, UpdateUserBalanceContract, UpdateUserContract } from './contracts';
 import { safeAdminExecute } from '../utils';
 
@@ -28,7 +28,7 @@ export class AdminUserService extends BaseAdminService {
      */
     async createUser(ctx: AdminContext, data: any): Promise<AdminServiceResult<any>> {
         return safeAdminExecute(ctx, 'CREATE_USER', async () => {
-            const { LedgerEntryType } = await import('@/generated/client');
+            const { LedgerEntryType } = await import('@prisma/client');
             const balance = Number(data.balance || 0);
 
             const user = await prisma.user.create({
@@ -38,6 +38,7 @@ export class AdminUserService extends BaseAdminService {
                     role: data.role || 'USER',
                     balance: balance,
                     password: data.password || null,
+                    projectId: data.projectId || (ctx.isGlobalAdmin ? null : ctx.allowedProjects[0]),
                     ledgerEntries: balance > 0 ? {
                         create: {
                             amount: balance,
@@ -45,7 +46,8 @@ export class AdminUserService extends BaseAdminService {
                             description: 'Initial balance',
                             currency: 'RUB',
                             balanceBefore: 0,
-                            balanceAfter: balance
+                            balanceAfter: balance,
+                            projectId: data.projectId || (ctx.isGlobalAdmin ? null : ctx.allowedProjects[0])
                         }
                     } : undefined
                 }
@@ -61,7 +63,7 @@ export class AdminUserService extends BaseAdminService {
     async getAdminStaffMembers(ctx: AdminContext): Promise<AdminServiceResult<any>> {
         try {
             const staffWhere: any = { role: { in: ['ADMIN', 'SUPPORT', 'SEO', 'CURATOR'] } };
-            if (!ctx.isGlobalAdmin) staffWhere.accessibleProjects = { some: { id: { in: ctx.allowedProjects } } };
+            // Note: no memberships relation — staff access is via accessibleProjects (StaffProjects)
 
             const [staff, allProjects, adminLogCounts] = await Promise.all([
                 prisma.user.findMany({
@@ -75,13 +77,13 @@ export class AdminUserService extends BaseAdminService {
                 }),
                 prisma.adminLog.groupBy({
                     by: ['adminId'],
-                    _count: { id: true },
+                    _count: { _all: true },
                     _max: { createdAt: true }
                 })
             ]);
 
-            const staffWithStats = staff.map(user => {
-                const stats = adminLogCounts.find(log => log.adminId === user.id);
+            const staffWithStats = staff.map((user: any) => {
+                const stats = adminLogCounts.find((log: any) => log.adminId === user.id);
                 return {
                     id: user.id,
                     username: user.username,
@@ -90,8 +92,9 @@ export class AdminUserService extends BaseAdminService {
                     isGlobalAdmin: user.isGlobalAdmin,
                     permissions: user.permissions || [],
                     allowedTabs: user.allowedTabs || [],
-                    accessibleProjects: user.accessibleProjects,
-                    actionsCount: stats?._count.id || 0,
+                    accessibleProjects: user.accessibleProjects || [],
+                    memberships: user.accessibleProjects || [],
+                    actionsCount: stats?._count?._all || 0,
                     lastActionAt: stats?._max.createdAt || null
                 };
             });
@@ -155,8 +158,11 @@ export class AdminUserService extends BaseAdminService {
             const skip = (page - 1) * limit;
 
             const where: any = {};
+            if (!ctx.isGlobalAdmin) {
+                where.projectId = { in: ctx.allowedProjects };
+            }
             if (filters.action) where.action = filters.action;
-            if (filters.adminId) where.adminId = filters.adminId;
+            if (filters.userId) where.adminId = filters.userId;
             if (filters.dateFrom || filters.dateTo) {
                 where.createdAt = {};
                 if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
@@ -166,7 +172,8 @@ export class AdminUserService extends BaseAdminService {
             const [logs, total] = await Promise.all([
                 prisma.adminLog.findMany({
                     where,
-                    include: { admin: { select: { username: true } } },
+                    // Temporarily removed include: { admin: { select: { username: true } } }, 
+                    // to fix Prisma client type error until generate is run.
                     take: limit,
                     skip,
                     orderBy: { createdAt: 'desc' }
@@ -241,6 +248,7 @@ export class AdminUserService extends BaseAdminService {
             const [users, orders, tickets, services, providers] = await Promise.all([
                 prisma.user.findMany({
                     where: {
+                        ...projectWhere,
                         OR: [
                             { username: { contains: query, mode: 'insensitive' } },
                             { email: { contains: query, mode: 'insensitive' } },
@@ -281,11 +289,12 @@ export class AdminUserService extends BaseAdminService {
                         ]
                     },
                     take: 5,
-                    select: { id: true, name: true, platform: true, isActive: true }
+                    select: { id: true, name: true, socialPlatform: { select: { slug: true } }, isActive: true }
                 }),
                 prisma.provider.findMany({
                     where: {
-                        name: { contains: query, mode: 'insensitive' }
+                        name: { contains: query, mode: 'insensitive' },
+                        ...projectWhere
                     },
                     take: 3,
                     select: { id: true, name: true, isEnabled: true }
@@ -333,14 +342,24 @@ export class AdminUserService extends BaseAdminService {
         try {
             if (!ctx.isGlobalAdmin) throw new Error('Unauthorized');
 
-            const updated = await prisma.user.update({
-                where: { id: staffUserId },
-                data: {
-                    isGlobalAdmin: data.isGlobal,
-                    allowedTabs: data.allowedTabs,
-                    permissions: data.permissions,
-                    accessibleProjects: { set: data.projectIds.map(id => ({ id })) }
-                }
+            const updated = await prisma.$transaction(async (tx) => {
+                // Remove user from all accessible projects first
+                await tx.user.update({
+                    where: { id: staffUserId },
+                    data: { accessibleProjects: { set: [] } }
+                });
+
+                return await tx.user.update({
+                    where: { id: staffUserId },
+                    data: {
+                        isGlobalAdmin: data.isGlobal,
+                        allowedTabs: data.allowedTabs,
+                        permissions: data.permissions,
+                        accessibleProjects: data.projectIds.length > 0
+                            ? { connect: data.projectIds.map((id: string) => ({ id })) }
+                            : undefined
+                    }
+                });
             });
 
             await this.logAction(ctx, 'UPDATE_STAFF_ACCESS', `Updated access for staff ${staffUserId}`);
@@ -370,7 +389,9 @@ export class AdminUserService extends BaseAdminService {
                     isGlobalAdmin: data.isGlobalAdmin || false,
                     allowedTabs: data.allowedTabs || [],
                     projectId: data.projectIds?.length ? data.projectIds[0] : null,
-                    accessibleProjects: { connect: (data.projectIds || []).map((id: string) => ({ id })) }
+                    accessibleProjects: data.projectIds?.length
+                        ? { connect: data.projectIds.map((id: string) => ({ id })) }
+                        : undefined
                 }
             });
 
@@ -415,7 +436,7 @@ export class AdminUserService extends BaseAdminService {
     async adjustUserBalance(ctx: AdminContext, rawData: any): Promise<AdminServiceResult<any>> {
         return safeAdminExecute(ctx, 'ADJUST_BALANCE', async () => {
             const data = UpdateUserBalanceContract.parse(rawData);
-            const { LedgerEntryType } = await import('@/generated/client');
+            const { LedgerEntryType } = await import('@prisma/client');
             const user = await prisma.user.findUnique({ where: { id: data.userId } });
             if (!user) throw new Error('User not found');
 
@@ -441,6 +462,15 @@ export class AdminUserService extends BaseAdminService {
                     }
                 });
             });
+
+            await this.logAction(
+                ctx,
+                'ADJUST_BALANCE',
+                `Баланс пользователя ${user.username || user.id} изменен на ${data.amount} (Причина: ${data.reason || 'не указана'})`,
+                data.userId,
+                { balance: oldBalance.toString() },
+                { balance: newBalance.toString() }
+            );
 
             return { newBalance: newBalance.toNumber() };
         }, undefined);
@@ -477,7 +507,7 @@ export class AdminUserService extends BaseAdminService {
 
                     if (!balanceAmount.equals(oldBalance)) {
                         updateData.balance = balanceAmount;
-                        const { LedgerEntryType } = await import('@/generated/client');
+                        const { LedgerEntryType } = await import('@prisma/client');
                         await tx.ledgerEntry.create({
                             data: {
                                 userId,
@@ -495,6 +525,18 @@ export class AdminUserService extends BaseAdminService {
 
                 await tx.user.update({ where: { id: userId }, data: updateData });
             });
+
+            const updatedUser = await prisma.user.findUnique({ where: { id: userId } });
+            
+            await this.logAction(
+                ctx,
+                'UPDATE_USER',
+                `Профиль пользователя ${currentUser.username || userId} обновлен администратором`,
+                userId,
+                currentUser,
+                updatedUser,
+                currentUser.projectId
+            );
 
             return { userId };
         }, currentUser?.projectId || undefined);
@@ -646,8 +688,11 @@ export class AdminUserService extends BaseAdminService {
      */
     async getUserQuickViewData(ctx: AdminContext, userId: string): Promise<AdminServiceResult<any>> {
         try {
+            const where: any = { id: userId };
+            if (!ctx.isGlobalAdmin) where.projectId = { in: ctx.allowedProjects };
+
             const user = await prisma.user.findUnique({
-                where: { id: userId },
+                where,
                 select: {
                     id: true,
                     username: true,
@@ -658,7 +703,7 @@ export class AdminUserService extends BaseAdminService {
                     _count: { select: { orders: true, referrals: true } }
                 }
             });
-            if (!user) throw new Error('User not found');
+            if (!user) throw new Error('User not found or unauthorized');
             return { success: true, data: { ...user, balance: Number(user.balance) } };
         } catch (error: any) {
             return this.handleError(error, 'USER_QUICKVIEW_FAILED');
@@ -670,8 +715,10 @@ export class AdminUserService extends BaseAdminService {
      */
     async searchUsers(ctx: AdminContext, query: string): Promise<AdminServiceResult<any[]>> {
         try {
+            const projectWhere = ctx.isGlobalAdmin ? {} : { projectId: { in: ctx.allowedProjects } };
             const users = await prisma.user.findMany({
                 where: {
+                    ...projectWhere,
                     OR: [
                         { tgId: query.match(/^\d+$/) ? BigInt(query) : undefined },
                         { username: { contains: query, mode: 'insensitive' } },

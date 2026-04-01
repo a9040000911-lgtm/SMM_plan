@@ -161,13 +161,17 @@ export class MassOrderService {
                 await LedgerService.record(tx, userId, entry.price, 'WITHDRAWAL', order.id.toString(), `Bulk Order: ${entry.serviceName}`);
             }
 
-            await tx.user.update({
-                where: { id: userId },
+            const updateResult = await tx.user.updateMany({
+                where: { id: userId, balance: { gte: totalBatchAmount } },
                 data: {
                     balance: { decrement: totalBatchAmount },
                     spent: { increment: totalBatchAmount }
                 }
             });
+
+            if (updateResult.count === 0) {
+                throw new Error('Insufficient balance or concurrent transaction conflict');
+            }
 
             // Loyalty Check
             const updatedUser = await tx.user.findUnique({ where: { id: userId }, select: { spent: true } });

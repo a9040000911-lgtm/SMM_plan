@@ -85,11 +85,13 @@ export async function getActiveProjectId(): Promise<string | null> {
 
     if (!session.allowedProjects || session.allowedProjects.length === 0) return null;
 
+    if (preferredId === 'all') return 'all'; // Allow Unified Workspace for support/managers
+
     if (preferredId && session.allowedProjects.includes(preferredId)) {
         return preferredId;
     }
 
-    return session.allowedProjects[0];
+    return session.allowedProjects[0] || 'all';
 }
 
 /**

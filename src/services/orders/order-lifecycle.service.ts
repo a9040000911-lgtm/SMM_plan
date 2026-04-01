@@ -4,7 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { Decimal } from 'decimal.js';
-import { Prisma, OrderStatus } from '@/generated/client';
+import { Prisma, OrderStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { ServiceResult } from '../types';
 
@@ -74,7 +74,7 @@ export class OrderLifecycleService {
                     internalService: {
                         select: {
                             name: true,
-                            platform: true,
+                            socialPlatform: { select: { slug: true } },
                         }
                     }
                 }
@@ -96,8 +96,8 @@ export class OrderLifecycleService {
                     internalService: { 
                         select: { 
                             name: true, 
-                            platform: true, 
-                            category: true, 
+                            socialPlatform: { select: { slug: true } }, 
+                            serviceCategory: { select: { categoryType: true } }, 
                             requirements: true, 
                             numericId: true 
                         } 
@@ -125,7 +125,7 @@ export class OrderLifecycleService {
                     service: {
                         select: {
                             name: true,
-                            platform: true,
+                            socialPlatform: { select: { slug: true } },
                         }
                     }
                 }

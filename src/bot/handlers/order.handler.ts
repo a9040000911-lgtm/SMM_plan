@@ -10,6 +10,7 @@ import { PricingService } from '@/services/finance';
 import { UnifiedPaymentService } from '@/services/payments/unified-payment.service';
 import { formatAmount } from '@/utils/formatter';
 import { getProjectMenu } from '../utils/menu.utils';
+import { RateLimiterService } from '../utils/rate-limiter';
 
 export async function triggerOrderPreview(ctx: any, state: any) {
     const user = await prisma.user.findUnique({ where: { tgId: BigInt(ctx.from!.id) } });
@@ -34,13 +35,21 @@ export async function handleConfirmOrder(ctx: any) {
     const details = await PricingService.calculateOrderDetails(user.id, service.id, state.qty, ctx.project.id);
     if (user.balance.gte(details.finalPrice)) {
         await prisma.$transaction(async (tx) => {
-            await tx.user.update({ where: { id: user.id }, data: { balance: { decrement: details.finalPrice }, spent: { increment: details.finalPrice } } });
+            const updateResult = await tx.user.updateMany({ where: { id: user.id, balance: { gte: details.finalPrice } }, data: { balance: { decrement: details.finalPrice }, spent: { increment: details.finalPrice } } });
+            if (updateResult.count === 0) {
+                throw new Error('Insufficient funds or concurrent transaction conflict');
+            }
             await tx.order.create({ data: { projectId: ctx.project.id, userId: user.id, internalServiceId: service.id, link: state.link!, quantity: state.qty!, totalPrice: details.finalPrice, status: 'PENDING' } });
         });
         await ctx.reply(`✅ <b>Заказ запущен!</b>`, { parse_mode: 'HTML', ...getProjectMenu(ctx.project) });
         await SessionService.delete(userId, ctx.project.id);
     } else {
         const amount = details.finalPrice.minus(user.balance).toNumber();
+        const limit = await RateLimiterService.checkPaymentLinkLimit(userId!, ctx.project.id);
+        if (!limit.allowed) {
+            await ctx.reply('🛑 <b>Слишком много счетов.</b>\nМы приостановили создание платежей. Попробуйте снова через час.', { parse_mode: 'HTML' });
+            return ctx.answerCbQuery();
+        }
 
         // Используем централизованный backend service
         const res = await UnifiedPaymentService.createPayment(
@@ -58,9 +67,15 @@ export async function handleConfirmOrder(ctx: any) {
         );
 
         if (res.success && res.confirmationUrl) {
-            const message = user.balance.eq(0)
+            let message = user.balance.eq(0)
                 ? `💳 <b>СУММА К ОПЛАТЕ: ${formatAmount(amount)}₽</b>`
                 : `💳 <b>НУЖНА ДОПЛАТА: ${formatAmount(amount)}₽</b>`;
+
+            if (limit.attempts >= 28) {
+                 message += `\n\n⚠️ <b>ПРЕДУПРЕЖДЕНИЕ:</b> Вы сгенерировали почти 30 неоплаченных счетов подряд. Во избежание блокировки приостановите покупки или перейдите на оплату с Внутреннего Баланса!`;
+            } else if (limit.attempts >= 4) {
+                 message += `\n\n💡 <b>Устали каждый раз вводить данные карты?</b>\nПополните Баланс один раз (через меню бота) и заказывайте любые услуги мгновенно в 1 клик!`;
+            }
 
             await ctx.reply(message, { parse_mode: 'HTML', ...getProjectMenu(ctx.project), ...Markup.inlineKeyboard([[Markup.button.url('🚀 ОПЛАТИТЬ', res.confirmationUrl!), Markup.button.callback('❌ ОТМЕНА', 'cancel_order')]]) });
         }

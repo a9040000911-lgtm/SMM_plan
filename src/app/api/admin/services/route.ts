@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { getAdminSession } from '@/utils/admin-session';
 import { PricingService } from '@/services/finance/pricing.service';
 import { sanitizeData } from '@/utils/service-sanitizer';
+import { Decimal } from 'decimal.js';
 
 export async function GET() {
     try {
@@ -26,7 +27,8 @@ export async function GET() {
                         provider: true,
                         providerService: true
                     }
-                }
+                },
+                serviceCategory: true
             }
         });
 
@@ -37,8 +39,8 @@ export async function GET() {
 
             let recommendedPrice = null;
             if (cost > 0) {
-                const rec = await PricingService.calculateRetailPrice(cost, {
-                    category: s.category
+                const rec = await PricingService.calculateRetailPrice(new Decimal(cost), {
+                    category: s.serviceCategory?.categoryType as any
                 });
                 recommendedPrice = rec.toNumber();
             }
@@ -52,7 +54,7 @@ export async function GET() {
         return NextResponse.json(sanitizeData(enrichedServices));
     } catch (error: any) {
         console.error('API Services GET Error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 

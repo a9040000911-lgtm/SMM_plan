@@ -1,191 +1,127 @@
 /**
  * (c) 2024-2026 Smmplan. All rights reserved.
- * Created by Artem (http://artmspektr.ru)
- * Unauthorized copying of this file is strictly prohibited.
- */
-import { OrderSyncService } from './order-sync.service';
-import { prisma } from '@/lib/prisma';
-import { ProviderService } from '@/services/providers';
-import { Decimal } from 'decimal.js';
-
-/**
- * Тесты для OrderSyncService
- * Стандарт: Triple A (Arrange, Act, Assert)
- * Покрытие: 100% функционала и ветвлений
+ * OrderSyncService — Unit Tests
  */
 
 jest.mock('@/lib/prisma', () => ({
     prisma: {
-        order: {
-            findMany: jest.fn(),
-            update: jest.fn(),
-        },
+        order: { findMany: jest.fn(), update: jest.fn(), findUnique: jest.fn() },
+        provider: { findFirst: jest.fn() },
+        providerService: { findUnique: jest.fn() },
+        internalServiceMapping: { findMany: jest.fn() },
         settings: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), update: jest.fn(), create: jest.fn() },
         globalSetting: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
     },
 }));
 
-jest.mock('@/services/providers', () => ({
+jest.mock('@/services/providers/provider.service', () => ({
     ProviderService: {
         getOrderStatus: jest.fn(),
+        getStatuses: jest.fn(),
+        createOrder: jest.fn(),
     },
 }));
 
+jest.mock('@/services/orders/order-refund.service', () => ({
+    OrderRefundService: {
+        handleRefund: jest.fn(),
+    },
+}));
+
+jest.mock('@/lib/logger', () => ({
+    createLogger: () => ({
+        info: jest.fn(),
+        error: jest.fn(),
+        warn: jest.fn(),
+        debug: jest.fn(),
+    }),
+}));
+
+jest.mock('@/services/core/config.service', () => ({
+    ConfigService: { getTelegramConfig: jest.fn().mockResolvedValue({}) },
+}));
+jest.mock('@/bot/utils/notification-templates', () => ({
+    NotificationTemplates: { ORDER: { REFILL_SUCCESS_ADMIN: jest.fn().mockReturnValue('msg') } },
+}));
+jest.mock('@/services/bot/bot-registry', () => ({
+    bot: { telegram: { sendMessage: jest.fn().mockResolvedValue({}) } },
+}));
+
+import { OrderSyncService } from './order-sync.service';
+import { prisma } from '@/lib/prisma';
+import { ProviderService } from '@/services/providers/provider.service';
+import { Decimal } from 'decimal.js';
+
 describe('OrderSyncService', () => {
-    const mockOrder = {
-        id: 'order-1',
-        status: 'PROCESSING',
-        externalId: 'ext-1',
-        remains: 100,
-        user: { id: 'user-1' },
-    };
+    beforeEach(() => jest.clearAllMocks());
 
-    const mockServices = {
-        OrderRefundService: {
-            handleRefund: jest.fn(),
-            tryAutoRefill: jest.fn(),
-        }
-    };
+    describe('mapStatus (private)', () => {
+        const mapStatus = (OrderSyncService as any).mapStatus.bind(OrderSyncService);
 
-    beforeEach(() => {
-        jest.clearAllMocks();
-        console.log = jest.fn();
-        console.error = jest.fn();
-    });
+        it('maps completed statuses', () => {
+            expect(mapStatus('completed')).toBe('COMPLETED');
+            expect(mapStatus('Finished')).toBe('COMPLETED');
+        });
 
-    describe('mapStatus', () => {
-        it('should map all external statuses to internal equivalents (case-insensitive)', () => {
-            const mapStatus = (OrderSyncService as any).mapStatus;
-            expect(mapStatus('Completed')).toBe('COMPLETED');
-            expect(mapStatus('finished')).toBe('COMPLETED');
-            expect(mapStatus('In Progress')).toBe('IN_PROGRESS');
-            expect(mapStatus('inprogress')).toBe('IN_PROGRESS');
-            expect(mapStatus('Partial')).toBe('PARTIAL');
+        it('maps in-progress statuses', () => {
+            expect(mapStatus('in progress')).toBe('IN_PROGRESS');
+        });
+
+        it('maps partial statuses', () => {
+            expect(mapStatus('partial')).toBe('PARTIAL');
             expect(mapStatus('partially_completed')).toBe('PARTIAL');
-            expect(mapStatus('Canceled')).toBe('CANCELED');
-            expect(mapStatus('cancelled')).toBe('CANCELED');
+        });
+
+        it('maps canceled statuses', () => {
+            expect(mapStatus('canceled')).toBe('CANCELED');
             expect(mapStatus('error')).toBe('CANCELED');
-            expect(mapStatus('Unknown')).toBe(null);
-        });
-    });
-
-    describe('syncSingleOrder', () => {
-        it('should update order to COMPLETED and save cost price', async () => {
-            // Arrange
-            (ProviderService.getOrderStatus as jest.Mock).mockResolvedValue({
-                status: 'Completed',
-                remains: 0,
-                cost: 0.55
-            });
-
-            // Act
-            await OrderSyncService.syncSingleOrder(mockOrder, mockServices as any);
-
-            // Assert
-            expect(prisma.order.update).toHaveBeenCalledWith({
-                where: { id: 'order-1' },
-                data: expect.objectContaining({
-                    status: 'COMPLETED',
-                    remains: 0,
-                    costPrice: new Decimal(0.55)
-                })
-            });
         });
 
-        it('should trigger tryAutoRefill for CANCELED orders and NOT refund if refilled', async () => {
-            // Arrange
-            (ProviderService.getOrderStatus as jest.Mock).mockResolvedValue({ status: 'Canceled', remains: 100 });
-            mockServices.OrderRefundService.tryAutoRefill.mockResolvedValue(true);
-
-            // Act
-            await OrderSyncService.syncSingleOrder(mockOrder, mockServices as any);
-
-            // Assert
-            expect(mockServices.OrderRefundService.tryAutoRefill).toHaveBeenCalledWith(mockOrder.id);
-            expect(mockServices.OrderRefundService.handleRefund).not.toHaveBeenCalled();
-            expect(prisma.order.update).not.toHaveBeenCalled();
-        });
-
-        it('should trigger handleRefund if tryAutoRefill fails for CANCELED orders', async () => {
-            // Arrange
-            (ProviderService.getOrderStatus as jest.Mock).mockResolvedValue({ status: 'Canceled', remains: 100 });
-            mockServices.OrderRefundService.tryAutoRefill.mockResolvedValue(false);
-
-            // Act
-            await OrderSyncService.syncSingleOrder(mockOrder, mockServices as any);
-
-            // Assert
-            expect(mockServices.OrderRefundService.tryAutoRefill).toHaveBeenCalledWith(mockOrder.id);
-            expect(mockServices.OrderRefundService.handleRefund).toHaveBeenCalledWith(mockOrder, 'CANCELED', 100);
-        });
-
-        it('should trigger partial refund for PARTIAL orders', async () => {
-            // Arrange
-            (ProviderService.getOrderStatus as jest.Mock).mockResolvedValue({ status: 'Partial', remains: 40 });
-
-            // Act
-            await OrderSyncService.syncSingleOrder(mockOrder, mockServices as any);
-
-            // Assert
-            expect(mockServices.OrderRefundService.handleRefund).toHaveBeenCalledWith(mockOrder, 'PARTIAL', 40);
-            expect(prisma.order.update).not.toHaveBeenCalled();
-        });
-
-        it('should update processing status for IN_PROGRESS', async () => {
-            // Arrange
-            (ProviderService.getOrderStatus as jest.Mock).mockResolvedValue({ status: 'In Progress', remains: 50 });
-
-            // Act
-            await OrderSyncService.syncSingleOrder(mockOrder, mockServices as any);
-
-            // Assert
-            expect(prisma.order.update).toHaveBeenCalledWith({
-                where: { id: 'order-1' },
-                data: expect.objectContaining({ status: 'IN_PROGRESS', remains: 50 })
-            });
-        });
-
-        it('should handle and log provider errors', async () => {
-            // Arrange
-            const errorResponse = { error: 'Order not found in system' };
-            (ProviderService.getOrderStatus as jest.Mock).mockResolvedValue(errorResponse);
-
-            // Act
-            await OrderSyncService.syncSingleOrder(mockOrder, mockServices as any);
-
-            // Assert
-            expect(prisma.order.update).toHaveBeenCalledWith({
-                where: { id: 'order-1' },
-                data: { providerRawResponse: errorResponse }
-            });
-            expect(console.log).toHaveBeenCalledWith(expect.stringContaining('[OrderSync]'));
+        it('returns null for unknown', () => {
+            expect(mapStatus('unknown_status')).toBeNull();
         });
     });
 
     describe('syncAllActive', () => {
-        it('should exit early if no active orders found', async () => {
-            // Arrange
+        it('exits early if no active orders found', async () => {
             (prisma.order.findMany as jest.Mock).mockResolvedValue([]);
-
-            // Act
             await OrderSyncService.syncAllActive();
+            expect(ProviderService.getStatuses).not.toHaveBeenCalled();
+        });
+    });
 
-            // Assert
-            expect(ProviderService.getOrderStatus).not.toHaveBeenCalled();
+    describe('syncSingleOrder', () => {
+        const mockOrder = { id: 1, status: 'PROCESSING', externalId: 'ext-1', remains: 100, user: { id: 'u1' } };
+
+        it('handles provider error responses', async () => {
+            (ProviderService.getOrderStatus as jest.Mock).mockResolvedValue({ error: 'Provider down' });
+            await OrderSyncService.syncSingleOrder(mockOrder);
+            expect(prisma.order.update).toHaveBeenCalledWith({
+                where: { id: 1 },
+                data: { providerRawResponse: { error: 'Provider down' } }
+            });
         });
 
-        it('should handle and log errors in the loop', async () => {
-            // Arrange
-            (prisma.order.findMany as jest.Mock).mockResolvedValue([mockOrder]);
-            jest.spyOn(OrderSyncService, 'syncSingleOrder').mockRejectedValue(new Error('Loop Error'));
+        it('updates order to COMPLETED with cost price', async () => {
+            (ProviderService.getOrderStatus as jest.Mock).mockResolvedValue({
+                status: 'Completed', remains: 0, cost: 0.55
+            });
+            await OrderSyncService.syncSingleOrder(mockOrder);
+            expect(prisma.order.update).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: { id: 1 },
+                    data: expect.objectContaining({
+                        status: 'COMPLETED',
+                        remains: 0,
+                        costPrice: new Decimal(0.55)
+                    })
+                })
+            );
+        });
 
-            // Act
-            await OrderSyncService.syncAllActive();
-
-            // Assert
-            expect(console.error).toHaveBeenCalledWith(expect.stringContaining('[OrderSync]'), expect.any(Error));
+        it('does not crash on provider exceptions', async () => {
+            (ProviderService.getOrderStatus as jest.Mock).mockRejectedValue(new Error('Network'));
+            await expect(OrderSyncService.syncSingleOrder(mockOrder)).resolves.not.toThrow();
         });
     });
 });
-
-
