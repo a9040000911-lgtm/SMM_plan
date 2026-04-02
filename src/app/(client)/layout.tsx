@@ -44,6 +44,9 @@ export default async function ClientLayout({ children }: { children: React.React
         // Continue with fallbacks (projectId=null, empty cmsStrings, default flags)
     }
 
+    const { getGlobalStats } = await import('./actions');
+    const globalStats = await getGlobalStats(projectId);
+
     return (
         <Suspense fallback={null}>
             <CmsBridgeProvider>
@@ -58,7 +61,7 @@ export default async function ClientLayout({ children }: { children: React.React
                             enableBugReporter={enableBugReporter}
                             enableReviews={enableReviews}
                         />
-                        <StatsSection />
+                        <StatsSection globalStats={globalStats} />
                         <Footer cmsContent={cmsStrings} />
                         <MobileAppNav />
                     </div>

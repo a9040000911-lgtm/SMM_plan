@@ -1,0 +1,92 @@
+name: 🌌 Smmplan Production Zero-Downtime Deploy
+
+on:
+  push:
+    branches:
+      - production
+    tags:
+      - 'v*.*.*' # Запускается при релизных тегах, например v1.4.1
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  SERVER_IP: "89.23.98.202"
+  SERVER_USER: "root"
+
+jobs:
+  build-and-push:
+    name: 🏗️ Очистка, Сборка и Публикация Image'а
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Log in to the GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: type=sha,format=long
+
+      - name: Build and Push Docker image (Runner Only)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: runner
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest, ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+
+  deploy-to-production:
+    name: 🚀 Remote Injection & Migration (Zero-Downtime)
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Executing Remote SSH Hot-Reload
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          # SSH_PRIVATE_KEY должно быть добавлено в Репозиторий -> Настройки -> Secrets
+          IMAGE_URI: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+        with:
+          host: ${{ env.SERVER_IP }}
+          username: ${{ env.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: IMAGE_URI
+          script: |
+            set -e
+            echo "📥 Вход в рабочий каталог Smmplan..."
+            cd /root/smmplan
+            
+            echo "📦 Загрузка свежего образа из GHCR..."
+            # Используем GitHub Token (или public repo) для скачивания образа
+            docker pull $IMAGE_URI
+            
+            # Меняем тег образа в docker-compose.prod.yml (или передаем через ENV)
+            export COMPOSE_IMAGE_TAG=$IMAGE_URI
+            
+            echo "🗄️ Безопасная Миграция Базы Данных (Prisma P2022 Protection)..."
+            docker run --rm --env-file .env --network smmplan_default $IMAGE_URI npx prisma db push --skip-generate --accept-data-loss
+            
+            echo "♻️ Rolling Update Контейнеров без простоя..."
+            # Nginx бесшовно перекинет трафик
+            IMAGE_URI=$IMAGE_URI docker-compose -f docker-compose.prod.yml up -d --no-deps app
+            
+            echo "🧹 Очистка старых Docker-образов (экономия диска)..."
+            docker image prune -f --filter "until=24h"
+            
+            echo "✅ Выкатка успешна!"

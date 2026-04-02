@@ -27,9 +27,35 @@ export function MobileAppNav() {
     const [lastScrollY, setLastScrollY] = React.useState(0);
 
     React.useEffect(() => {
-        // [UX Hardening] Persistent navigation for better accessibility
-        setIsVisible(true);
-    }, []);
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+            if (currentScrollY > lastScrollY && currentScrollY > 50) {
+                setIsVisible(false);
+            } else {
+                setIsVisible(true);
+            }
+            setLastScrollY(currentScrollY);
+        };
+
+        const handleResize = () => {
+            if (window.visualViewport) {
+                // Если высота вьюпорта сильно уменьшилась - открылась клавиатура
+                if (window.visualViewport.height < window.innerHeight * 0.8) {
+                    setIsVisible(false);
+                } else {
+                    setIsVisible(true);
+                }
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        window.visualViewport?.addEventListener('resize', handleResize);
+        
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            window.visualViewport?.removeEventListener('resize', handleResize);
+        };
+    }, [lastScrollY]);
 
     React.useEffect(() => {
         const check = () => setIsBlocked(document.body.classList.contains('modal-open'));

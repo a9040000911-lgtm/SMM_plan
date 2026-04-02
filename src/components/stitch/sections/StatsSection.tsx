@@ -7,11 +7,12 @@
 
 import React from "react";
 import { Rocket, Sparkles, Star } from "lucide-react";
+import type { GlobalStats } from "@/app/(client)/actions";
 
-export const StatsSection = () => {
+export const StatsSection = ({ globalStats }: { globalStats?: GlobalStats | null }) => {
     const stats = [
-        { label: 'Заказов выполнено', value: '854k+', icon: <Rocket size={14} className="text-blue-500" /> },
-        { label: 'Счастливых клиентов', value: '12.4k+', icon: <Star size={14} className="text-amber-500" /> },
+        { label: 'Заказов выполнено', value: globalStats?.formatted?.orders || '854k+', icon: <Rocket size={14} className="text-blue-500" /> },
+        { label: 'Счастливых клиентов', value: globalStats?.formatted?.users || '12.4k+', icon: <Star size={14} className="text-amber-500" /> },
         { label: 'Успешных стартов', value: '99.9%', icon: <Sparkles size={14} className="text-emerald-500" /> },
         { label: 'Средняя скорость', value: '~4м', icon: <Rocket size={14} className="text-blue-400 rotate-90" /> }
     ];

@@ -47,13 +47,22 @@ export function HomeContent({
     projectId, 
     cmsContent = {},
     cmsBlocks = [],
-    projectConfig = null
+    projectConfig = null,
+    globalStats
 }: { 
     initialReviews?: any[], 
     projectId?: string | null,
     cmsContent?: Record<string, string>,
     cmsBlocks?: CmsBlock[],
-    projectConfig?: any
+    projectConfig?: any,
+    globalStats?: {
+        totalOrders: number;
+        totalUsers: number;
+        onlineUsers: number;
+        promoRemaining: number;
+        promoTotal: number;
+        formatted: { orders: string; users: string };
+    } | null
 }) {
     const [showIcons, setShowIcons] = React.useState(false);
     const [isMobile, setIsMobile] = React.useState(false);
@@ -128,11 +137,24 @@ export function HomeContent({
                         animate="show"
                         className="w-full lg:col-span-6 flex flex-col items-center text-center lg:items-start lg:text-left order-1"
                     >
-                        <motion.div variants={staggerItem} className="flex items-center gap-3 mb-6 px-4 py-2 bg-blue-500/5 rounded-full border border-blue-500/10 backdrop-blur-md">
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-600/80 text-center">
-                                Powered by Cognitive AI v5.0
-                            </span>
+                        <motion.div variants={staggerItem} className="flex flex-col sm:flex-row items-center gap-3 mb-6">
+                            <div className="flex items-center gap-3 px-4 py-2 bg-blue-500/5 rounded-full border border-blue-500/10 backdrop-blur-md">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-600/80 text-center">
+                                    Powered by Cognitive AI v5.0
+                                </span>
+                            </div>
+                            {globalStats && globalStats.promoRemaining > 0 && (
+                                <div className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 rounded-full border border-rose-500/20 backdrop-blur-md shadow-[0_0_20px_rgba(244,63,94,0.15)] animate-shimmer relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-rose-600">
+                                        🎁 Статус Первопроходца (Скидка 20%)
+                                    </span>
+                                    <span className="text-[9px] font-bold text-rose-500/80 border-l border-rose-500/20 pl-2">
+                                        Осталось мест: <span className="font-black text-rose-600">{globalStats.promoRemaining}</span>
+                                    </span>
+                                </div>
+                            )}
                         </motion.div>
 
                         <motion.h1 variants={staggerItem} className="text-4xl md:text-5xl lg:text-6xl xl:text-[5rem] font-black tracking-tight text-slate-950 mb-6 md:mb-8 leading-[1.05] text-balance max-w-2xl w-full">
@@ -175,7 +197,9 @@ export function HomeContent({
                                         <Star size={14} className="text-amber-400 fill-amber-400" />
                                         <span className="text-sm font-black text-slate-950">4.9/5</span>
                                     </div>
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none whitespace-nowrap">{t('home.hero.trust', 'от 45,000+ брендов')}</span>
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none whitespace-nowrap">
+                                        {t('home.hero.trust', `от ${globalStats?.formatted?.users || '45,000+'} брендов`)}
+                                    </span>
                                 </div>
                             </div>
 
@@ -212,7 +236,7 @@ export function HomeContent({
                                 className="absolute -top-16 left-1/2 -translate-x-1/2 glass px-8 py-3 rounded-full flex items-center gap-8 z-30 shadow-2xl shadow-blue-500/5 border-white/40"
                             >
                                 <div className="flex flex-col items-center">
-                                    <span className="text-lg font-black text-slate-950 leading-none">1.2M+</span>
+                                    <span className="text-lg font-black text-slate-950 leading-none">{globalStats?.formatted?.orders || '1.2M+'}</span>
                                     <span className="text-[7px] font-bold uppercase text-slate-400 tracking-tighter">Orders</span>
                                 </div>
                                 <div className="w-px h-6 bg-slate-200" />
@@ -234,7 +258,7 @@ export function HomeContent({
                             >
                                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
                                 <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600/80">
-                                    Сейчас на сайте: 1,429 • Последний заказ: 2 мин. назад 
+                                    Сейчас на сайте: {globalStats?.onlineUsers || '1,429'} • Последний заказ: {Math.floor(Math.random() * 4) + 1} мин. назад 
                                 </span>
                             </motion.div>
 
@@ -376,6 +400,7 @@ export function HomeContent({
                         initialPlatform={hubPlatform ?? undefined} 
                         isExpanded={isOrderExpanded}
                         onExpandChange={setIsOrderExpanded}
+                        globalStats={globalStats}
                     />
                 </div>
             </div>

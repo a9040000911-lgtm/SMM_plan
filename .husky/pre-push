@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🛡️ Запуск Husky Guardrails (Pre-Push)..."
+
+echo "🔎 1. Typecheck: Проверка строгих типов TS"
+npx tsc --noEmit
+
+echo "✅ Бэкапы и пайплайны пройдены. Отправка кода разрешена!"

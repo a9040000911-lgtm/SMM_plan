@@ -68,6 +68,10 @@ export default async function HomePage() {
         console.error('[HomePage] Error fetching initial data:', e);
     }
 
+    // Pass projectId to stats
+    const { getGlobalStats } = await import('./actions');
+    const globalStats = await getGlobalStats(projectId);
+
     return (
         <div className="min-h-screen bg-white flex flex-col selection:bg-blue-600/10 selection:text-blue-600 relative overflow-x-hidden">
             {/* Minimal Background Aura */}
@@ -79,6 +83,7 @@ export default async function HomePage() {
                 cmsContent={cmsStrings}
                 cmsBlocks={cmsBlocks}
                 projectConfig={projectConfig}
+                globalStats={globalStats}
             />
 
             {/* Structured Data (JSON-LD) */}

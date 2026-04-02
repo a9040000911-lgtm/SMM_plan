@@ -11,31 +11,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from "next/link";
 import { 
-  X, 
-  ChevronRight, 
-  ChevronLeft, 
-  Zap, 
-  ShieldCheck,
-  Link2,
-  Layers,
-  Mail,
-  CheckCircle2,
-  ShoppingBag,
-  Flame,
-  Star,
-  AlertCircle, 
-  Info, 
-  AlertTriangle,
-  ChevronDown, 
-  Heart, 
-  Timer,
-  Calendar,
-  Star as StarIcon,
-  RotateCcw,
-  Rocket,
-  User,
-  Key,
-  Check
+  X, ChevronRight, ChevronLeft, Zap, ShieldCheck, Link2, Layers, Mail, CheckCircle2, ShoppingBag, Flame, Star, AlertCircle, Info, AlertTriangle, ChevronDown, Heart, User, LogOut, ExternalLink, Activity, LayoutTemplate, Box, Clock, Banknote, HelpCircle, Key, Plus, Copy, Command, Settings2, Sparkles, ListFilter, ArrowUpRight, Target, Search, Fingerprint, Share2, Globe, Shield, RefreshCw, BarChart3, PieChart, Server, Check, Eye, EyeOff, SearchCode, DollarSign, Calendar, SlidersHorizontal, Lock, ArrowLeft, ArrowRight, ArrowDownToLine, MoveRight, LayoutGrid, List, Star as StarIcon, RotateCcw, Rocket
 } from 'lucide-react';
 import { toast } from "sonner";
 import { getInstantServices } from "@/app/_actions/services/getInstantServices";
@@ -138,6 +114,9 @@ interface InstantOrderProps {
     initialPlatform?: string;
     isExpanded: boolean;
     onExpandChange: (expanded: boolean) => void;
+    globalStats?: {
+        formatted: { orders: string; users: string };
+    } | null;
 }
 
 interface SmmService {
@@ -286,7 +265,14 @@ const ServiceCard = React.memo(({
 
 ServiceCard.displayName = "ServiceCard";
 
-export const InstantOrder = ({ initialLink = '', initialServiceId = '', initialPlatform = '', isExpanded, onExpandChange: setIsExpanded }: InstantOrderProps) => {
+export const InstantOrder = ({ 
+    initialLink = "", 
+    initialServiceId = "", 
+    initialPlatform = "", 
+    isExpanded, 
+    onExpandChange: setIsExpanded,
+    globalStats
+}: InstantOrderProps) => {
     const { data: session } = useSession();
     const [wizardStep, setWizardStep] = useState<'INPUT' | 'CONFIG' | 'SUMMARY'>('INPUT');
     const [link, setLink] = useState(initialLink);
@@ -765,7 +751,7 @@ export const InstantOrder = ({ initialLink = '', initialServiceId = '', initialP
                                             <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none">Rating</span>
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="text-[11px] font-black text-slate-900">45,000+</span>
+                                            <span className="text-[11px] font-black text-slate-900">{globalStats?.formatted?.users || '45,000+'}</span>
                                             <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none">Brands</span>
                                         </div>
                                     </div>
@@ -945,8 +931,8 @@ export const InstantOrder = ({ initialLink = '', initialServiceId = '', initialP
                                     <div className="space-y-3">
                                         {/* Row 1: Link & Quantity */}
                                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                                            {/* Link Input (8/12) */}
-                                            <div className="md:col-span-8 relative group">
+                                            {/* Link Input */}
+                                            <div className={cn("relative group transition-all", selectedService ? "md:col-span-8" : "md:col-span-12")}>
                                                 <div className="absolute inset-0 bg-blue-600/5 rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
                                                 <div className="relative h-16 md:h-14 bg-blue-50/40 border-2 border-slate-300 rounded-2xl px-4 flex items-center group-focus-within:border-blue-500 group-focus-within:ring-4 group-focus-within:ring-blue-100 transition-all shadow-sm">
                                                     {analysisResult && platform ? (
@@ -977,8 +963,10 @@ export const InstantOrder = ({ initialLink = '', initialServiceId = '', initialP
                                             </div>
 
                                             {/* Quantity Control (4/12) */}
-                                            <div className="md:col-span-4 space-y-1.5">
-                                                <div className="h-14 bg-slate-100/50 border border-slate-200 rounded-2xl p-1 flex items-stretch">
+                                            <AnimatePresence>
+                                            {selectedService && (
+                                                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="md:col-span-4 space-y-1.5">
+                                                    <div className="h-14 bg-slate-100/50 border border-slate-200 rounded-2xl p-1 flex items-stretch">
                                                     <button 
                                                         onClick={() => setQuantity(Math.max(selectedService?.minQty || 1, quantity - (selectedService?.qtyStep || 10)))} 
                                                         className="w-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-950 transition-all shadow-sm"
@@ -1029,11 +1017,63 @@ export const InstantOrder = ({ initialLink = '', initialServiceId = '', initialP
                                                             ))}
                                                         </div>
                                                     ) : null;
-                                                })()}
-                                            </div>
+                                                        })()}
+                                                </motion.div>
+                                            )}
+                                            </AnimatePresence>
                                         </div>
 
-                                        {/* Row 2: Email & Actions */}
+                                        {/* Catalog Injection when !selectedService */}
+                                        <AnimatePresence>
+                                            {!selectedService && platform && filteredServices.length > 0 && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -10 }}
+                                                    className="mt-6 space-y-4"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-px w-full bg-slate-100" />
+                                                        <span className="text-[10px] uppercase font-black tracking-widest text-slate-400 whitespace-nowrap">Или выберите другую услугу вручную</span>
+                                                        <div className="h-px w-full bg-slate-100" />
+                                                    </div>
+                                                    
+                                                    {availableCategories.length > 1 && (
+                                                        <CategorySection 
+                                                            categories={availableCategories} 
+                                                            selectedCategory={selectedCategory} 
+                                                            onSelect={(cat) => setSelectedCategory(cat)} 
+                                                        />
+                                                    )}
+
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-1 pb-4 snap-y custom-scrollbar">
+                                                        <AnimatePresence mode="popLayout">
+                                                            {filteredServices.map((service) => (
+                                                                <ServiceCard
+                                                                    key={service.id}
+                                                                    service={service}
+                                                                    viewMode="grid"
+                                                                    isFavorite={favoriteIds.includes(service.id)}
+                                                                    onSelect={() => {
+                                                                        setSelectedService(service);
+                                                                    }}
+                                                                    onInfo={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setDetailService(service);
+                                                                    }}
+                                                                    onToggleFavorite={(e) => toggleFavorite(service.id, e)}
+                                                                />
+                                                            ))}
+                                                        </AnimatePresence>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+
+                                        {/* Row 2: Email & Actions and Advanced Settings */}
+                                        <AnimatePresence>
+                                        {selectedService && (
+                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-3 mt-3">
                                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
                                             {/* Email/Auth Sector (5/12) */}
                                             <div className="md:col-span-6 flex flex-col gap-2">
@@ -1098,7 +1138,11 @@ export const InstantOrder = ({ initialLink = '', initialServiceId = '', initialP
                                                                                 autoFocus
                                                                                 onChange={(e) => {
                                                                                     if (error) setError(null);
-                                                                                    authMode === 'PASSWORD' ? setPassword(e.target.value) : setMagicCode(e.target.value);
+                                                                                    if (authMode === 'PASSWORD') {
+                                                                                        setPassword(e.target.value);
+                                                                                    } else {
+                                                                                        setMagicCode(e.target.value);
+                                                                                    }
                                                                                 }}
                                                                                 placeholder="••••••••"
                                                                                 className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-slate-950 text-sm font-black p-0 h-5"
@@ -1189,6 +1233,7 @@ export const InstantOrder = ({ initialLink = '', initialServiceId = '', initialP
                                                 </button>
                                             </div>
                                         </div>
+                                        
                                         {/* Trust Micro-Strip */}
                                         <div className="flex items-center justify-center gap-3 py-1">
                                             <span className="text-[8px] font-bold text-slate-400 flex items-center gap-1"><CheckCircle2 size={10} className="text-emerald-500" /> Безопасная оплата</span>
@@ -1307,6 +1352,9 @@ export const InstantOrder = ({ initialLink = '', initialServiceId = '', initialP
                                                     </div>
                                                 </motion.div>
                                             )}
+                                        </AnimatePresence>
+                                        </motion.div>
+                                        )}
                                         </AnimatePresence>
                                         <AnimatePresence>
                                             {validationError && (
