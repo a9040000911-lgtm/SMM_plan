@@ -25,7 +25,21 @@ ENV NODE_OPTIONS="--max-old-space-size=2048"
 ENV NEXT_PRIVATE_LOCAL_WEBPACK_WORKERS=0
 RUN npm run build
 
-# STAGE 3: Runner
+# STAGE 3: Bot Runner
+FROM node:20-slim AS bot-runner
+RUN apt-get update && apt-get install -y openssl
+WORKDIR /app
+ENV NODE_ENV production
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/src/generated/client ./src/generated/client
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/prisma ./prisma
+
+CMD ["npx", "tsx", "src/bot/index.ts"]
+
+# STAGE 4: Next.js Production Runner (MUST BE LAST STAGE!)
 FROM node:20-slim AS runner
 RUN apt-get update && apt-get install -y openssl
 WORKDIR /app
@@ -45,27 +59,10 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/src/generated/client ./src/generated/client
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
-# COPY --from=builder /app/next.config.mjs ./next.config.mjs
 
 USER nextjs
-
 EXPOSE 3000
-
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
 CMD ["npm", "start"]
-
-# STAGE 4: Bot Runner
-FROM node:20-slim AS bot-runner
-RUN apt-get update && apt-get install -y openssl
-WORKDIR /app
-ENV NODE_ENV production
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/src/generated/client ./src/generated/client
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
-COPY --from=builder /app/prisma ./prisma
-
-CMD ["npx", "tsx", "src/bot/index.ts"]

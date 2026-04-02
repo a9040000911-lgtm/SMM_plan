@@ -72,6 +72,9 @@ const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_R
     })
     : null;
 
+// Memory fallback for environments without Upstash Redis
+const memoryFallback = new Map<string, { count: number, resetAt: number }>();
+
 /**
  * Check rate limit using Upstash (prod) or Mock (dev/local)
  */
@@ -97,26 +100,31 @@ export async function checkRateLimit(type: 'auth' | 'api' | 'public', ip: string
         return { success, limit, remaining, reset };
     }
 
-    // 3. Fallback: Fail-Closed in production, Fail-Open only in development
-    if (process.env.NODE_ENV === 'production') {
-        console.error(`[SECURITY] Rate limiter has NO Redis backend in PRODUCTION! Blocking request from ${ip} as Fail-Closed precaution.`);
-        return {
-            success: false,
-            limit: limitCount,
-            remaining: 0,
-            reset: Date.now() + 60000
-        };
+    // 3. Fallback: Edge-Memory Rate Limiting (replaces previous Fail-Closed)
+    // Works across V8 isolate invocations. Cleaned up automatically avoiding memory leaks.
+    const now = Date.now();
+    const key = `${type}:${ip}`;
+    
+    let record = memoryFallback.get(key);
+    if (!record || record.resetAt <= now) {
+        record = { count: 0, resetAt: now + 60000 };
+    }
+    
+    record.count += 1;
+    memoryFallback.set(key, record);
+    
+    // Cleanup periodically (every 1% of requests to save CPU)
+    if (Math.random() < 0.01) {
+        for (const [k, v] of memoryFallback.entries()) {
+            if (v.resetAt <= now) memoryFallback.delete(k);
+        }
     }
 
-    // Development only: allow all requests without Redis
-    const now = Date.now();
-    const mockReset = now + 60000;
-    
     return {
-        success: true,
+        success: record.count <= limitCount,
         limit: limitCount,
-        remaining: limitCount,
-        reset: mockReset
+        remaining: Math.max(0, limitCount - record.count),
+        reset: record.resetAt
     };
 }
 
