@@ -5,10 +5,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 import { AdminContext, AdminServiceResult } from "../types";
-import { LoyaltyService } from "../users/loyalty.service";
-import { ReferralLeaderboardService } from "../users/referral-leaderboard.service";
 import { PricingService } from "../finance/pricing.service";
 import { safeAdminExecute } from "../utils";
 import { Decimal } from "decimal.js";
@@ -1919,7 +1916,7 @@ export class AdminDataService {
             let category;
             if (id) {
                 const existing = await prisma.serviceCategory.findUnique({ where: { id } });
-                if (existing && existing.projectId === null && targetProjectId && targetProjectId !== 'all') {
+                if (existing && existing.projectId === null && targetProjectId && targetProjectId !== 'all' && data.projectId !== 'ALL') {
                     // Shadowing
                     category = await prisma.serviceCategory.create({ data: { ...payload, projectId: targetProjectId } });
                 } else {
@@ -3628,7 +3625,7 @@ export class AdminDataService {
     static async getProvidersWithStats(ctx: AdminContext, projectId?: string): Promise<AdminServiceResult<any[]>> {
         try {
             const where: any = {};
-            if (projectId && projectId !== 'all') {
+            if (projectId && projectId !== 'all' && projectId !== 'ALL') {
                 if (!ctx.isGlobalAdmin && !ctx.allowedProjects.includes(projectId)) {
                     throw new Error('Forbidden access to project');
                 }
@@ -3770,7 +3767,7 @@ export class AdminDataService {
     static async getReviews(ctx: AdminContext, projectId?: string): Promise<AdminServiceResult<any[]>> {
         try {
             const where: any = {};
-            if (projectId && projectId !== 'all') {
+            if (projectId && projectId !== 'all' && projectId !== 'ALL') {
                 if (!ctx.isGlobalAdmin && !ctx.allowedProjects.includes(projectId)) {
                     throw new Error('Forbidden access to project');
                 }

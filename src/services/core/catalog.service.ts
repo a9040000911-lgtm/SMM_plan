@@ -5,6 +5,8 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { PricingService } from '@/services/finance/pricing.service';
+import { Decimal } from 'decimal.js';
 import { ServiceResult, CatalogServiceItem } from "../types";
 import { SerializedServiceV2 } from "@/types/catalog";
 import { translateCategory } from "@/utils/translations";
@@ -234,7 +236,21 @@ export class CatalogService {
                 const override = s.projectOverrides[0];
                 const categoryOverride = override?.serviceCategory;
 
-                const categoryDisplayName = categoryOverride?.name || s.serviceCategory?.name || translateCategory(s.serviceCategory?.categoryType || "OTHER");
+                const catType = s.serviceCategory?.categoryType || "OTHER";
+                let categoryDisplayName = translateCategory(catType);
+
+                // Smart Taxonomy Overlay - восстанавливаем разделение и лечим 'Другое'
+                if (catType === 'SUBSCRIBERS' && s.isPrivate) {
+                    categoryDisplayName = 'Подписчики (Закрытый канал)';
+                } else if (catType === 'OTHER' && (s.name.toLowerCase().includes('реакци') || s.name.toLowerCase().includes('reaction'))) {
+                    categoryDisplayName = 'Реакции';
+                } else if (categoryOverride?.name && categoryOverride.name !== s.serviceCategory?.name) {
+                    // Уважаем ручной труд администратора, если это не мусорный дубль
+                    const overrideLower = categoryOverride.name.toLowerCase();
+                    if (!['views', 'likes', 'subscribers', 'comments', 'reposts', 'other', catType.toLowerCase()].includes(overrideLower)) {
+                        categoryDisplayName = categoryOverride.name;
+                    }
+                }
 
                 if (!grouped[platformSlug][categoryDisplayName]) grouped[platformSlug][categoryDisplayName] = [];
 
@@ -247,7 +263,8 @@ export class CatalogService {
                     } else if (override.markup) {
                         const cost = toNum(s.lastProviderPrice) || finalPricePer1000 / 2;
                         markupValue = toNum(override.markup);
-                        finalPricePer1000 = cost * (1 + markupValue / 100);
+                        const rawCalculated = cost * (1 + markupValue / 100);
+                        finalPricePer1000 = PricingService.applyBeautifulRounding(new Decimal(rawCalculated)).toNumber();
                     }
                 }
 

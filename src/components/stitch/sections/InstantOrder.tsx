@@ -10,8 +10,9 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
-  X, ChevronRight, ChevronLeft, Zap, ShieldCheck, Link2, Layers, Mail, CheckCircle2, ShoppingBag, Flame, Star, AlertCircle, Info, AlertTriangle, ChevronDown, Heart, User, LogOut, ExternalLink, Activity, LayoutTemplate, Box, Clock, Banknote, HelpCircle, Key, Plus, Copy, Command, Settings2, Sparkles, ListFilter, ArrowUpRight, Target, Search, Fingerprint, Share2, Globe, Shield, RefreshCw, BarChart3, PieChart, Server, Check, Eye, EyeOff, SearchCode, DollarSign, Calendar, SlidersHorizontal, Lock, ArrowLeft, ArrowRight, ArrowDownToLine, MoveRight, LayoutGrid, List, Star as StarIcon, RotateCcw, Rocket
+  X, ChevronRight, ChevronLeft, Zap, ShieldCheck, Link2, Layers, Mail, CheckCircle2, ShoppingBag, Flame, Star, AlertCircle, Info, AlertTriangle, ChevronDown, Heart, User, Key, Check, Calendar, Star as StarIcon, RotateCcw, Rocket
 } from 'lucide-react';
 import { toast } from "sonner";
 import { getInstantServices } from "@/app/_actions/services/getInstantServices";
@@ -138,66 +139,6 @@ interface SmmService {
     quality?: "HIGH" | "STD";
 }
 
-const CategorySection = React.memo(({
-    categories,
-    selectedCategory,
-    onSelect
-}: {
-    categories: string[];
-    selectedCategory: string | null;
-    onSelect: (cat: string) => void;
-}) => {
-    return (
-        <>
-            {/* Desktop Categories */}
-            <div className="hidden lg:flex flex-col w-64 shrink-0 space-y-6">
-                <div className="space-y-4">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-4">Доступные Категории</h3>
-                    <div className="flex flex-col gap-1.5">
-                        {categories.map(cat => (
-                            <button
-                                key={cat}
-                                onClick={() => onSelect(cat)}
-                                className={cn(
-                                    "group flex items-center justify-between px-6 py-4 rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest transition-all text-left border relative overflow-hidden",
-                                    selectedCategory === cat 
-                                        ? "bg-slate-900 border-slate-800 text-white shadow-xl translate-x-1" 
-                                        : "bg-white border-transparent text-slate-400 hover:border-slate-100 hover:bg-slate-50/50 hover:text-slate-900"
-                                )}
-                            >
-                                <span className="flex items-center gap-3 relative z-10">
-                                    {cat === 'FAVORITES' ? <Star size={14} className="fill-amber-400 text-amber-400" /> : null}
-                                    {cat === 'FAVORITES' ? 'Избранное' : translateCategory(cat)}
-                                </span>
-                                {selectedCategory === cat && <ChevronRight size={14} className="relative z-10 animate-pulse" />}
-                                {selectedCategory === cat && <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-transparent" />}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* Mobile Categories (Touch-Optimized) */}
-            <div className="lg:hidden -mx-3 px-3 overflow-x-auto no-scrollbar flex items-center gap-2 pb-2">
-                {categories.map(cat => (
-                    <button
-                        key={cat}
-                        onClick={() => onSelect(cat)}
-                        className={cn(
-                            "whitespace-nowrap px-5 py-3 rounded-[1.25rem] text-[10px] font-black uppercase tracking-tight transition-all border shrink-0 min-h-[44px]",
-                            selectedCategory === cat ? "bg-slate-950 border-slate-950 text-white shadow-lg translate-y-0" : "bg-white border-slate-100 text-slate-400"
-                        )}
-                    >
-                        {cat === 'FAVORITES' ? '★ ' : ''}{cat === 'FAVORITES' ? 'Избранное' : translateCategory(cat)}
-                    </button>
-                ))}
-            </div>
-        </>
-    );
-});
-
-CategorySection.displayName = "CategorySection";
-
 const ServiceCard = React.memo(({
     service,
     viewMode,
@@ -273,6 +214,7 @@ export const InstantOrder = ({
     onExpandChange: setIsExpanded,
     globalStats
 }: InstantOrderProps) => {
+    const router = useRouter();
     const { data: session } = useSession();
     const [wizardStep, setWizardStep] = useState<'INPUT' | 'CONFIG' | 'SUMMARY'>('INPUT');
     const [link, setLink] = useState(initialLink);
@@ -646,6 +588,29 @@ export const InstantOrder = ({
         });
     }, [allServices, selectedCategory, searchQuery, favoriteIds, platform, detectedTargetType]);
 
+    // Determine correct platform classification for CompactCatalog
+    const groupedFilteredServices = useMemo(() => {
+        const res: Record<string, Record<string, any[]>> = {};
+        
+        filteredServices.forEach(s => {
+            // Priority: platform state -> targetType heuristic -> OTHER
+            let pKey = "OTHER";
+            if (platform) {
+                pKey = platform;
+            } else if (s.targetType) {
+                pKey = s.targetType.split('_')[0] || "OTHER";
+            }
+            
+            pKey = pKey.toUpperCase();
+            const cKey = s.category || 'Другое';
+
+            if (!res[pKey]) res[pKey] = {};
+            if (!res[pKey][cKey]) res[pKey][cKey] = [];
+            res[pKey][cKey].push(s);
+        });
+        return res;
+    }, [filteredServices, platform]);
+
     const toggleFavorite = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         const next = favoriteIds.includes(id) 
@@ -756,13 +721,7 @@ export const InstantOrder = ({
                                         </div>
                                     </div>
                                     
-                                    {/* AI Status Badge */}
-                                    <div className="flex items-center gap-3 px-4 py-2 bg-blue-500/5 rounded-full border border-blue-500/10 scale-90 md:scale-100">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600/80">
-                                            Cognitive AI v5.0
-                                        </span>
-                                    </div>
+
                                 </div>
 
                                 <div className="flex items-center gap-2 md:gap-4">
@@ -787,13 +746,13 @@ export const InstantOrder = ({
                                     variants={staggerContainer}
                                     initial="hidden"
                                     animate="show"
-                                    className="p-3 md:p-6 space-y-4 md:space-y-5 overflow-y-auto w-full max-w-2xl mx-auto h-full no-scrollbar pb-32"
+                                    className="p-3 md:p-6 space-y-4 md:space-y-5 overflow-y-auto w-full mx-auto h-full no-scrollbar pb-32 transition-all duration-700 max-w-4xl"
                                 >
                                     {/* Action Header for Context */}
                                     {!selectedService ? (
                                         <motion.div variants={fadeInUp} className="space-y-6 mb-4">
                                             {/* Trust Ribbon Infusion */}
-                                            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 bg-blue-600/5 border border-blue-600/10 rounded-3xl px-6 py-4 max-w-3xl mx-auto backdrop-blur-sm">
+                                            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 bg-blue-600/5 border border-blue-600/10 rounded-3xl px-6 py-4 max-w-4xl mx-auto backdrop-blur-sm">
                                                 <div className="flex items-center gap-2">
                                                     <div className="flex -space-x-2">
                                                         {[1, 2, 3].map((i) => (
@@ -822,7 +781,7 @@ export const InstantOrder = ({
                                                 </h3>
                                                 <div className="flex items-center justify-center gap-3">
                                                     <div className="h-px w-8 bg-slate-200" />
-                                                    <span className="text-[10px] text-blue-600 font-black uppercase tracking-[0.3em]">Интеллектуальный AI-парсинг</span>
+                                                    <span className="text-[10px] text-blue-600 font-black uppercase tracking-[0.3em]">Автоматический парсинг</span>
                                                     <div className="h-px w-8 bg-slate-200" />
                                                 </div>
                                             </div>
@@ -856,7 +815,12 @@ export const InstantOrder = ({
                                                     </button>
                                                     <button 
                                                         type="button"
-                                                        onClick={() => { setSelectedService(null); setShowServiceInfo(false); setWizardStep('INPUT'); }}
+                                                        onClick={() => { 
+                                                            setSelectedService(null); 
+                                                            setShowServiceInfo(false); 
+                                                            setIsExpanded(false);
+                                                            router.push(`/catalog?link=${encodeURIComponent(link)}${platform ? `&platform=${platform}` : ''}`);
+                                                        }}
                                                         className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[8px] font-black uppercase tracking-widest transition-all relative z-20"
                                                     >
                                                         Изменить
@@ -932,9 +896,8 @@ export const InstantOrder = ({
                                         {/* Row 1: Link & Quantity */}
                                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                                             {/* Link Input */}
-                                            <div className={cn("relative group transition-all", selectedService ? "md:col-span-8" : "md:col-span-12")}>
-                                                <div className="absolute inset-0 bg-blue-600/5 rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                                                <div className="relative h-16 md:h-14 bg-blue-50/40 border-2 border-slate-300 rounded-2xl px-4 flex items-center group-focus-within:border-blue-500 group-focus-within:ring-4 group-focus-within:ring-blue-100 transition-all shadow-sm">
+                                            <div className={cn("relative transition-all", selectedService ? "md:col-span-8" : "md:col-span-12")}>
+                                                <div className="group relative h-16 md:h-14 bg-slate-50 border-2 border-slate-300 rounded-2xl px-4 flex items-center focus-within:border-blue-500 transition-all">
                                                     {analysisResult && platform ? (
                                                         <div className="mr-3 shrink-0"><BrandIcon name={platform.toLowerCase()} size={18} /></div>
                                                     ) : (
@@ -952,6 +915,8 @@ export const InstantOrder = ({
                                                             return 'Вставьте ссылку';
                                                         })()}</span>
                                                         <input 
+                                                            type="url"
+                                                            name="link"
                                                             value={link}
                                                             onChange={(e) => setLink(e.target.value)}
                                                             placeholder="https://t.me/example"
@@ -1023,7 +988,7 @@ export const InstantOrder = ({
                                             </AnimatePresence>
                                         </div>
 
-                                        {/* Catalog Injection when !selectedService */}
+                                        {/* Smart Presets OR Redirect Prompt when !selectedService */}
                                         <AnimatePresence>
                                             {!selectedService && platform && filteredServices.length > 0 && (
                                                 <motion.div 
@@ -1034,37 +999,20 @@ export const InstantOrder = ({
                                                 >
                                                     <div className="flex items-center gap-3">
                                                         <div className="h-px w-full bg-slate-100" />
-                                                        <span className="text-[10px] uppercase font-black tracking-widest text-slate-400 whitespace-nowrap">Или выберите другую услугу вручную</span>
+                                                        <span className="text-[10px] uppercase font-black tracking-widest text-slate-400 whitespace-nowrap">Продолжить оформление?</span>
                                                         <div className="h-px w-full bg-slate-100" />
                                                     </div>
                                                     
-                                                    {availableCategories.length > 1 && (
-                                                        <CategorySection 
-                                                            categories={availableCategories} 
-                                                            selectedCategory={selectedCategory} 
-                                                            onSelect={(cat) => setSelectedCategory(cat)} 
-                                                        />
-                                                    )}
-
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-1 pb-4 snap-y custom-scrollbar">
-                                                        <AnimatePresence mode="popLayout">
-                                                            {filteredServices.map((service) => (
-                                                                <ServiceCard
-                                                                    key={service.id}
-                                                                    service={service}
-                                                                    viewMode="grid"
-                                                                    isFavorite={favoriteIds.includes(service.id)}
-                                                                    onSelect={() => {
-                                                                        setSelectedService(service);
-                                                                    }}
-                                                                    onInfo={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setDetailService(service);
-                                                                    }}
-                                                                    onToggleFavorite={(e) => toggleFavorite(service.id, e)}
-                                                                />
-                                                            ))}
-                                                        </AnimatePresence>
+                                                    <div className="mt-6 flex justify-center">
+                                                        <button 
+                                                            onClick={() => {
+                                                                setIsExpanded(false);
+                                                                router.push(`/catalog?link=${encodeURIComponent(link)}${platform ? `&platform=${platform}` : ''}`);
+                                                            }}
+                                                            className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black shadow-xl shadow-blue-600/20 active:scale-95 transition-all text-sm uppercase tracking-widest"
+                                                        >
+                                                            Открыть полный каталог
+                                                        </button>
                                                     </div>
                                                 </motion.div>
                                             )}
