@@ -5,17 +5,19 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import {
     ArrowLeft, ExternalLink, Clock, CheckCircle2,
     Package, AlertTriangle, Link2, Hash, CreditCard,
     TrendingUp, Zap, ShieldCheck,
-    Calendar, ArrowRight
+    Calendar, ArrowRight, Loader2, AlertCircle, XCircle
 } from 'lucide-react';
 import { cn } from '@/utils/ui';
 import { BrandIcon } from '@/components/stitch/ui/BrandIcon';
+import { ChurnIndicator } from '@/components/client/ChurnIndicator';
+import { SmartUpsell } from '@/components/marketing/SmartUpsell';
 
 interface Order {
     id: number;
@@ -27,6 +29,9 @@ interface Order {
     remains: number | null;
     createdAt: Date;
     updatedAt: Date;
+    serviceId?: number;
+    isCancelEnabled?: boolean;
+    cancelRequested?: boolean;
     internalService?: {
         name: string;
         platform: string;
@@ -51,8 +56,37 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; i
 };
 
 export function OrderDetailsUI({ order }: OrderDetailsUIProps) {
+    const [canceling, setCanceling] = useState(false);
     const sc = statusConfig[order.status] || statusConfig.PENDING;
     const StatusIcon = sc.icon;
+
+    const isCancelable = order.isCancelEnabled &&
+        ['PENDING', 'AWAITING_PAYMENT', 'PROCESSING', 'IN_PROGRESS'].includes(order.status) &&
+        !order.cancelRequested;
+
+    const handleCancel = async () => {
+        if (!confirm('Вы уверены, что хотите отменить этот заказ?')) return;
+        setCanceling(true);
+        try {
+            const res = await fetch(`/api/client/orders/${order.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'CANCEL' })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert(data.message || data.error);
+                if (!data.error) window.location.reload();
+            }
+        } catch {
+            alert('Ошибка при попытке отменить заказ');
+        } finally {
+            setCanceling(false);
+        }
+    };
 
     const isFinished = order.status === 'COMPLETED';
     const isStarting = ['PENDING', 'PROCESSING', 'ERROR', 'CANCELED'].includes(order.status);
@@ -233,6 +267,36 @@ export function OrderDetailsUI({ order }: OrderDetailsUIProps) {
                             <button className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase hover:translate-x-1 transition-transform">Связаться с нами <ArrowRight size={14} /></button>
                         </Link>
                     </div>
+                </div>
+            </div>
+
+            {/* Churn Prediction & Marketing Upsell */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="space-y-6">
+                <ChurnIndicator orderId={String(order.id)} />
+                {(order.status === 'PROCESSING' || order.status === 'COMPLETED' || order.status === 'IN_PROGRESS') && order.serviceId && (
+                    <SmartUpsell originalServiceId={String(order.serviceId)} />
+                )}
+            </motion.div>
+
+            {/* Cancel & Support Actions */}
+            <div className="flex flex-col items-center gap-4">
+                <div className="flex items-center gap-6">
+                    {isCancelable && (
+                        <button
+                            disabled={canceling}
+                            onClick={handleCancel}
+                            className="flex items-center gap-2 px-6 py-3 bg-rose-50 border border-rose-100 text-rose-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all disabled:opacity-50"
+                        >
+                            {canceling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+                            Отменить заказ {order.status === 'PROCESSING' && '(Запрос)'}
+                        </button>
+                    )}
+
+                    {order.cancelRequested && (
+                        <span className="flex items-center gap-2 px-6 py-3 bg-amber-50 border border-amber-100 text-amber-600 rounded-2xl text-[10px] font-black uppercase tracking-widest">
+                            <Clock size={14} /> Ожидает отмены (Рассматривается)
+                        </span>
+                    )}
                 </div>
             </div>
         </div>

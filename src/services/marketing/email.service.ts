@@ -68,7 +68,7 @@ export class EmailMarketingService {
                         <li><strong>Шаг 3:</strong> Наблюдайте за результатом в реальном времени.</li>
                     </ul>
 
-                    <a href="https://smmtoolbox.ru/orders" class="btn">Перейти в панель управления</a>
+                    <a href="https://smmtoolbox.ru/dashboard/orders" class="btn">Перейти в панель управления</a>
                     
                     <p style="margin-top: 40px; border-left: 3px solid #cbd5e1; padding-left: 15px; color: #475569;">
                         <em>Поддержка всегда на связи. Если у вас крупный заказ, свяжитесь с нами для обсуждения индивидуальных тарифов и API интеграции.</em>

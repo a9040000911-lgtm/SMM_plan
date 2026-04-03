@@ -9,6 +9,14 @@ const securityHeaders = require("./src/configs/security-headers.config");
 const nextConfig = {
   reactStrictMode: true,
   distDir: ".next",
+  async redirects() {
+    return [
+      { source: "/orders", destination: "/dashboard/orders", permanent: true },
+      { source: "/orders/:id", destination: "/dashboard/orders/:id", permanent: true },
+      { source: "/profile", destination: "/dashboard", permanent: true },
+      { source: "/settings", destination: "/dashboard/settings", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {
