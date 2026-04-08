@@ -5,7 +5,7 @@
  */
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import type { KBModule, KBFunction, KBMacro } from '@/data/kb-content';
 

@@ -12,7 +12,7 @@ import {
     ArrowLeft, ExternalLink, Clock, CheckCircle2,
     Package, AlertTriangle, Link2, Hash, CreditCard,
     TrendingUp, Zap, ShieldCheck,
-    Calendar, ArrowRight, Loader2, AlertCircle, XCircle
+    Calendar, ArrowRight, Loader2, XCircle
 } from 'lucide-react';
 import { cn } from '@/utils/ui';
 import { BrandIcon } from '@/components/stitch/ui/BrandIcon';

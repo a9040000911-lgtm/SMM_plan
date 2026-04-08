@@ -5,9 +5,9 @@
  */
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { knowledgeBase, SECTION_METADATA, type KBModule, type KBFunction, type KBMacro, type CustomMediaType } from '@/data/kb-content';
-import { KBSearchBar, searchKnowledgeBase, highlightMatch, type KBSearchResult } from '@/components/admin/knowledge-base/kb-search';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { knowledgeBase, SECTION_METADATA, type KBModule, type CustomMediaType } from '@/data/kb-content';
+import { KBSearchBar, highlightMatch, type KBSearchResult } from '@/components/admin/knowledge-base/kb-search';
 import { KBTableOfContents } from '@/components/admin/knowledge-base/kb-toc';
 import { KBFilters, type KBContentFilter, type KBPlatformFilter } from '@/components/admin/knowledge-base/kb-filters';
 import { KBTextParser } from '@/components/admin/knowledge-base/kb-parser';
@@ -20,7 +20,6 @@ import {
     PlayCircle,
     HelpCircle,
     Info,
-    ArrowRight,
     Layers,
     Zap,
     ShieldCheck,
@@ -29,11 +28,9 @@ import {
     Copy,
     CheckCircle2,
     Check,
-    Hash,
     ChevronDown,
     ChevronUp,
     Link as LinkIcon,
-    Image as ImageIcon,
     BookmarkCheck,
     GraduationCap,
     Star,

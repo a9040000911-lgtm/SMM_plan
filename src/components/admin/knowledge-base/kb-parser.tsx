@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { GLOSSARY_TERMS } from '@/data/kb-content';
 import { HelpCircle } from 'lucide-react';
 

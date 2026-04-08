@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Search, Link as LinkIcon, AlertCircle, CheckCircle2, ChevronRight, RefreshCw, Layers } from 'lucide-react';
 import { analyzeLink, mapObjectTypeToTargetType, AnalysisResult } from '@/utils/link-analyzer';
 

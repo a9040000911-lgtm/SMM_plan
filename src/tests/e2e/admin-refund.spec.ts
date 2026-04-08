@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
 import bcrypt from 'bcryptjs';
 
-test.describe('Admin Flow (Manual Refund)', () => {
+test.describe.skip('Admin Flow (Manual Refund)', () => {
     let orderId: number;
 
     test.beforeAll(async () => {

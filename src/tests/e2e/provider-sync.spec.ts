@@ -1,9 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
-import { OrderSyncService } from '@/services/orders/order-sync.service';
 import { OrderRefundService } from '@/services/orders/order-refund.service';
-import { OrderStatus } from '@prisma/client';
 
 test.describe('Provider Sync & Idempotent Refunds', () => {
     let testUserId: string;

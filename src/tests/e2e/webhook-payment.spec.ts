@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
-import { ConfigService } from '@/services/core/config.service';
 
 const MOCK_WEBHOOK_PAYLOAD = {
   type: "notification",

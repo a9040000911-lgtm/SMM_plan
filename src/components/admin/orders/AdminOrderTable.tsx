@@ -9,9 +9,7 @@ import { formatServiceId } from '@/utils/id-formatter';
 import {
   ChevronRight,
   Clock,
-  User as UserIcon,
-  Edit2,
-  Trash2
+  User as UserIcon
 } from 'lucide-react';
 import { formatAmount } from '@/utils/formatter';
 import Link from 'next/link';

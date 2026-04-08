@@ -5,7 +5,7 @@
  */
 import { LinkService } from '@/services/providers';
 import { prisma } from '@/lib/prisma';
-import type { Platform, Category } from '@prisma/client';
+import type { Platform } from '@prisma/client';
 import { Decimal } from 'decimal.js';
 
 // Mock Prisma

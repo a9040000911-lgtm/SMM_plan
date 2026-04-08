@@ -8,7 +8,7 @@ import React from 'react';
 import { cookies } from 'next/headers';
 import { Locale, dictionaries } from '@/i18n/dictionaries';
 import { AdminTabs } from '@/components/admin/core/admin-tabs';
-import { Settings, Layers, History, Globe, Shield } from 'lucide-react';
+import { Settings, Layers, Globe, Shield } from 'lucide-react';
 import { GlobalConfiguration } from './global-configuration';
 import { PlatformsManager } from './platforms-manager';
 import { GlobalSettingsForm } from './global-settings-form';

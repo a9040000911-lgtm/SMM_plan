@@ -16,7 +16,7 @@ export function slugify(text: string): string {
     if (!text) return '';
 
     // 1. Convert to lowercase
-    let lower = text.toLowerCase();
+    const lower = text.toLowerCase();
 
     // 2. Transliterate Cyrillic to Latin
     let transliterated = '';
@@ -26,7 +26,7 @@ export function slugify(text: string): string {
     }
 
     // 3. Replace non-alphanumeric (Latin) with separator
-    let slug = transliterated.replace(/[^a-z0-9]+/g, '-');
+    const slug = transliterated.replace(/[^a-z0-9]+/g, '-');
 
     // 4. Remove leading/trailing hyphens
     return slug.replace(/^-+|-+$/g, '');

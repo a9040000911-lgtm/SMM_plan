@@ -9,7 +9,6 @@ import { BroadcastService, TicketVerificationService } from '@/services/support'
 import { bot } from '@/services/bot/bot-registry';
 import { SessionService, UserState } from '@/services/core';
 import { escapeHtml } from '../utils/formatter';
-import { RateLimiterService } from '../utils/rate-limiter';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('SupportWizard');

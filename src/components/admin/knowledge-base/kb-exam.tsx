@@ -4,9 +4,9 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QA_EXAM_BANK, KBExamQuestion } from '@/data/kb-exam';
-import { HelpCircle, CheckCircle2, XCircle, ChevronRight, Award, AlertCircle, X, BrainCircuit, RefreshCcw } from 'lucide-react';
+import { CheckCircle2, XCircle, ChevronRight, Award, AlertCircle, X, BrainCircuit, RefreshCcw } from 'lucide-react';
 
 interface KBExamModalProps {
     isOpen: boolean;

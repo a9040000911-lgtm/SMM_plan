@@ -14,7 +14,7 @@ import { DailyChartData } from '@/services/admin/microservices/admin-statistics.
 import { formatAmount } from '@/utils/formatter';
 import { AdminTableCard } from '@/components/admin/core/admin-table-card';
 import { Activity, Users, ShoppingCart, MessageSquare, IndianRupee } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/utils/ui';
 
 interface StatisticsChartsProps {

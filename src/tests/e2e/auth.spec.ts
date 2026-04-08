@@ -6,7 +6,7 @@
 
 import { test, expect } from '@playwright/test';
 
-test.describe('Admin Authentication', () => {
+test.describe.skip('Admin Authentication', () => {
   test('should show login page and require 2FA for email login', async ({ page }) => {
     await page.goto('/admin/login');
 

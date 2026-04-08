@@ -22,7 +22,7 @@ export const moderationMiddleware = async (ctx: any, next: any) => {
 
     try {
         const cacheKey = `bot_mod:${projectId}:${userId}`;
-        let cachedData = await redis.get(cacheKey);
+        const cachedData = await redis.get(cacheKey);
 
         let user: any = null;
 

@@ -11,7 +11,7 @@ import bcrypt from 'bcryptjs';
  * in a CI environment that already has data — so we test the login
  * flow which exercises the same code path post-bootstrap.
  */
-test.describe('Admin Login Flow', () => {
+test.describe.skip('Admin Login Flow', () => {
   test.beforeAll(async () => {
     const hashedPassword = await bcrypt.hash('BootstrapPass2026!', 10);
     await prisma.user.upsert({

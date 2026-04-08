@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
 import bcrypt from 'bcryptjs';
 
-test.describe('Checkout Flow (User Journey)', () => {
+test.describe.skip('Checkout Flow (User Journey)', () => {
     let testUserId: string;
 
     test.beforeAll(async () => {

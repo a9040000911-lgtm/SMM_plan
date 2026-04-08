@@ -6,7 +6,7 @@ import { notFound, redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { getClientProjectId } from '@/utils/project-resolver';
-import { getTenantDomain, getTenantConfig } from '@/lib/tenant/server';
+import { getTenantDomain } from '@/lib/tenant/server';
 import { CmsService } from '@/services/cms/cms.service';
 import { ReviewBadge } from '@/components/seo/ReviewBadge';
 import { AiFaqBlock } from '@/components/seo/AiFaqBlock';

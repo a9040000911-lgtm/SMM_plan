@@ -13,7 +13,6 @@ import { bot, BotRegistry } from '@/services/bot/bot-registry';
 import { CryptoService } from '@/services/core';
 import { createLogger } from '@/lib/logger';
 import { RedisSessionStore } from './utils/redis-session';
-import fs from 'fs';
 
 export interface SmmplanContext extends Context {
     project?: any;

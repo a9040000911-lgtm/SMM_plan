@@ -6,7 +6,6 @@
 
 import { revalidatePath } from 'next/cache';
 import { getAdminSession } from '@/utils/admin-session';
-import { AdminServices } from '@/services/admin/registry';
 import { AdminContext } from '@/services/types';
 import { getActiveProjectId } from '@/utils/admin-session';
 

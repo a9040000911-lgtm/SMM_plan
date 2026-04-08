@@ -5,7 +5,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/utils/ui';

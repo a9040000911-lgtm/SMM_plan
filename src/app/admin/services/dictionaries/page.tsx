@@ -4,8 +4,8 @@
  */
 import React, { useEffect, useState } from 'react';
 import { getDictionaries, addKeyword, deleteKeyword, addProviderRule, deleteProviderRule } from './actions';
-import { BookA, Database, Trash2, Plus, Loader2 } from 'lucide-react';
-import { CATEGORIES, PLATFORMS } from '@/services/providers/smart-analyzer.logic';
+import { BookA, Trash2, Plus, Loader2 } from 'lucide-react';
+import { CATEGORIES } from '@/services/providers/smart-analyzer.logic';
 
 export default function DictionaryPage() {
     const [loading, setLoading] = useState(true);

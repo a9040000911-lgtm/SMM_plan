@@ -3,7 +3,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { Metadata, ResolvingMetadata } from "next";
+import { Metadata } from "next";
 import "./globals.css";
 import Script from "next/script";
 import { Providers } from "@/components/Providers";

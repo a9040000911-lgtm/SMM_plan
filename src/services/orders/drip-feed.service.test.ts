@@ -23,7 +23,6 @@ jest.mock('@/lib/logger', () => ({ createLogger: () => ({ info: jest.fn(), error
 
 import { DripFeedService } from './drip-feed.service';
 import { prisma } from '@/lib/prisma';
-import { Decimal } from 'decimal.js';
 
 describe('DripFeedService', () => {
     beforeEach(() => jest.clearAllMocks());

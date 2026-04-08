@@ -2,7 +2,7 @@
  * (c) 2024-2026 Smmplan. All rights reserved.
  */
 import { motion, Variants } from "framer-motion";
-import { Star, ArrowRight, Headphones, Clock, Timer } from "lucide-react";
+import { Star, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/utils/ui";
 import { HubInput } from "@/components/stitch/ui/HubInput";
