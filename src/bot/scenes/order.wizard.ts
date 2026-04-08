@@ -28,6 +28,13 @@ async function showFinalConfirmation(ctx: any) {
 
   const details = await PricingService.calculateOrderDetails(user.id, service.id, qty, ctx.project.id, appliedPromo?.code);
   const { finalPrice, discountAmount, promoId } = details;
+
+  // [GUARD-ZERO-PRICE] Prevent free orders via bot (mirrors API guard in route.ts)
+  if (finalPrice.lte(0)) {
+    await ctx.reply('❌ <b>Ошибка:</b> Услуга недоступна для заказа (некорректная цена). Обратитесь в поддержку.', { parse_mode: 'HTML' });
+    return ctx.scene.leave();
+  }
+
   
   ctx.wizard.state.orderData.totalPrice = finalPrice;
   ctx.wizard.state.orderData.promoId = promoId;

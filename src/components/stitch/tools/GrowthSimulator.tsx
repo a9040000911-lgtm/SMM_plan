@@ -139,7 +139,7 @@ export default function GrowthSimulator() {
     };
 
     return (
-        <div className="w-full max-w-6xl mx-auto p-4 md:p-8 bg-[#0c1324] rounded-[2.5rem] md:rounded-[4rem] border border-white/5 shadow-2xl overflow-hidden relative group/simulator">
+        <div data-testid="simulator-container" className="w-full max-w-6xl mx-auto p-4 md:p-8 bg-[#0c1324] rounded-[2.5rem] md:rounded-[4rem] border border-white/5 shadow-2xl overflow-hidden relative group/simulator">
             <div className="relative z-10">
                 {/* Instant Clarity Header */}
                 <div className="flex flex-col md:flex-row items-start justify-between mb-8 gap-6 border-b border-white/5 pb-8">
@@ -168,6 +168,7 @@ export default function GrowthSimulator() {
                                     {PLATFORMS.map(p => (
                                         <button 
                                             key={p.id}
+                                            data-testid={`platform-${p.id}`}
                                             onClick={() => setPlatform(p.id)}
                                             className={cn(
                                                 "p-3 rounded-2xl border transition-all flex items-center gap-3",
@@ -223,6 +224,14 @@ export default function GrowthSimulator() {
                                     <div className="flex items-center justify-center md:justify-start gap-4">
                                         <input 
                                             type="number"
+                                            data-testid="input-current-reach"
+                                            value={current}
+                                            onChange={(e) => setCurrent(Math.max(0, parseInt(e.target.value) || 0))}
+                                            className="w-24 bg-transparent text-2xl font-black text-slate-400 italic outline-none border-b border-slate-700 py-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                        />
+                                        <input 
+                                            type="number"
+                                            data-testid="input-target-reach"
                                             value={target}
                                             onChange={(e) => setTarget(Math.max(0, parseInt(e.target.value) || 0))}
                                             className="w-40 bg-transparent text-5xl font-black text-white italic outline-none border-b-2 border-blue-500/30 focus:border-blue-500 transition-colors py-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -252,6 +261,7 @@ export default function GrowthSimulator() {
                                 {STRATEGIES.map(s => (
                                     <button
                                         key={s.id}
+                                        data-testid={`strategy-${s.id}`}
                                         onClick={() => setStrategy(s.id)}
                                         className={cn(
                                             "w-full p-4 rounded-2xl border-2 transition-all flex items-center justify-between text-left group",
@@ -310,6 +320,7 @@ export default function GrowthSimulator() {
                                         <span className="text-5xl font-black italic tracking-tighter">{result?.price || 0} <span className="text-xl not-italic opacity-30 tracking-normal">₽</span></span>
                                     </div>
                                     <button 
+                                        data-testid="btn-add-to-cart"
                                         onClick={handleAddToCart}
                                         disabled={isAdding || !result}
                                         className="w-full py-5 bg-white text-slate-950 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl hover:bg-blue-500 hover:text-white transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
@@ -326,6 +337,34 @@ export default function GrowthSimulator() {
             {/* Background Decor */}
             <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
             <div className="absolute -top-24 -right-24 w-96 h-96 bg-purple-600/5 blur-[120px] rounded-full pointer-events-none" />
+
+            {/* How It Works Trigger */}
+            <button
+                data-testid="how-it-works-trigger"
+                onClick={() => setShowHowItWorks(true)}
+                className="absolute top-6 right-6 text-[9px] font-black text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors"
+            >
+                Как это работает?
+            </button>
+
+            {/* How It Works Modal */}
+            {showHowItWorks && (
+                <div data-testid="modal-how-it-works" className="absolute inset-0 bg-slate-950/95 backdrop-blur-sm z-50 flex items-center justify-center p-8 rounded-[2.5rem]">
+                    <div className="max-w-md text-center space-y-4">
+                        <h4 className="text-xl font-black text-white uppercase italic">Как работает калькулятор?</h4>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                            Введите текущие показатели аккаунта и желаемые цели. Выберите скорость выполнения. Калькулятор автоматически рассчитает стоимость, охваты и срок выполнения.
+                        </p>
+                        <button
+                            data-testid="btn-close-modal"
+                            onClick={() => setShowHowItWorks(false)}
+                            className="px-6 py-3 bg-white text-slate-950 rounded-xl font-black uppercase text-xs"
+                        >
+                            Понятно
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

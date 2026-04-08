@@ -23,25 +23,26 @@ test.describe('Growth Simulator E2E', () => {
     const platformInsta = page.getByTestId('platform-instagram');
     await platformInsta.click({ force: true });
     
-    // 2. Adjust Reach (Current & Target)
-    // We use fill() which should trigger 'input' and 'change' events
-    const currentSlider = page.getByTestId('input-current-reach');
-    const targetSlider = page.getByTestId('input-target-reach');
+    // 2. Adjust Current & Target reach
+    const currentInput = page.getByTestId('input-current-reach');
+    const targetInput = page.getByTestId('input-target-reach');
     
-    await currentSlider.fill('1000');
-    await targetSlider.fill('5000');
+    await currentInput.fill('1000');
+    await targetInput.fill('5000');
     
     // Additional wait for React state to propagate
     await page.waitForTimeout(1000);
 
-    // 3. Select Strategy
+    // 3. Select Strategy ELITE
     const eliteStrategy = page.getByTestId('strategy-ELITE');
     await eliteStrategy.click({ force: true });
     await page.waitForTimeout(500);
 
     // 4. Check Calculation (Price)
-    // Diff 4000 (Target 5000 - Current 1000). Price ELITE 0.35. Total 1400.
-    const priceDisplay = page.locator('text=1400');
+    // Diff = target(5000) - current(1000) = 4000
+    // metric=followers: basePrice=0.45, ELITE priceMod=3.5
+    // price = (4000 * 0.45 * 3.5).toFixed(0) = "6300"
+    const priceDisplay = page.locator('text=6300');
     await expect(priceDisplay).toBeVisible({ timeout: 15000 });
 
     // 5. Add to Cart
