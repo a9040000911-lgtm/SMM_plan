@@ -225,6 +225,11 @@ export async function POST(req: NextRequest) {
                     return NextResponse.json({ error: `Item ${service.name}: ${validation.error || 'Invalid link'}` }, { status: 400 });
                 }
 
+                // [GUARD-ZERO-PRICE] Reject free services (pricePer1000 = 0 means misconfiguration)
+                if (new Decimal(service.pricePer1000).isZero()) {
+                    return NextResponse.json({ error: `Service ${service.name} has no price configured. Please contact support.` }, { status: 422 });
+                }
+
                 const price = (Number(service.pricePer1000) * quantity) / 1000;
                 totalBatchPrice = totalBatchPrice.plus(price);
 
@@ -482,6 +487,12 @@ export async function POST(req: NextRequest) {
         }
 
         const pricePer1000 = new Decimal(service.pricePer1000.toString());
+
+        // [GUARD-ZERO-PRICE] Reject free services (pricePer1000 = 0 means misconfiguration)
+        if (pricePer1000.isZero()) {
+            return NextResponse.json({ error: `Service ${service.name} has no price configured. Please contact support.` }, { status: 422 });
+        }
+
         const totalPrice = pricePer1000.mul(quantity).div(1000);
 
         // 4. Scheduling Logic
