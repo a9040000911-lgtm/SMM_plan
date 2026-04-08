@@ -8,13 +8,13 @@ test.describe('Smmplan 2026 Integrity Tests', () => {
     await page.goto(BASE_URL);
     await page.waitForLoadState('networkidle');
     
-    // Verify Simulator section header using specific locator
-    await expect(page.getByRole('heading', { name: /Рассчитайте свой успех/i }).first()).toBeVisible();
+    // Verify Simulator section is rendered using data-testid (added in last refactor)
+    await expect(page.getByTestId('simulator-container')).toBeVisible({ timeout: 15000 });
     
-    // Verify Simulator component elements (Wait for client-side mount)
-    await page.waitForSelector('button', { state: 'visible', timeout: 15000 });
-    await expect(page.locator('button').filter({ hasText: /Instagram/i }).first()).toBeVisible();
+    // Verify platform buttons are rendered (Instagram button via data-testid)
+    await expect(page.getByTestId('platform-instagram')).toBeVisible({ timeout: 10000 });
   });
+
 
   test('Academy: Articles Grid & Content', async ({ page }) => {
     await page.goto(`${BASE_URL}/academy`);

@@ -219,6 +219,22 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
 
+      // [2FA BYPASS] If admin has explicitly disabled 2FA — skip it and create session directly.
+      // This is intentional for test accounts and trusted devices.
+      if ((user as any).twoFactorEnabled === false) {
+        console.log(`[AUTH] 2FA disabled for ${normalizedEmail} — creating session directly`);
+        try {
+          await prisma.adminLog.create({
+            data: {
+              adminId: user.id,
+              action: 'AUTH_SUCCESS',
+              details: `Вход без 2FA (2FA отключена для аккаунта)`
+            }
+          });
+        } catch (_e) { /* non-fatal */ }
+        return createSession(user);
+      }
+
       // ЛОГИРУЕМ ПЕРВЫЙ ЭТАП
       try {
         await prisma.adminLog.create({
