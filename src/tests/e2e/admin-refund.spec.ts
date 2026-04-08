@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { adminLogin } from './helpers';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
 import bcrypt from 'bcryptjs';
@@ -64,19 +65,12 @@ test.describe('Admin Flow (Manual Refund)', () => {
     });
 
     test('Admin logs in and refunds the order', async ({ page }) => {
-        // 1. Авторизация
-        await page.goto('/login');
-        await page.locator('input[type="email"], input[name="email"]').first().fill('admin-e2e@smmplan.pro');
-        await page.locator('input[type="password"], input[name="password"]').first().fill('E2ePassw0rd!');
-        await page.waitForTimeout(500); // Wait for react state
-        await Promise.all([
-            page.waitForURL(/.*admin.*/, { timeout: 10000 }).catch(() => null),
-            page.locator('button[type="submit"]').first().click()
-        ]);
+        // 1. Авторизация через admin login
+        await adminLogin(page, 'admin-e2e@smmplan.pro', 'E2ePassw0rd!');
 
         // 2. Ждем дашборд (Admin)
         await page.goto('/admin');
-        await expect(page.locator('text=/Панель управления|Dashboard/i')).toBeVisible({ timeout: 15000 });
+        await expect(page.locator('text=/Панель управления|Dashboard|Обзор/i')).toBeVisible({ timeout: 15000 });
 
         // 3. Идем в заказы
         await page.goto('/admin/orders');

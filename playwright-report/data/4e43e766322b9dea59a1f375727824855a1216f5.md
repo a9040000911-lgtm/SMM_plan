@@ -1,0 +1,77 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e8]:
+        - generic [ref=e9]: S
+        - generic [ref=e10]: Smmplan CMS
+      - generic [ref=e11]:
+        - generic [ref=e14]: Admin Control Center
+        - heading "Управляйте платформой комфортно." [level=2] [ref=e15]
+        - paragraph [ref=e16]: Управление контентом, модерация, биллинг и глубокая аналитика в едином защищённом пространстве.
+      - generic [ref=e17]:
+        - generic [ref=e18]: v3.0.0 Architecture
+        - generic [ref=e20]:
+          - img [ref=e21]
+          - text: Secured
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - img [ref=e28]
+          - heading "Вход в систему" [level=1] [ref=e31]
+          - paragraph [ref=e32]: Выберите метод авторизации для доступа к панели.
+        - generic [ref=e33]:
+          - button "Почта и пароль" [ref=e34]
+          - button "Telegram" [ref=e35]
+        - generic [ref=e36]:
+          - generic [ref=e37]:
+            - text: Email адрес
+            - generic [ref=e38]:
+              - img [ref=e39]
+              - textbox "email@example.com" [ref=e42]
+          - generic [ref=e43]:
+            - generic [ref=e44]:
+              - generic [ref=e45]: Пароль
+              - button "Забыли?" [ref=e46]
+            - generic [ref=e47]:
+              - img [ref=e48]
+              - textbox "••••••••" [ref=e52]
+          - button "Войти в панель" [ref=e53]:
+            - text: Войти в панель
+            - img [ref=e54]
+        - generic [ref=e56]:
+          - img [ref=e57]
+          - text: Защищенная корпоративная среда
+      - paragraph [ref=e60]: Smmplan CMS v3.0.0 © 2026
+  - generic [ref=e62]:
+    - img [ref=e64]
+    - generic [ref=e66]:
+      - generic [ref=e67]:
+        - heading "Файлы Cookie" [level=3] [ref=e68]
+        - button [ref=e69]:
+          - img [ref=e70]
+      - paragraph [ref=e73]:
+        - text: Мы используем файлы cookie для улучшения работы сайта. Оставаясь на сайте, вы соглашаетесь с нашей
+        - link "Политикой в отношении использования файлов cookie" [ref=e74] [cursor=pointer]:
+          - /url: /docs/policy
+        - text: .
+      - generic [ref=e75]:
+        - button "Принять" [ref=e76]
+        - link "Подробнее" [ref=e77] [cursor=pointer]:
+          - /url: /docs/policy
+  - region "Notifications alt+T"
+  - generic [ref=e82] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e83]:
+      - img [ref=e84]
+    - generic [ref=e87]:
+      - button "Open issues overlay" [ref=e88]:
+        - generic [ref=e89]:
+          - generic [ref=e90]: "0"
+          - generic [ref=e91]: "1"
+        - generic [ref=e92]: Issue
+      - button "Collapse issues badge" [ref=e93]:
+        - img [ref=e94]
+  - alert [ref=e96]
+```
