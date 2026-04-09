@@ -44,3 +44,11 @@ fs.readdirSync = function(dirPath, ...args) {
   }
   return originalReaddirSync.call(this, dirPath, ...args);
 };
+
+const originalPromisesReaddir = fs.promises.readdir;
+fs.promises.readdir = async function(dirPath, ...args) {
+  if (shouldBlock(dirPath)) {
+    return [];
+  }
+  return originalPromisesReaddir.call(this, dirPath, ...args);
+};

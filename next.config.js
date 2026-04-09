@@ -34,7 +34,7 @@ const nextConfig = {
     PRISMA_CLIENT_ENGINE_TYPE: "library",
   },
   experimental: {
-    webpackMemoryOptimizations: true,
+    webpackMemoryOptimizations: false,
     webpackBuildWorker: false,
   },
 };
