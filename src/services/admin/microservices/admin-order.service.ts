@@ -14,10 +14,15 @@ export class AdminOrderService {
     /**
      * Finds orders trapped in intermediate statuses for an excessive duration.
      */
-    static async getStuckStats(ctx: AdminContext): Promise<AdminServiceResult<{ pendingCount: number; processingCount: number; totalStuck: number }>> {
+    static async getStuckStats(ctx: AdminContext, projectId?: string): Promise<AdminServiceResult<{ pendingCount: number; processingCount: number; totalStuck: number }>> {
         try {
             const whereBase: Prisma.OrderWhereInput = {};
-            if (!ctx.isGlobalAdmin) {
+            if (projectId && projectId !== 'ALL') {
+                if (!ctx.isGlobalAdmin && !ctx.allowedProjects.includes(projectId)) {
+                    throw new Error("Access denied to project");
+                }
+                whereBase.projectId = projectId;
+            } else if (!ctx.isGlobalAdmin) {
                 whereBase.projectId = { in: ctx.allowedProjects };
             }
 

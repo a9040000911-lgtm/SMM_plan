@@ -51,7 +51,7 @@ export function AdminOrderTable({ orders }: { orders: any[] }) {
               <td className="px-4 py-6 align-top">
                 <div className="flex items-center gap-1.5">
                   <Link href={`/admin/orders/${order.id}`} className="text-[11px] font-black text-blue-600 hover:text-blue-700 underline decoration-blue-200 decoration-1 underline-offset-2">
-                    {formatServiceId(order.internalService.platform, order.internalService.category, order.id)}
+                    {formatServiceId(order.internalService?.platform || 'OTHER', order.internalService?.category || 'OTHER', order.id)}
                   </Link>
                   <CopyButton value={String(order.id)} label="ID заказа" />
                 </div>

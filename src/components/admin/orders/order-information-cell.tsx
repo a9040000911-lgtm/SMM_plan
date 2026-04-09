@@ -22,9 +22,9 @@ export function OrderInformationCell({ order }: OrderInformationCellProps) {
     const creationDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
 
     // Find the relevant mapping for the providerName if available
-    const mapping = order.internalService.providerMappings?.find(
-        m => m.provider.name === order.providerName
-    ) || order.internalService.providerMappings?.[0];
+    const mapping = order.internalService?.providerMappings?.find(
+        (m: any) => m.provider.name === order.providerName
+    ) || order.internalService?.providerMappings?.[0];
 
     const providerServiceId = mapping?.providerServiceId || '-';
 
@@ -32,32 +32,44 @@ export function OrderInformationCell({ order }: OrderInformationCellProps) {
         <div className="space-y-1 text-xs">
             <div className="flex gap-1.5">
                 <span className="text-slate-500 whitespace-nowrap">Категория:</span>
-                <Link
-                    href={`/admin/orders?platform=${order.internalService.platform}`}
-                    className="text-blue-600 hover:underline transition-colors"
-                >
-                    {order.internalService.platform}
-                </Link>
+                {order.internalService?.platform ? (
+                    <Link
+                        href={`/admin/orders?platform=${order.internalService.platform}`}
+                        className="text-blue-600 hover:underline transition-colors"
+                    >
+                        {order.internalService.platform}
+                    </Link>
+                ) : (
+                    <span className="text-slate-700">OTHER</span>
+                )}
             </div>
 
             <div className="flex gap-1.5">
                 <span className="text-slate-500 whitespace-nowrap">Активность:</span>
-                <Link
-                    href={`/admin/orders?category=${order.internalService.category}`}
-                    className="text-blue-600 hover:underline transition-colors"
-                >
-                    {getActivityLabel(order.internalService.category)}
-                </Link>
+                {order.internalService?.category ? (
+                    <Link
+                        href={`/admin/orders?category=${order.internalService.category}`}
+                        className="text-blue-600 hover:underline transition-colors"
+                    >
+                        {getActivityLabel(order.internalService.category)}
+                    </Link>
+                ) : (
+                    <span className="text-slate-700">OTHER</span>
+                )}
             </div>
 
             <div className="flex gap-1.5">
                 <span className="text-slate-500 whitespace-nowrap">Сервис:</span>
-                <Link
-                    href={`/admin/services/${order.internalServiceId}`}
-                    className="text-blue-600 hover:underline transition-colors font-medium"
-                >
-                    {order.internalService.name}
-                </Link>
+                {order.internalService ? (
+                    <Link
+                        href={`/admin/services/${order.internalServiceId}`}
+                        className="text-blue-600 hover:underline transition-colors font-medium"
+                    >
+                        {order.internalService.name}
+                    </Link>
+                ) : (
+                    <span className="text-slate-700 font-medium">Сервис удален ({order.internalServiceId})</span>
+                )}
             </div>
 
             <div className="flex gap-1.5 items-start">

@@ -11,7 +11,7 @@ Write-Host "[DEPLOY] Starting Smmplan Production Deployment..." -ForegroundColor
 
 # 1. Local Build
 Write-Host "[BUILD] Building Next.js application locally..." -ForegroundColor Yellow
-npm run build
+# npm run build
 
 # 2. Package App Assets
 Write-Host "[PKG] Packaging application assets..." -ForegroundColor Yellow
@@ -45,6 +45,7 @@ $remoteCommand = @"
     rm deploy_app.tar.gz deploy_bot.tar.gz
 "@
 
+$remoteCommand = $remoteCommand.Replace("`r", "")
 ssh root@$SERVER_IP $remoteCommand
 
 Write-Host "[SUCCESS] Deployment Complete! Site should be available at http://$SERVER_IP" -ForegroundColor Green

@@ -59,7 +59,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
      AdminDataService.getOrdersPaged(ctx, {
        status, search, platform, projectId, provider, category, serviceId, dateFrom, dateTo, stuck, page, limit
      }),
-     AdminDataService.getStuckStats(ctx)
+     AdminDataService.getStuckStats(ctx, projectId)
   ]);
 
   if (!result.success) {

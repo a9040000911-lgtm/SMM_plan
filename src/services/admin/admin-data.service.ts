@@ -132,8 +132,8 @@ export class AdminDataService {
     /**
      * Gets statistics for stuck orders.
      */
-    static async getStuckStats(ctx: AdminContext): Promise<AdminServiceResult<{ pendingCount: number; processingCount: number; totalStuck: number }>> {
-        return AdminOrderService.getStuckStats(ctx);
+    static async getStuckStats(ctx: AdminContext, projectId?: string): Promise<AdminServiceResult<{ pendingCount: number; processingCount: number; totalStuck: number }>> {
+        return AdminOrderService.getStuckStats(ctx, projectId);
     }
 
     /**
