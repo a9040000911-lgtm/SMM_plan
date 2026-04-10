@@ -78,14 +78,15 @@ const memoryFallback = new Map<string, { count: number, resetAt: number }>();
 /**
  * Check rate limit using Upstash (prod) or Mock (dev/local)
  */
-export async function checkRateLimit(type: 'auth' | 'api' | 'public', ip: string): Promise<{
+export async function checkRateLimit(type: 'auth' | 'admin_auth' | 'api' | 'public', ip: string): Promise<{
     success: boolean;
     limit: number;
     remaining: number;
     reset: number;
 }> {
-    // 1. Get dynamic limits based on type
-    const limitCount = await getDynamicLimit(`LIMIT_${type.toUpperCase()}`, type === 'auth' ? 5 : (type === 'api' ? 60 : 100));
+    // 1. Get dynamic limits based on type. Protect admin_auth and auth with strict limit of 5.
+    const defaultLimit = (type === 'auth' || type === 'admin_auth') ? 5 : (type === 'api' ? 60 : 100);
+    const limitCount = await getDynamicLimit(`LIMIT_${type.toUpperCase()}`, defaultLimit);
     
     // 2. If Redis is configured, use Upstash Ratelimit
     if (redis) {

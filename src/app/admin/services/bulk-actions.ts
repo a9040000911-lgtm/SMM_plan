@@ -43,4 +43,22 @@ export async function bulkToggleStatusAction(serviceIds: string[], isActive: boo
     }
 }
 
+export async function bulkUpdatePricesAction(
+    serviceIds: string[],
+    projectId: string | null,
+    operation: { type: 'add' | 'multiply' | 'increase_percent'; value: number }
+) {
+    try {
+        const ctx = await getAdminContext();
+        if (!serviceIds.length) return { success: false, error: 'No services selected' };
+        if (!operation || typeof operation.value !== 'number') return { success: false, error: 'Invalid operation' };
 
+        const res = await AdminDataService.bulkUpdatePrices(ctx, serviceIds, projectId, operation);
+        if (!res.success) throw new Error(res.error?.message);
+
+        revalidatePath('/admin/services');
+        return { success: true, count: res.data };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}

@@ -93,8 +93,7 @@ export async function POST(req: NextRequest) {
       });
 
       return NextResponse.json({
-        error: 'Payment Provider Error',
-        message: providerError.message
+        error: 'Payment Provider Error'
       }, { status: 502 });
     }
 
@@ -142,7 +141,7 @@ export async function POST(req: NextRequest) {
       console.error('[Transaction cleanup error]:', cleanupError);
     }
 
-    return NextResponse.json({ error: 'Internal error', message: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
 

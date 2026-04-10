@@ -2628,6 +2628,91 @@ export class AdminDataService {
     }
 
     /**
+     * Bulk updates prices for specific services.
+     */
+    static async bulkUpdatePrices(
+        ctx: AdminContext, 
+        serviceIds: string[], 
+        projectId: string | null,
+        operation: { type: 'add' | 'multiply' | 'increase_percent'; value: number }
+    ): Promise<AdminServiceResult<number>> {
+        try {
+            if (projectId) {
+                await this.checkProjectAuth(ctx, projectId);
+            } else {
+                if (!ctx.isGlobalAdmin) throw new Error('Unauthorized for global pricing update');
+            }
+
+            const services = await prisma.internalService.findMany({
+                where: { id: { in: serviceIds } },
+                include: projectId ? {
+                    projectOverrides: {
+                        where: { projectId }
+                    }
+                } : undefined
+            });
+
+            await prisma.$transaction(async (tx) => {
+                for (const service of services) {
+                    let currentPrice: any;
+
+                    if (projectId) {
+                        const override = (service as any).projectOverrides?.[0];
+                        if (override?.customPrice) {
+                            currentPrice = override.customPrice;
+                        } else {
+                            currentPrice = service.pricePer1000;
+                        }
+                    } else {
+                        currentPrice = service.pricePer1000;
+                    }
+
+                    const baseVal = Number(currentPrice);
+                    let newPrice = baseVal;
+
+                    switch(operation.type) {
+                        case 'add':
+                            newPrice = baseVal + operation.value;
+                            break;
+                        case 'multiply':
+                            newPrice = baseVal * operation.value;
+                            break;
+                        case 'increase_percent':
+                            newPrice = baseVal * (1 + operation.value / 100);
+                            break;
+                    }
+
+                    newPrice = Math.round(newPrice * 100) / 100;
+
+                    if (projectId) {
+                        await tx.projectServiceOverride.upsert({
+                            where: { projectId_internalServiceId: { projectId, internalServiceId: service.id } },
+                            update: { customPrice: newPrice },
+                            create: { projectId, internalServiceId: service.id, customPrice: newPrice }
+                        });
+                    } else {
+                        await tx.internalService.update({
+                            where: { id: service.id },
+                            data: { pricePer1000: newPrice }
+                        });
+                    }
+                }
+            });
+
+            await this.createAdminLog(
+                ctx, 
+                'BULK_UPDATE_PRICES', 
+                `Updated prices for ${serviceIds.length} services (${operation.type}: ${operation.value})`, 
+                projectId || undefined
+            );
+
+            return { success: true, data: serviceIds.length };
+        } catch (error: any) {
+            return { success: false, error: { code: 'BULK_PRICE_UPDATE_FAILED', message: error.message } };
+        }
+    }
+
+    /**
      * Updates project bot settings.
      */
     static async updateProjectBotSettings(ctx: AdminContext, projectId: string, data: { token?: string, username?: string, config?: any }): Promise<AdminServiceResult<void>> {

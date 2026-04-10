@@ -32,6 +32,9 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProjectBulkManagerModal } from '../ProjectBulkManagerModal';
 import { AdminTableCard } from '@/components/admin/core/admin-table-card';
+import { BulkPricingModal } from '../bulk-pricing-modal';
+import { bulkUpdatePricesAction } from '@/app/admin/services/bulk-actions';
+
 
 // --- WIDGET 1: ACTION CARDS (BENTO) ---
 export function ActionCardsWidget() {
@@ -167,6 +170,7 @@ export function ServicesTableWidget() {
 
     const [rowPlatformOverrides, setRowPlatformOverrides] = useState<Record<string, string>>({});
     const [projectsModalService, setProjectsModalService] = useState<any>(null);
+    const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
 
     const toggleSelect = (id: string) => {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
@@ -237,6 +241,16 @@ export function ServicesTableWidget() {
             toast.success(isActive ? 'Услуги включены' : 'Услуги отключены');
             setServices(prev => prev.map(s => selectedIds.includes(s.id) ? { ...s, isActive } : s));
             setSelectedIds([]);
+        }
+    };
+
+    const handleBulkPriceUpdate = async (operation: { type: 'add' | 'multiply' | 'increase_percent'; value: number }) => {
+        const res = await bulkUpdatePricesAction(selectedIds, activeProjectId === 'all' ? null : activeProjectId, operation);
+        if (res.success) {
+            toast.success('Цены успешно обновлены');
+            window.location.reload(); // Reload to fetch fresh overridden prices
+        } else {
+            toast.error(res.error || 'Ошибка обновления цен');
         }
     };
 
@@ -503,6 +517,13 @@ export function ServicesTableWidget() {
                     service={projectsModalService}
                 />
 
+                <BulkPricingModal
+                    isOpen={isPricingModalOpen}
+                    onClose={() => setIsPricingModalOpen(false)}
+                    selectedCount={selectedIds.length}
+                    onApply={handleBulkPriceUpdate}
+                />
+
                 {/* Pagination Footer */}
                 <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between shrink-0">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -561,6 +582,15 @@ export function ServicesTableWidget() {
                             <div className="flex items-center gap-2">
                                 <button onClick={() => handleBulkToggle(true)} className="p-2 bg-white/10 hover:bg-emerald-500 rounded-lg transition-colors" title="Включить"><Zap size={14} /></button>
                                 <button onClick={() => handleBulkToggle(false)} className="p-2 bg-white/10 hover:bg-slate-700 rounded-lg transition-colors" title="Отключить"><X size={14} /></button>
+
+                                <div className="h-4 w-px bg-white/20 mx-1" />
+
+                                <button 
+                                    onClick={() => setIsPricingModalOpen(true)} 
+                                    className="px-3 py-1.5 bg-blue-500/20 text-blue-50 hover:bg-blue-500 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-1.5"
+                                >
+                                    Цены
+                                </button>
 
                                 <div className="h-4 w-px bg-white/20 mx-1" />
 
