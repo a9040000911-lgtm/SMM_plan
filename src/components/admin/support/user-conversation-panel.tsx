@@ -701,11 +701,11 @@ function TicketSection({ ticket, templates, macros, onReply, onClose }: {
                                 <textarea
                                     value={replyText}
                                     onChange={(e) => setReplyText(e.target.value)}
-                                    placeholder={isNoteMode ? "Текст внутренней заметки (только для персонала)..." : "Ответ пользователю..."}
+                                    placeholder={isNoteMode ? "Текст внутренней заметки (только для персонала)... (Отправить: Ctrl+Enter)" : "Ответ пользователю... (Отправить: Ctrl+Enter)"}
                                     className="flex-1 bg-transparent border-none outline-none text-sm py-1 min-h-[32px] max-h-20 resize-none font-medium text-slate-700 placeholder:text-slate-400"
                                     rows={1}
                                     onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                                             e.preventDefault();
                                             handleSend();
                                         }
@@ -746,18 +746,21 @@ export function UserConversationPanel({ conversation, templates, macros: _macros
     const [isLoadingOrders, setIsLoadingOrders] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
     const [orderIdCopied, setOrderIdCopied] = useState<string | null>(null);
+    const [activeSidebarTab, setActiveSidebarTab] = useState<'orders' | 'profile'>('orders');
 
     // Keyboard shortcuts for panel
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.altKey && e.key === 'n') {
                 e.preventDefault();
-                // Find visible textarea (might be multiple tickets, but only one is usually focused or just top one)
                 const textareas = document.querySelectorAll('textarea');
                 if (textareas.length > 0) {
                     (textareas[textareas.length - 1] as HTMLTextAreaElement).focus();
                 }
             } else if (e.altKey && (e.key === 'q' || e.key === 'й')) {
+                e.preventDefault();
+                onClose();
+            } else if (e.key === 'Escape') {
                 e.preventDefault();
                 onClose();
             }
@@ -819,141 +822,49 @@ export function UserConversationPanel({ conversation, templates, macros: _macros
 
     return (
         <div className="flex-1 flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm animate-in zoom-in-95 duration-300 h-full overflow-hidden">
-            {/* Header / Profile */}
-            <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white shrink-0">
-                <div className="flex items-start justify-between">
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-3 mb-1">
-                            <Link
-                                href={`/admin/users/${conversation.user.id}`}
-                                className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0 shadow-inner transition-all hover:scale-105 active:scale-95"
-                                style={{
-                                    backgroundColor: conversation.user.project ? `${conversation.user.project.color}20` : '#dbeafe',
-                                    color: conversation.user.project?.color || '#2563eb'
-                                }}
-                            >
-                                <User size={24} />
-                            </Link>
-                            <div>
-                                <h3 className="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2">
-                                    <Link href={`/admin/users/${conversation.user.id}`} className="hover:text-blue-600 transition-colors">
-                                        @{conversation.user.username || 'user'}
-                                    </Link>
-                                    {conversation.user.project && (
-                                        <span
-                                            className="ml-1 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border"
-                                            style={{
-                                                backgroundColor: `${conversation.user.project.color}10`,
-                                                color: conversation.user.project.color,
-                                                borderColor: `${conversation.user.project.color}30`
-                                            }}
-                                        >
-                                            {conversation.user.project.name}
-                                        </span>
-                                    )}
-                                    <button
-                                        onClick={() => copyToClipboard(conversation.user.tgId || '')}
-                                        className={`p-1.5 rounded-md transition-all ${isCopied ? 'bg-green-100 text-green-600' : 'hover:bg-slate-200 text-slate-400'}`}
-                                        title="Копировать TG ID"
+            {/* Header / Compact Profile */}
+            <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white shrink-0">
+                <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex items-center gap-3">
+                        <Link
+                            href={`/admin/users/${conversation.user.id}`}
+                            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm border border-slate-200 hover:scale-105 active:scale-95 transition-transform"
+                            style={{
+                                backgroundColor: conversation.user.project ? `${conversation.user.project.color}20` : '#dbeafe',
+                                color: conversation.user.project?.color || '#2563eb'
+                            }}
+                        >
+                            <User size={20} />
+                        </Link>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <Link href={`/admin/users/${conversation.user.id}`} className="text-base font-black text-slate-800 hover:text-blue-600 transition-colors tracking-tight">
+                                    @{conversation.user.username || 'user'}
+                                </Link>
+                                {conversation.user.project && (
+                                    <span
+                                        className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border"
+                                        style={{ backgroundColor: `${conversation.user.project.color}10`, color: conversation.user.project.color, borderColor: `${conversation.user.project.color}30` }}
                                     >
-                                        <FileText size={14} />
-                                    </button>
-                                </h3>
-                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Link href={`/admin/users/${conversation.user.id}`} className="hover:text-blue-600 transition-colors">
-                                        ID: {conversation.user.tgId}
-                                    </Link>
-                                    {isCopied && <span className="text-green-500 italic animate-in fade-in slide-in-from-left-2">Скопировано!</span>}
-                                    <span className="flex items-center gap-1 ml-2 text-slate-400">
-                                        <Inbox size={10} />
-                                        Всего тикетов: {conversation.tickets.length}
+                                        {conversation.user.project.name}
                                     </span>
-                                    {(conversation.user as any).isPermanentlyBanned && (
-                                        <span className="bg-rose-100 text-rose-600 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border border-rose-200">Blocked PERM</span>
-                                    )}
-                                    {(!(conversation.user as any).isPermanentlyBanned && (conversation.user as any).banExpiresAt && new Date((conversation.user as any).banExpiresAt) > new Date()) && (
-                                        <span className="bg-amber-100 text-amber-600 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border border-amber-200">Blocked until {new Date((conversation.user as any).banExpiresAt).toLocaleTimeString()}</span>
-                                    )}
-                                    {(conversation.user as any).warningCount > 0 && (
-                                        <span className="bg-orange-100 text-orange-600 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border border-orange-200">Предупреждений: {(conversation.user as any).warningCount}</span>
-                                    )}
-                                </div>
+                                )}
                             </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-3 mt-4">
-                            <div className="px-3 py-1.5 bg-white border border-slate-100 rounded-md shadow-sm">
-                                <div className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-0.5">Баланс</div>
-                                <div className="text-sm font-black text-blue-600">{Number(conversation.user.balance).toFixed(2)}₽</div>
-                            </div>
-                            <div className="px-3 py-1.5 bg-white border border-slate-100 rounded-md shadow-sm">
-                                <div className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-0.5">Всего трат (LTV)</div>
-                                <div className="text-sm font-black text-rose-600">{Number(conversation.user.spent).toFixed(2)}₽</div>
-                            </div>
-                            <div className="px-3 py-1.5 bg-white border border-slate-100 rounded-md shadow-sm">
-                                <div className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-0.5">Регистрация</div>
-                                <div className="text-sm font-black text-slate-600">{new Date(conversation.user.createdAt).toLocaleDateString('ru-RU')}</div>
-                            </div>
-
-                            <div className="flex items-center gap-1 bg-slate-100/50 p-1 rounded-md border border-slate-200/50">
-                                {((conversation.user as any).isPermanentlyBanned || ((conversation.user as any).banExpiresAt && new Date((conversation.user as any).banExpiresAt) > new Date())) ? (
-                                    <button
-                                        onClick={async () => {
-                                            if (confirm('Разблокировать пользователя и сбросить предупреждения?')) {
-                                                await unbanUserAction(conversation.user.id);
-                                                onUpdated();
-                                            }
-                                        }}
-                                        className="px-3 py-1 bg-white text-green-600 text-[10px] font-black uppercase rounded-md hover:bg-green-50 transition-all shadow-sm border border-green-100"
-                                        title="Снять блокировку и обнулить количество предупреждений"
-                                    >
-                                        Разблочить
-                                    </button>
-                                ) : (
-                                    <>
-                                        <button
-                                            onClick={async () => {
-                                                const reason = prompt('Причина предупреждения:');
-                                                if (reason) {
-                                                    await warnUserAction(conversation.user.id, reason);
-                                                    onUpdated();
-                                                }
-                                            }}
-                                            className="px-3 py-1 bg-white text-amber-600 text-[10px] font-black uppercase rounded-md hover:bg-amber-50 transition-all shadow-sm border border-amber-100"
-                                            title="Выдать предупреждение за спам или оскорбление. 3 предупреждения = автоматический бан на 24 часа."
-                                        >
-                                            Предупреждение
-                                        </button>
-                                        <button
-                                            onClick={async () => {
-                                                const reason = prompt('Причина бана (24ч):');
-                                                if (reason) {
-                                                    await banUserAction(conversation.user.id, 24, reason);
-                                                    onUpdated();
-                                                }
-                                            }}
-                                            className="px-3 py-1 bg-white text-rose-500 text-[10px] font-black uppercase rounded-md hover:bg-rose-50 transition-all shadow-sm border border-rose-100"
-                                            title="Заблокировать доступ к поддержке на 24 часа."
-                                        >
-                                            24ч
-                                        </button>
-                                        <button
-                                            onClick={async () => {
-                                                const reason = prompt('Причина вечного бана:');
-                                                if (reason) {
-                                                    await banUserAction(conversation.user.id, 'PERMANENT', reason);
-                                                    onUpdated();
-                                                }
-                                            }}
-                                            className="px-3 py-1 bg-white text-rose-700 text-[10px] font-black uppercase rounded-md hover:bg-rose-100 transition-all shadow-sm border border-rose-200"
-                                            title="Перманентная блокировка без возможности автоматической разблокировки."
-                                        >
-                                            Бан
-                                        </button>
-                                        <div className="px-1 text-slate-300" title="3 предупреждения приводят к автоматическому бану на 24 часа. Кнопка 'Разблочить' появляется только у забаненных.">
-                                            <AlertCircle size={14} />
-                                        </div>
-                                    </>
+                            <div className="flex items-center gap-2 mt-0.5 text-[10px] uppercase font-bold tracking-widest text-slate-400">
+                                <span>ID: {conversation.user.tgId}</span>
+                                <button
+                                    onClick={() => copyToClipboard(conversation.user.tgId || '')}
+                                    className={`hover:text-slate-600 transition-colors ${isCopied ? 'text-green-500' : ''}`}
+                                    title="Копировать TG ID"
+                                >
+                                    {isCopied ? <Check size={10} /> : <FileText size={10} />}
+                                </button>
+                                <span className="mx-1">•</span>
+                                <span className="flex items-center gap-1" title="Активных тикетов">
+                                    <MessageSquare size={10} /> {conversation.tickets.length}
+                                </span>
+                                {(conversation.user as any).warningCount > 0 && (
+                                    <span className="text-orange-500 ml-2" title="Предупреждения">⚠️ {(conversation.user as any).warningCount}</span>
                                 )}
                             </div>
                         </div>
@@ -961,61 +872,56 @@ export function UserConversationPanel({ conversation, templates, macros: _macros
 
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={() => setShowNewTicketForm(true)}
-                            className="px-5 py-2.5 bg-blue-600 text-white text-xs font-black uppercase rounded-md hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center gap-2"
+                            onClick={() => setShowNewTicketForm(!showNewTicketForm)}
+                            className="px-4 py-2 bg-slate-100 text-slate-700 text-[10px] font-black uppercase tracking-widest rounded-md hover:bg-slate-200 transition-colors shadow-sm flex items-center gap-1.5"
                         >
-                            <Zap size={16} />
-                            Написать
+                            {showNewTicketForm ? <X size={12} /> : <Zap size={12} />}
+                            {showNewTicketForm ? 'Отмена' : 'Написать'}
                         </button>
                         <button
                             onClick={onClose}
-                            className="p-2.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-100 hover:bg-rose-50 rounded-md transition-all active:scale-95"
+                            className="p-2 border border-slate-200 bg-white text-slate-400 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 rounded-md transition-all active:scale-95"
+                            title="Закрыть панель (Alt+Q)"
                         >
-                            <X size={24} />
+                            <X size={16} />
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 flex items-start min-h-0 overflow-hidden">
+            <div className="flex-1 flex items-start min-h-0 overflow-hidden bg-slate-50/50">
                 {/* Main Content: Tickets */}
-                <div className="flex-1 p-6 space-y-6 bg-slate-50/30 overflow-y-auto custom-scrollbar h-full">
+                <div className="flex-1 p-4 space-y-4 overflow-y-auto custom-scrollbar h-full">
                     {/* New Ticket Form */}
                     {showNewTicketForm && (
-                        <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-4 mb-6 space-y-3 animate-in slide-in-from-top duration-300">
-                            <div className="flex items-center justify-between">
-                                <h4 className="text-xs font-black text-blue-800 uppercase tracking-widest">Новый тикет</h4>
-                                <button onClick={() => setShowNewTicketForm(false)} className="text-slate-400 hover:text-slate-600">
-                                    <X size={16} />
-                                </button>
-                            </div>
+                        <div className="bg-white border border-blue-200 shadow-sm rounded-lg p-4 animate-in slide-in-from-top-4 duration-300">
                             <input
                                 type="text"
                                 value={newTicketSubject}
                                 onChange={(e) => setNewTicketSubject(e.target.value)}
                                 placeholder="Тема тикета"
-                                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold"
+                                className="w-full mb-3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold"
                             />
                             <textarea
                                 value={newTicketMessage}
                                 onChange={(e) => setNewTicketMessage(e.target.value)}
-                                placeholder="Сообщение пользователю..."
-                                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 min-h-[100px] resize-none font-medium"
+                                placeholder="Новое сообщение пользователю... (Отправить: Ctrl+Enter)"
+                                className="w-full mb-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 min-h-[80px] resize-none font-medium"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                                        e.preventDefault();
+                                        handleCreateNewTicket();
+                                    }
+                                }}
                             />
-                            <div className="flex justify-end gap-2 pt-2">
-                                <button
-                                    onClick={() => setShowNewTicketForm(false)}
-                                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 uppercase tracking-widest"
-                                >
-                                    Отмена
-                                </button>
+                            <div className="flex justify-end gap-2">
                                 <button
                                     onClick={handleCreateNewTicket}
                                     disabled={!newTicketMessage.trim() || isCreatingTicket}
-                                    className="px-6 py-2 bg-blue-600 text-white text-xs font-black rounded-md hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2 uppercase tracking-widest"
+                                    className="px-5 py-2 bg-blue-600 text-white text-[10px] font-black rounded-md hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-1.5 uppercase tracking-widest shadow-md"
                                 >
-                                    {isCreatingTicket ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                                    Отправить
+                                    {isCreatingTicket ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                                    Создать тикет
                                 </button>
                             </div>
                         </div>
@@ -1048,95 +954,161 @@ export function UserConversationPanel({ conversation, templates, macros: _macros
                     )}
                 </div>
 
-                {/* Right Context Panel: User activity */}
-                <div className="w-80 border-l border-slate-100 bg-white shrink-0 flex flex-col h-full overflow-y-auto custom-scrollbar">
-                    <div className="p-5 border-b border-slate-100 bg-slate-50/50">
-                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <Clock size={12} className="text-blue-500" />
-                            Последние заказы
-                        </h4>
+                {/* Right Context Panel: Tabbed Interface */}
+                <div className="w-80 border-l border-slate-100 bg-white shrink-0 flex flex-col h-full overflow-hidden">
+                    <div className="flex border-b border-slate-100 bg-slate-50/80">
+                        <button 
+                            onClick={() => setActiveSidebarTab('orders')}
+                            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-colors ${activeSidebarTab === 'orders' ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                        >
+                            <span className="flex items-center justify-center gap-2"><Clock size={12}/> Заказы</span>
+                        </button>
+                        <button 
+                            onClick={() => setActiveSidebarTab('profile')}
+                            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-colors ${activeSidebarTab === 'profile' ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                        >
+                            <span className="flex items-center justify-center gap-2"><User size={12}/> Профиль</span>
+                        </button>
                     </div>
 
-                    <div className="flex-1 p-5 space-y-4">
-                        {isLoadingOrders ? (
-                            <div className="space-y-3">
-                                {[1, 2, 3].map(i => (
-                                    <div key={i} className="h-16 bg-slate-50 rounded-md animate-pulse" />
-                                ))}
-                            </div>
-                        ) : orders.length === 0 ? (
-                            <div className="text-center py-8">
-                                <Inbox size={24} className="mx-auto mb-2 text-slate-200" />
-                                <p className="text-xs text-slate-400 font-medium tracking-tight">Заказов пока нет</p>
-                            </div>
-                        ) : (
-                            orders.map(order => (
-                                <div key={order.id} className="group p-3 rounded-lg border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all shadow-sm">
-                                    <div className="flex items-start justify-between mb-1.5">
-                                        <div className="text-[10px] font-black text-slate-700 truncate max-w-[140px]" title={order.serviceName}>
-                                            {order.serviceName}
-                                        </div>
-                                        <div className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md border ${order.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                                            order.status === 'PROCESSING' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                                                order.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                                                    'bg-rose-50 text-rose-700 border-rose-100'
-                                            }`}>
-                                            {order.status}
-                                        </div>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
+                        {activeSidebarTab === 'orders' && (
+                            <>
+                                {isLoadingOrders ? (
+                                    <div className="space-y-3">
+                                        {[1, 2, 3].map(i => (
+                                            <div key={i} className="h-16 bg-slate-50 rounded-md animate-pulse" />
+                                        ))}
                                     </div>
-
-                                    <div className="flex items-center justify-between text-[11px] mb-2">
-                                        <div className="font-black text-slate-900">{order.amount}₽</div>
-                                        <div className="text-[9px] text-slate-400 font-bold tabular-nums">
-                                            {new Date(order.createdAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                                        </div>
+                                ) : orders.length === 0 ? (
+                                    <div className="text-center py-8">
+                                        <Inbox size={24} className="mx-auto mb-2 text-slate-200" />
+                                        <p className="text-xs text-slate-400 font-medium tracking-tight">Заказов пока нет</p>
                                     </div>
+                                ) : (
+                                    orders.map(order => (
+                                        <div key={order.id} className="group p-3 rounded-lg border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all shadow-sm">
+                                            <div className="flex items-start justify-between mb-1.5">
+                                                <div className="text-[10px] font-black text-slate-700 truncate max-w-[140px]" title={order.serviceName}>
+                                                    {order.serviceName}
+                                                </div>
+                                                <div className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md border ${order.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                                    order.status === 'PROCESSING' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                                        order.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                                            'bg-rose-50 text-rose-700 border-rose-100'
+                                                    }`}>
+                                                    {order.status}
+                                                </div>
+                                            </div>
 
-                                    <div className="flex items-center gap-1">
-                                        <Link
-                                            href={`/admin/orders/${order.id}`}
-                                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-white text-slate-500 border border-slate-100 rounded-md text-[9px] font-black uppercase hover:border-slate-200 hover:bg-slate-50 transition-all"
-                                        >
-                                            <FileText size={10} />
-                                            ID: {order.id}
-                                        </Link>
-                                        <button
-                                            onClick={() => {
-                                                navigator.clipboard.writeText(order.id.toString());
-                                                setOrderIdCopied(order.id.toString());
-                                                setTimeout(() => setOrderIdCopied(null), 2000);
-                                            }}
-                                            className={`px-2 py-1.5 rounded-md transition-all border ${orderIdCopied === order.id.toString()
-                                                ? 'bg-emerald-500 text-white border-emerald-500'
-                                                : 'bg-white text-slate-300 border-slate-100 hover:border-slate-200'
-                                                }`}
-                                            title="Копировать ID"
-                                        >
-                                            <Check size={10} />
-                                        </button>
-                                        <a
-                                            href={order.link}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="px-2 py-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors border border-blue-100/50"
-                                            title="Открыть ссылку"
-                                        >
-                                            <ExternalLink size={10} />
-                                        </a>
+                                            <div className="flex items-center justify-between text-[11px] mb-2">
+                                                <div className="font-black text-slate-900">{order.amount}₽</div>
+                                                <div className="text-[9px] text-slate-400 font-bold tabular-nums">
+                                                    {new Date(order.createdAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-1">
+                                                <Link
+                                                    href={`/admin/orders/${order.id}`}
+                                                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-white text-slate-500 border border-slate-100 rounded-md text-[9px] font-black uppercase hover:border-slate-200 hover:bg-slate-50 transition-all"
+                                                >
+                                                    <FileText size={10} />
+                                                    ID: {order.id}
+                                                </Link>
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(order.id.toString());
+                                                        setOrderIdCopied(order.id.toString());
+                                                        setTimeout(() => setOrderIdCopied(null), 2000);
+                                                    }}
+                                                    className={`px-2 py-1.5 rounded-md transition-all border ${orderIdCopied === order.id.toString()
+                                                        ? 'bg-emerald-500 text-white border-emerald-500'
+                                                        : 'bg-white text-slate-300 border-slate-100 hover:border-slate-200'
+                                                        }`}
+                                                    title="Копировать ID"
+                                                >
+                                                    <Check size={10} />
+                                                </button>
+                                                <a
+                                                    href={order.link}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="px-2 py-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors border border-blue-100/50"
+                                                    title="Открыть ссылку"
+                                                >
+                                                    <ExternalLink size={10} />
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </>
+                        )}
+                        
+                        {activeSidebarTab === 'profile' && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+                                <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Финансовая сводка</div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="bg-white p-2 rounded border border-slate-100 shadow-sm">
+                                            <div className="text-[10px] text-slate-500 mb-0.5">Баланс</div>
+                                            <div className="text-sm font-black text-blue-600">{Number(conversation.user.balance).toFixed(2)}₽</div>
+                                        </div>
+                                        <div className="bg-white p-2 rounded border border-slate-100 shadow-sm">
+                                            <div className="text-[10px] text-slate-500 mb-0.5">LTV (Траты)</div>
+                                            <div className="text-sm font-black text-rose-600">{Number(conversation.user.spent).toFixed(2)}₽</div>
+                                        </div>
                                     </div>
                                 </div>
-                            ))
-                        )}
-                    </div>
-
-                    <div className="p-5 mt-auto border-t border-slate-100 bg-slate-50/50">
-                        <div className="p-3 bg-blue-600 rounded-lg text-white shadow-lg shadow-blue-500/20">
-                            <div className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Статус клиента</div>
-                            <div className="text-xs font-black flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)] animate-pulse" />
-                                Активен
+                                
+                                <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Модерация аккаунта</div>
+                                    <div className="flex flex-col gap-2">
+                                        {((conversation.user as any).isPermanentlyBanned || ((conversation.user as any).banExpiresAt && new Date((conversation.user as any).banExpiresAt) > new Date())) ? (
+                                            <button
+                                                onClick={async () => {
+                                                    if (confirm('Разблокировать пользователя и сбросить предупреждения?')) {
+                                                        await unbanUserAction(conversation.user.id);
+                                                        onUpdated();
+                                                    }
+                                                }}
+                                                className="w-full py-2 bg-green-50 text-green-600 text-xs font-black uppercase tracking-widest border border-green-200 rounded-md hover:bg-green-100 transition-colors"
+                                            >
+                                                Снять бан
+                                            </button>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={async () => {
+                                                        const reason = prompt('Причина предупреждения:');
+                                                        if (reason) {
+                                                            await warnUserAction(conversation.user.id, reason);
+                                                            onUpdated();
+                                                        }
+                                                    }}
+                                                    className="w-full py-2 bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest border border-amber-200 rounded-md hover:bg-amber-100 transition-colors"
+                                                >
+                                                    + Выдать Предупреждение
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        const reason = prompt('Причина бана (24ч):');
+                                                        if (reason) {
+                                                            await banUserAction(conversation.user.id, 24, reason);
+                                                            onUpdated();
+                                                        }
+                                                    }}
+                                                    className="w-full py-2 bg-rose-50 text-rose-500 text-[10px] font-black uppercase tracking-widest border border-rose-200 rounded-md hover:bg-rose-100 transition-colors"
+                                                >
+                                                    Бан чата (24ч)
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
