@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const secret = searchParams.get('secret');
 
     const session = await getAdminSession();
-    if (!session || secret !== 'super-secret-123') {
+    if (!session) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

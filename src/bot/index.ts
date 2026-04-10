@@ -170,16 +170,22 @@ const botCommands = [
   { command: 'cancel', description: '❌ Отмена' }
 ];
 
-const launchedBotTokens = new Set<string>();
+const launchedProjectBots = new Set<string>();
 
 async function startBotInstance(project: any) {
   if (!project.botToken) return;
 
   try {
-    const decryptedToken = CryptoService.decrypt(project.botToken!);
-    if (launchedBotTokens.has(decryptedToken)) return;
+    if (launchedProjectBots.has(project.id)) return;
+    
+    let decryptedToken: string;
+    try {
+        decryptedToken = CryptoService.decrypt(project.botToken!);
+    } catch {
+        decryptedToken = project.botToken!; // Fallback in case of raw token
+    }
 
-    launchedBotTokens.add(decryptedToken);
+    launchedProjectBots.add(project.id);
     const instance = new Telegraf(decryptedToken);
     instance.catch(errorHandler);
 
@@ -193,13 +199,13 @@ async function startBotInstance(project: any) {
     // Use catch to prevent crash loop if launch fails
     instance.launch().catch(e => {
       logger.error(`ОШИБКА LAUNCH БОТА [${project.name}]:`, { error: e.message });
-      launchedBotTokens.delete(project.botToken);
+      launchedProjectBots.delete(project.id);
     });
 
     logger.info(`БОТ ЗАПУЩЕН: ${project.name} (@${project.slug})`);
   } catch (e: any) {
     logger.error(`ОШИБКА ЗАПУСКА БОТА [${project.name}]:`, { error: e.message, response: e.response });
-    launchedBotTokens.delete(project.botToken);
+    launchedProjectBots.delete(project.id);
   }
 }
 
@@ -217,7 +223,7 @@ async function checkNewBots() {
     }) as any[];
 
     for (const project of projects) {
-      if (project.botToken && !launchedBotTokens.has(project.botToken)) {
+      if (project.botToken && !launchedProjectBots.has(project.id)) {
         await startBotInstance(project);
       }
     }

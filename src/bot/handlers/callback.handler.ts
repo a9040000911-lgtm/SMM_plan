@@ -181,6 +181,12 @@ export function registerCallbackHandlers(bot: any) {
 
     // --- SHIELD APPROVAL HANDLERS ---
     bot.action(/^approve_refill_(.+)_(\d+)$/, async (ctx: any) => {
+        const userId = ctx.from!.id;
+        const user = await prisma.user.findUnique({ where: { tgId: BigInt(userId) } });
+        if (!user || (!['ADMIN', 'SUPPORT', 'SEO'].includes(user.role) && !user.isGlobalAdmin)) {
+            return ctx.answerCbQuery('⛔ Доступ запрещен. Только для администраторов.', { show_alert: true });
+        }
+
         const orderId = ctx.match[1];
         const dropAmount = parseInt(ctx.match[2]);
 
@@ -195,6 +201,12 @@ export function registerCallbackHandlers(bot: any) {
     });
 
     bot.action(/^cancel_refill_(.+)$/, async (ctx: any) => {
+        const userId = ctx.from!.id;
+        const user = await prisma.user.findUnique({ where: { tgId: BigInt(userId) } });
+        if (!user || (!['ADMIN', 'SUPPORT', 'SEO'].includes(user.role) && !user.isGlobalAdmin)) {
+            return ctx.answerCbQuery('⛔ Доступ запрещен. Только для администраторов.', { show_alert: true });
+        }
+
         await ctx.answerCbQuery('❌ Отменено');
         await ctx.editMessageText(ctx.callbackQuery.message.text + '\n\n❌ <b>ОТКЛОНЕНО:</b> Админ проигнорировал отток.', { parse_mode: 'HTML' }).catch(() => { });
     });

@@ -70,7 +70,7 @@ export class PaymentConfirmationService {
                 eventBus.emit('PAYMENT_CONFIRMED', {
                     txId: tx.id,
                     userId: tx.userId,
-                    amount: tx.amount.toNumber(),
+                    amount: tx.amount, // 1.3 FIX: Preserve Decimal precision
                     orderMetadata: tx.metadata
                 });
             }

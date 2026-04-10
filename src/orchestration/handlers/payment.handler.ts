@@ -51,38 +51,51 @@ export class PaymentOrchestrator {
             }
 
             // 3. ORCHESTRATION LOGIC
-            const processActivation = async (oid: string | number) => {
-                const orderId = typeof oid === 'string' ? parseInt(oid) : oid;
-                if (isNaN(orderId)) return;
+            const { OrderFinancialService } = await import('@/services/orders/order-financial.service');
 
-                const existingOrder = await prisma.order.findUnique({
-                    where: { id: orderId },
-                    include: { internalService: true }
-                });
+            const processActivationItems = async (orderIds: (string | number)[]) => {
+                await prisma.$transaction(async (tx) => {
+                    for (const oid of orderIds) {
+                        const orderId = typeof oid === 'string' ? parseInt(oid) : oid;
+                        if (isNaN(orderId)) continue;
 
-                if (existingOrder && existingOrder.status === 'AWAITING_PAYMENT') {
-                    const costPrice = existingOrder.internalService.lastProviderPrice
-                        ? new Decimal(existingOrder.internalService.lastProviderPrice as any).mul(existingOrder.quantity).div(1000)
-                        : new Decimal(0);
+                        const existingOrder = await tx.order.findUnique({
+                            where: { id: orderId },
+                            include: { internalService: true }
+                        });
 
-                    await prisma.order.update({
-                        where: { id: orderId },
-                        data: {
-                            status: 'PENDING',
-                            costPrice: costPrice
+                        if (existingOrder && existingOrder.status === 'AWAITING_PAYMENT') {
+                            const costPrice = existingOrder.internalService.lastProviderPrice
+                                ? new Decimal(existingOrder.internalService.lastProviderPrice as any).mul(existingOrder.quantity).div(1000)
+                                : new Decimal(0);
+
+                            // 1.1 FIX: Charge the balance (the deposit is already committed)
+                            await OrderFinancialService.chargeOrder(
+                                tx,
+                                existingOrder.userId,
+                                new Decimal(existingOrder.totalPrice),
+                                existingOrder.id,
+                                existingOrder.internalService.name
+                            );
+
+                            await tx.order.update({
+                                where: { id: orderId },
+                                data: {
+                                    status: 'PENDING',
+                                    costPrice: costPrice
+                                }
+                            });
+
+                            this.logger.info(`Order ${orderId} activated from AWAITING_PAYMENT status.`);
                         }
-                    });
-
-                    this.logger.info(`Order ${orderId} activated from AWAITING_PAYMENT status.`);
-                }
+                    }
+                });
             };
 
             if (meta.orderIds && Array.isArray(meta.orderIds)) {
-                for (const oid of meta.orderIds) {
-                    await processActivation(oid);
-                }
+                await processActivationItems(meta.orderIds);
             } else if (meta.orderId) {
-                await processActivation(meta.orderId);
+                await processActivationItems([meta.orderId]);
             } else if (meta.serviceId && meta.qty && meta.link) {
                 // Quick Order Case (re-calculating price for safety)
                 const service = await prisma.internalService.findUnique({ where: { id: String(meta.serviceId) } });

@@ -5,7 +5,10 @@
  */
 import { SignJWT, jwtVerify } from 'jose';
 
-const SECRET_KEY = process.env.NEXTAUTH_SECRET || 'FALLBACK_SECRET_DO_NOT_USE_IN_PROD';
+const SECRET_KEY = process.env.NEXTAUTH_SECRET;
+if (!SECRET_KEY) {
+    throw new Error('CRITICAL: NEXTAUTH_SECRET environment variable is missing.');
+}
 const key = new TextEncoder().encode(SECRET_KEY);
 
 export interface AdminSessionPayload {

@@ -230,7 +230,10 @@ export async function POST(req: NextRequest) {
                     return NextResponse.json({ error: `Service ${service.name} has no price configured. Please contact support.` }, { status: 422 });
                 }
 
-                const price = (Number(service.pricePer1000) * quantity) / 1000;
+                const { PricingService } = await import('@/services/finance/pricing.service');
+                const details = await PricingService.calculateOrderDetails(userId, service.id, quantity);
+                const price = details.finalPrice.toNumber();
+
                 totalBatchPrice = totalBatchPrice.plus(price);
 
                 preparedOrders.push({
@@ -310,25 +313,27 @@ export async function POST(req: NextRequest) {
 
             // 4. Create AWAITING_PAYMENT Orders
             const createdOrderIds: number[] = [];
-            for (const p of preparedOrders) {
-                const o = await prisma.order.create({
-                    data: {
-                        projectId, userId,
-                        internalServiceId: p.service.id,
-                        link: p.item.link,
-                        quantity: p.item.quantity,
-                        totalPrice: p.price,
-                        costPrice: 0,
-                        status: 'AWAITING_PAYMENT' as any,
-                        isDripFeed: !!p.item.isDripFeed,
-                        runs: p.item.isDripFeed ? Number(p.item.runs) : 1,
-                        interval: p.item.isDripFeed ? Number(p.item.interval) : 0,
-                        currentRun: 0,
-                        metadata: p.warning ? { warning: p.warning } : undefined
-                    }
-                });
-                createdOrderIds.push(o.id);
-            }
+            await prisma.$transaction(async (tx) => {
+                for (const p of preparedOrders) {
+                    const o = await tx.order.create({
+                        data: {
+                            projectId, userId,
+                            internalServiceId: p.service.id,
+                            link: p.item.link,
+                            quantity: p.item.quantity,
+                            totalPrice: p.price,
+                            costPrice: 0,
+                            status: 'AWAITING_PAYMENT' as any,
+                            isDripFeed: !!p.item.isDripFeed,
+                            runs: p.item.isDripFeed ? Number(p.item.runs) : 1,
+                            interval: p.item.isDripFeed ? Number(p.item.interval) : 0,
+                            currentRun: 0,
+                            metadata: p.warning ? { warning: p.warning } : undefined
+                        }
+                    });
+                    createdOrderIds.push(o.id);
+                }
+            });
 
             // 5. Create Transaction
             const tx = await prisma.transaction.create({
@@ -493,7 +498,9 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: `Service ${service.name} has no price configured. Please contact support.` }, { status: 422 });
         }
 
-        const totalPrice = pricePer1000.mul(quantity).div(1000);
+        const { PricingService } = await import('@/services/finance/pricing.service');
+        const details = await PricingService.calculateOrderDetails(userId, service.id, quantity);
+        const totalPrice = details.finalPrice;
 
         // 4. Scheduling Logic
         if (scheduleTime) {

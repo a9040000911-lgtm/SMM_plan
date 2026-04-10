@@ -14,6 +14,13 @@ import { bot } from '@/services/bot/bot-registry';
 
 export async function POST(req: NextRequest) {
   try {
+    const { checkRateLimit, getRealIp } = await import('@/services/core/rate-limiter');
+    const ip = getRealIp(req);
+    const rl = await checkRateLimit('admin_auth', ip);
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Слишком много попыток входа. Пожалуйста, подождите.' }, { status: 429 });
+    }
+
     const body = await req.json();
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     let user = null;
@@ -99,6 +106,10 @@ export async function POST(req: NextRequest) {
 
       if (adminCount === 0) {
         console.log(`[AUTH BOOTSTRAP] No admins found. Promoting ${normalizedEmail} to Super Admin.`);
+
+        if (!password || password.length < 8) {
+          return NextResponse.json({ error: 'Пароль администратора должен быть не менее 8 символов' }, { status: 400 });
+        }
 
         const hashedPassword = await bcrypt.hash(password, 10);
         let bootstrapUser = await prisma.user.findFirst({

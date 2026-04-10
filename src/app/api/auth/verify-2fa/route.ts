@@ -27,8 +27,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Неверный код' }, { status: 400 });
         }
 
-        const masterKey = process.env.ADMIN_MASTER_KEY;
-        if (user.twoFactorCode !== code && code !== masterKey) {
+        if (user.twoFactorCode !== code) {
             return NextResponse.json({ error: 'Неверный код подтверждения' }, { status: 400 });
         }
 

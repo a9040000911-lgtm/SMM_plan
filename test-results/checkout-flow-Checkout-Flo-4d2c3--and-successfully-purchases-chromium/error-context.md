@@ -1,0 +1,437 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - region "Notifications alt+T"
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Smmplan" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - img [ref=e7]
+          - generic [ref=e12]: Smmplan
+        - navigation [ref=e13]:
+          - link "Каталог" [ref=e14] [cursor=pointer]:
+            - /url: /catalog
+          - link "Оптовый заказ New" [ref=e15] [cursor=pointer]:
+            - /url: /mass
+            - text: Оптовый заказ
+            - generic [ref=e16]: New
+          - link "Академия Deep" [ref=e17] [cursor=pointer]:
+            - /url: /academy
+            - text: Академия
+            - generic [ref=e18]: Deep
+          - link "О нас" [ref=e19] [cursor=pointer]:
+            - /url: /about
+          - link "FAQ" [ref=e20] [cursor=pointer]:
+            - /url: /faq
+        - generic [ref=e21]:
+          - link [ref=e22] [cursor=pointer]:
+            - /url: /cart
+            - img [ref=e23]
+          - link "Войти" [ref=e27] [cursor=pointer]:
+            - /url: /login
+            - button "Войти" [ref=e28]:
+              - img [ref=e29]
+              - text: Войти
+    - main [ref=e32]:
+      - main [ref=e34]:
+        - generic [ref=e37]:
+          - generic [ref=e38]:
+            - generic [ref=e40]:
+              - generic [ref=e42]: 🎁 Статус Первопроходца (Скидка 20%)
+              - generic [ref=e43]: "Осталось мест: 12"
+            - heading "Вставьте ссылку ➔" [level=1] [ref=e45]:
+              - generic [ref=e47]: Вставьте
+              - generic [ref=e48]:
+                - generic [ref=e51]: ссылку
+                - generic [ref=e53]: ➔
+            - paragraph [ref=e54]: Аналитическая платформа для тех, кто ценит время. Прозрачное SMM-продвижение с AI-фильтрацией качества.
+            - generic [ref=e55]:
+              - generic [ref=e56]:
+                - generic [ref=e57]:
+                  - generic [ref=e58]: JS
+                  - generic [ref=e59]: MB
+                  - generic [ref=e60]: AK
+                  - generic [ref=e61]: DR
+                - generic [ref=e62]:
+                  - generic [ref=e63]:
+                    - img [ref=e64]
+                    - generic [ref=e66]: 4.9/5
+                  - generic [ref=e67]: от 45.0k+ брендов
+              - link "Полный каталог AI-сервисов" [ref=e69] [cursor=pointer]:
+                - /url: /catalog
+                - img [ref=e71]
+                - generic [ref=e73]:
+                  - text: Полный каталог
+                  - text: AI-сервисов
+          - generic [ref=e76]:
+            - generic [ref=e77]:
+              - generic [ref=e78]:
+                - generic [ref=e79]: ~850.0k+
+                - generic [ref=e80]: Orders
+              - generic [ref=e82]:
+                - generic [ref=e83]: 99.9%
+                - generic [ref=e84]: Uptime
+              - generic [ref=e86]:
+                - generic [ref=e87]: AI
+                - generic [ref=e88]: Safety
+            - generic [ref=e91]: "Сейчас на сайте: 152 • Последний заказ: 3 мин. назад"
+            - generic [ref=e93]:
+              - textbox "Вставь ссылку для подбора..." [ref=e95]
+              - button "Подобрать услуги" [ref=e96]:
+                - img [ref=e97]
+                - generic [ref=e99]: Подобрать услуги
+            - generic [ref=e100]:
+              - generic [ref=e101] [cursor=pointer]:
+                - img [ref=e103]
+                - generic [ref=e106]:
+                  - heading "Отложенный заказ" [level=3] [ref=e107]
+                  - paragraph [ref=e108]: Планировщик старта
+              - generic [ref=e109] [cursor=pointer]:
+                - img [ref=e111]
+                - generic [ref=e114]:
+                  - heading "Плавная накрутка" [level=3] [ref=e115]
+                  - paragraph [ref=e116]: Умный Drip-feed
+              - generic [ref=e117] [cursor=pointer]:
+                - img [ref=e119]
+                - generic [ref=e121]:
+                  - heading "Поддержка 24/7" [level=3] [ref=e122]
+                  - paragraph [ref=e123]: Наши эксперты всегда на связи и готовы помочь вам с любым вопросом.
+        - generic [ref=e124]:
+          - generic [ref=e125]:
+            - generic [ref=e126]:
+              - generic [ref=e127]: Academy / Knowledge Hub
+              - heading "Экспертные стратегии 2026" [level=2] [ref=e128]:
+                - text: Экспертные
+                - text: стратегии 2026
+            - link "Все статьи" [ref=e129] [cursor=pointer]:
+              - /url: /academy
+          - generic [ref=e130]:
+            - link "Dictionary Глоссарий для новичков Разбираем сленг, типы ботов и нюансы накрутки простыми словами. Открыть словарь" [ref=e131] [cursor=pointer]:
+              - /url: /glossary
+              - generic [ref=e133]:
+                - generic [ref=e134]: Dictionary
+                - heading "Глоссарий для новичков" [level=3] [ref=e135]:
+                  - text: Глоссарий
+                  - text: для новичков
+                - paragraph [ref=e136]: Разбираем сленг, типы ботов и нюансы накрутки простыми словами.
+                - generic [ref=e137]:
+                  - text: Открыть словарь
+                  - img [ref=e138]
+            - 'link "Telegram Как набрать первых 1000 подписчиков в Telegram: Гид 2026 Подробнее" [ref=e140] [cursor=pointer]':
+              - /url: /academy/telegram-subscribers-guide-2026
+              - generic [ref=e141]: Telegram
+              - 'heading "Как набрать первых 1000 подписчиков в Telegram: Гид 2026" [level=3] [ref=e142]'
+              - generic [ref=e143]:
+                - text: Подробнее
+                - img [ref=e144]
+            - 'link "Instagram Instagram Reels 2026: Наука удержания и виральности Подробнее" [ref=e146] [cursor=pointer]':
+              - /url: /academy/instagram-reels-retention-guide-2026
+              - generic [ref=e147]: Instagram
+              - 'heading "Instagram Reels 2026: Наука удержания и виральности" [level=3] [ref=e148]'
+              - generic [ref=e149]:
+                - text: Подробнее
+                - img [ref=e150]
+            - 'link "YouTube YouTube Watch Time: Как попасть в РР (Рекомендованное) Подробнее" [ref=e152] [cursor=pointer]':
+              - /url: /academy/youtube-watch-time-algorithm-2026
+              - generic [ref=e153]: YouTube
+              - 'heading "YouTube Watch Time: Как попасть в РР (Рекомендованное)" [level=3] [ref=e154]'
+              - generic [ref=e155]:
+                - text: Подробнее
+                - img [ref=e156]
+        - generic [ref=e159]:
+          - generic [ref=e160]:
+            - heading "Доказанная эффективность" [level=2] [ref=e161]
+            - button "Добавить мой отзыв" [ref=e162]
+          - generic [ref=e166]:
+            - generic [ref=e167]:
+              - generic [ref=e168]:
+                - generic [ref=e169]:
+                  - img [ref=e170]
+                  - img [ref=e172]
+                  - img [ref=e174]
+                  - img [ref=e176]
+                  - img [ref=e178]
+                - paragraph [ref=e180]: Перепробовал десяток сервисов, но Smmplan реально удивил. Подписчики пришли быстро.
+              - generic [ref=e181]:
+                - img [ref=e184]
+                - generic [ref=e188]:
+                  - heading "Алексей С." [level=4] [ref=e189]
+                  - paragraph [ref=e190]: Telegram-блогер
+            - generic [ref=e191]:
+              - generic [ref=e192]:
+                - generic [ref=e193]:
+                  - img [ref=e194]
+                  - img [ref=e196]
+                  - img [ref=e198]
+                  - img [ref=e200]
+                  - img [ref=e202]
+                - paragraph [ref=e204]: Постоянно использую для клиентских проектов. Очень выручает 'мгновенный заказ'!
+              - generic [ref=e205]:
+                - img [ref=e208]
+                - generic [ref=e212]:
+                  - heading "Мария В." [level=4] [ref=e213]
+                  - paragraph [ref=e214]: SMM-специалист
+            - generic [ref=e215]:
+              - generic [ref=e216]:
+                - generic [ref=e217]:
+                  - img [ref=e218]
+                  - img [ref=e220]
+                  - img [ref=e222]
+                  - img [ref=e224]
+                  - img [ref=e226]
+                - paragraph [ref=e228]: Сделал пробный заказ на продвижение ВК группы. Результат превзошел ожидания.
+              - generic [ref=e229]:
+                - img [ref=e232]
+                - generic [ref=e236]:
+                  - heading "Игорь Д." [level=4] [ref=e237]
+                  - paragraph [ref=e238]: Владелец бизнеса
+        - generic [ref=e240]:
+          - generic [ref=e241]:
+            - generic [ref=e242]:
+              - link "Smmplan Premium SMM" [ref=e243] [cursor=pointer]:
+                - /url: /
+                - img [ref=e245]
+                - generic [ref=e250]:
+                  - generic [ref=e251]: Smmplan
+                  - generic [ref=e252]: Premium SMM
+              - generic [ref=e254]:
+                - generic [ref=e255]:
+                  - generic [ref=e256]:
+                    - img [ref=e257]
+                    - generic [ref=e259]: 4.9/5
+                  - generic [ref=e260]: Rating
+                - generic [ref=e261]:
+                  - generic [ref=e262]: 45.0k+
+                  - generic [ref=e263]: Brands
+            - generic [ref=e264]:
+              - generic [ref=e265]:
+                - img [ref=e266]
+                - generic [ref=e269]: Safe Order
+              - button [ref=e270]:
+                - img [ref=e271]
+          - generic [ref=e275]:
+            - generic [ref=e276]:
+              - generic:
+                - generic:
+                  - img "telegram"
+              - generic [ref=e277]:
+                - generic [ref=e278]:
+                  - text: Активная услуга
+                  - heading "Подписчики (Россия) — Эконом" [level=2] [ref=e279]
+                  - generic [ref=e280]:
+                    - generic [ref=e281]:
+                      - text: 1,44 ₽
+                      - generic [ref=e282]: / шт
+                    - generic [ref=e283]: •
+                    - generic [ref=e284]: от 900 шт
+                - generic [ref=e285]:
+                  - button "Характеристики услуги" [ref=e286]:
+                    - img [ref=e287]
+                  - button "Изменить" [ref=e289]
+            - generic [ref=e290]:
+              - generic [ref=e291]:
+                - img [ref=e292]
+                - text: Стандартная
+              - generic [ref=e295]:
+                - img [ref=e296]
+                - text: Стандарт
+              - generic [ref=e298]:
+                - img [ref=e299]
+                - text: "Списания: Минимальные"
+            - generic [ref=e302]:
+              - generic [ref=e303]:
+                - generic [ref=e305]:
+                  - img "telegram" [ref=e308]
+                  - generic [ref=e309]:
+                    - generic [ref=e310]: Ссылка на Пост telegram
+                    - textbox "https://t.me/example" [ref=e311]: https://t.me/e2etest/1
+                - generic [ref=e312]:
+                  - generic [ref=e313]:
+                    - button [ref=e314]:
+                      - img [ref=e315]
+                    - generic [ref=e317]:
+                      - spinbutton [ref=e318]: "900"
+                      - generic [ref=e319]: Количество
+                    - button [ref=e320]:
+                      - img [ref=e321]
+                  - generic [ref=e323]:
+                    - button "900" [ref=e324]
+                    - button "902" [ref=e325]
+                    - button "905" [ref=e326]
+                    - button "910" [ref=e327]
+                    - button "925" [ref=e328]
+              - generic [ref=e329]:
+                - generic [ref=e330]:
+                  - generic [ref=e332]:
+                    - generic [ref=e333]:
+                      - img [ref=e334]
+                      - generic [ref=e337]:
+                        - generic [ref=e338]: Ваш Email для чека
+                        - textbox "mail@example.com" [ref=e339]: e2e-checkout@smmplan.pro
+                      - generic [ref=e340]: Требуется Пароль
+                    - generic [ref=e341]:
+                      - generic [ref=e342]:
+                        - img [ref=e343]
+                        - generic [ref=e347]:
+                          - generic [ref=e348]:
+                            - generic [ref=e349]: Введите пароль
+                            - button "Забыли пароль?" [ref=e350]
+                          - textbox "••••••••" [active] [ref=e351]
+                        - button [ref=e352]:
+                          - img [ref=e353]
+                      - paragraph [ref=e357]: Для этого email уже существует аккаунт. Пожалуйста, введите пароль или запросите код из письма для подтверждения личности.
+                  - generic [ref=e358]:
+                    - generic [ref=e359]:
+                      - generic [ref=e360]:
+                        - generic [ref=e361]: Итоговая стоимость
+                        - generic [ref=e362]:
+                          - generic [ref=e363]: 1 298,43
+                          - generic [ref=e364]: ₽
+                      - button "Оплатить заказ" [disabled] [ref=e365]:
+                        - text: Оплатить заказ
+                        - img [ref=e366]
+                    - button [disabled] [ref=e368]:
+                      - img [ref=e369]
+                - generic [ref=e372]:
+                  - generic [ref=e373]:
+                    - img [ref=e374]
+                    - text: Безопасная оплата
+                  - generic [ref=e377]: •
+                  - generic [ref=e378]:
+                    - img [ref=e379]
+                    - text: Мгновенный старт
+                  - generic [ref=e381]: •
+                  - generic [ref=e382]:
+                    - img [ref=e383]
+                    - text: Гарантия
+                - button "Продвинутые настройки" [ref=e387]:
+                  - img [ref=e389]
+                  - text: Продвинутые настройки
+                - generic [ref=e392]:
+                  - button "Drip-Feed Растянуть выполнение" [ref=e394]:
+                    - generic [ref=e395]:
+                      - img [ref=e397]
+                      - generic [ref=e401]:
+                        - generic [ref=e402]: Drip-Feed
+                        - text: Растянуть выполнение
+                  - button "Планировщик Отложенный старт" [ref=e405]:
+                    - generic [ref=e406]:
+                      - img [ref=e408]
+                      - generic [ref=e410]:
+                        - generic [ref=e411]: Планировщик
+                        - text: Отложенный старт
+          - generic [ref=e414]:
+            - generic [ref=e417]: Карта / СБП / Крипто
+            - generic [ref=e418]: •
+            - generic [ref=e419]: Гарантия возврата
+            - generic [ref=e420]: •
+            - link "Оферта" [ref=e421] [cursor=pointer]:
+              - /url: /terms
+    - generic [ref=e422]:
+      - button "Отзывы" [ref=e423]:
+        - img [ref=e424]
+        - generic: Отзывы
+      - button "Нашли баг?" [ref=e426]:
+        - img [ref=e427]
+        - generic: Нашли баг?
+    - generic [ref=e438]:
+      - generic [ref=e439]:
+        - generic [ref=e440]:
+          - img [ref=e442]
+          - generic [ref=e447]: ~850.0k+
+        - generic [ref=e448]: Заказов выполнено
+      - generic [ref=e449]:
+        - generic [ref=e450]:
+          - img [ref=e452]
+          - generic [ref=e454]: 45.0k+
+        - generic [ref=e455]: Счастливых клиентов
+      - generic [ref=e456]:
+        - generic [ref=e457]:
+          - img [ref=e459]
+          - generic [ref=e461]: 99.9%
+        - generic [ref=e462]: Успешных стартов
+      - generic [ref=e463]:
+        - generic [ref=e464]:
+          - img [ref=e466]
+          - generic [ref=e471]: ~4м
+        - generic [ref=e472]: Средняя скорость
+    - contentinfo [ref=e473]:
+      - generic [ref=e475]:
+        - generic [ref=e476]:
+          - generic [ref=e477]:
+            - img [ref=e479]
+            - generic [ref=e484]: Smmplan
+          - paragraph [ref=e485]: Профессиональная платформа для роста и доминирования в социальных медиа. С 2024 года.
+          - generic [ref=e486]:
+            - link "telegram Техподдержка 24/7 Написать в Telegram" [ref=e487] [cursor=pointer]:
+              - /url: https://t.me/smmplan
+              - img "telegram" [ref=e490]
+              - generic [ref=e491]:
+                - generic [ref=e492]: Техподдержка 24/7
+                - generic [ref=e493]: Написать в Telegram
+            - link "Для предложений & PR support@smmplan.pro" [ref=e494] [cursor=pointer]:
+              - /url: mailto:support@smmplan.pro
+              - img [ref=e496]
+              - generic [ref=e499]:
+                - generic [ref=e500]: Для предложений & PR
+                - generic [ref=e501]: support@smmplan.pro
+        - generic [ref=e502]:
+          - heading "Навигация" [level=4] [ref=e503]
+          - generic [ref=e504]:
+            - link "Главная" [ref=e505] [cursor=pointer]:
+              - /url: /
+            - link "Каталог" [ref=e506] [cursor=pointer]:
+              - /url: /catalog
+            - link "Помощь (FAQ)" [ref=e507] [cursor=pointer]:
+              - /url: /faq
+            - link "AI-Ready Manifest" [ref=e508] [cursor=pointer]:
+              - /url: /ai-manifest
+              - text: AI-Ready Manifest
+              - img [ref=e509]
+            - link "Отзывы" [ref=e511] [cursor=pointer]:
+              - /url: /#reviews
+        - generic [ref=e512]:
+          - heading "Юридически" [level=4] [ref=e513]
+          - generic [ref=e514]:
+            - link "Условия использования" [ref=e515] [cursor=pointer]:
+              - /url: /legal/terms
+            - link "Приватность" [ref=e516] [cursor=pointer]:
+              - /url: /legal/privacy
+            - link "Публичная оферта" [ref=e517] [cursor=pointer]:
+              - /url: /legal/offer
+        - generic [ref=e518]:
+          - heading "Безопасная оплата" [level=4] [ref=e519]
+          - generic [ref=e520]:
+            - img "Visa" [ref=e521]
+            - img "Mastercard" [ref=e522]
+            - img "Mir" [ref=e523]
+            - generic [ref=e524]:
+              - img [ref=e525]
+              - generic [ref=e527]: Crypto
+          - generic [ref=e530]: Secure Protocol v4.0
+      - generic [ref=e531]:
+        - generic [ref=e532]: © 2024-2026 Smmplan. Все права защищены. Эксклюзивная платформа профессионального уровня.
+        - paragraph [ref=e533]: "*Компания Meta, которой принадлежат Instagram и Facebook, признана экстремистской организацией и запрещена на территории РФ"
+  - generic [ref=e535]:
+    - img [ref=e537]
+    - generic [ref=e539]:
+      - generic [ref=e540]:
+        - heading "Файлы Cookie" [level=3] [ref=e541]
+        - button [ref=e542]:
+          - img [ref=e543]
+      - paragraph [ref=e546]:
+        - text: Мы используем файлы cookie для улучшения работы сайта. Оставаясь на сайте, вы соглашаетесь с нашей
+        - link "Политикой в отношении использования файлов cookie" [ref=e547] [cursor=pointer]:
+          - /url: /docs/policy
+        - text: .
+      - generic [ref=e548]:
+        - button "Принять" [ref=e549]
+        - link "Подробнее" [ref=e550] [cursor=pointer]:
+          - /url: /docs/policy
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e556] [cursor=pointer]:
+    - img [ref=e557]
+  - alert [ref=e560]: "Smmplan | Продвижение в соцсетях №1: Telegram, Instagram, VK, YouTube | Smmplan"
+```

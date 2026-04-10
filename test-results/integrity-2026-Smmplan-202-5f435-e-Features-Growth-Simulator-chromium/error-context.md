@@ -1,0 +1,295 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - region "Notifications alt+T"
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Smmplan" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - img [ref=e7]
+          - generic [ref=e12]: Smmplan
+        - navigation [ref=e13]:
+          - link "Каталог" [ref=e14] [cursor=pointer]:
+            - /url: /catalog
+          - link "Оптовый заказ New" [ref=e15] [cursor=pointer]:
+            - /url: /mass
+            - text: Оптовый заказ
+            - generic [ref=e16]: New
+          - link "Академия Deep" [ref=e17] [cursor=pointer]:
+            - /url: /academy
+            - text: Академия
+            - generic [ref=e18]: Deep
+          - link "О нас" [ref=e19] [cursor=pointer]:
+            - /url: /about
+          - link "FAQ" [ref=e20] [cursor=pointer]:
+            - /url: /faq
+        - generic [ref=e21]:
+          - link [ref=e22] [cursor=pointer]:
+            - /url: /cart
+            - img [ref=e23]
+          - link "Войти" [ref=e27] [cursor=pointer]:
+            - /url: /login
+            - button "Войти" [ref=e28]:
+              - img [ref=e29]
+              - text: Войти
+    - main [ref=e32]:
+      - main [ref=e34]:
+        - generic [ref=e37]:
+          - generic [ref=e38]:
+            - generic [ref=e40]:
+              - generic [ref=e42]: 🎁 Статус Первопроходца (Скидка 20%)
+              - generic [ref=e43]: "Осталось мест: 12"
+            - heading "Вставьте ссылку ➔" [level=1] [ref=e45]:
+              - generic [ref=e47]: Вставьте
+              - generic [ref=e48]:
+                - generic [ref=e51]: ссылку
+                - generic [ref=e53]: ➔
+            - paragraph [ref=e54]: Аналитическая платформа для тех, кто ценит время. Прозрачное SMM-продвижение с AI-фильтрацией качества.
+            - generic [ref=e55]:
+              - generic [ref=e56]:
+                - generic [ref=e57]:
+                  - generic [ref=e58]: JS
+                  - generic [ref=e59]: MB
+                  - generic [ref=e60]: AK
+                  - generic [ref=e61]: DR
+                - generic [ref=e62]:
+                  - generic [ref=e63]:
+                    - img [ref=e64]
+                    - generic [ref=e66]: 4.9/5
+                  - generic [ref=e67]: от 45.0k+ брендов
+              - link "Полный каталог AI-сервисов" [ref=e69] [cursor=pointer]:
+                - /url: /catalog
+                - img [ref=e71]
+                - generic [ref=e73]:
+                  - text: Полный каталог
+                  - text: AI-сервисов
+          - generic [ref=e76]:
+            - generic [ref=e77]:
+              - generic [ref=e78]:
+                - generic [ref=e79]: ~850.0k+
+                - generic [ref=e80]: Orders
+              - generic [ref=e82]:
+                - generic [ref=e83]: 99.9%
+                - generic [ref=e84]: Uptime
+              - generic [ref=e86]:
+                - generic [ref=e87]: AI
+                - generic [ref=e88]: Safety
+            - generic [ref=e91]: "Сейчас на сайте: 195 • Последний заказ: 3 мин. назад"
+            - generic [ref=e93]:
+              - textbox "Вставь ссылку для подбора..." [ref=e95]
+              - button "Подобрать услуги" [ref=e96]:
+                - img [ref=e97]
+                - generic [ref=e99]: Подобрать услуги
+            - generic [ref=e100]:
+              - generic [ref=e101] [cursor=pointer]:
+                - img [ref=e103]
+                - generic [ref=e106]:
+                  - heading "Отложенный заказ" [level=3] [ref=e107]
+                  - paragraph [ref=e108]: Планировщик старта
+              - generic [ref=e109] [cursor=pointer]:
+                - img [ref=e111]
+                - generic [ref=e114]:
+                  - heading "Плавная накрутка" [level=3] [ref=e115]
+                  - paragraph [ref=e116]: Умный Drip-feed
+              - generic [ref=e117] [cursor=pointer]:
+                - img [ref=e119]
+                - generic [ref=e121]:
+                  - heading "Поддержка 24/7" [level=3] [ref=e122]
+                  - paragraph [ref=e123]: Наши эксперты всегда на связи и готовы помочь вам с любым вопросом.
+        - generic [ref=e124]:
+          - generic [ref=e125]:
+            - generic [ref=e126]:
+              - generic [ref=e127]: Academy / Knowledge Hub
+              - heading "Экспертные стратегии 2026" [level=2] [ref=e128]:
+                - text: Экспертные
+                - text: стратегии 2026
+            - link "Все статьи" [ref=e129] [cursor=pointer]:
+              - /url: /academy
+          - generic [ref=e130]:
+            - link "Dictionary Глоссарий для новичков Разбираем сленг, типы ботов и нюансы накрутки простыми словами. Открыть словарь" [ref=e131] [cursor=pointer]:
+              - /url: /glossary
+              - generic [ref=e133]:
+                - generic [ref=e134]: Dictionary
+                - heading "Глоссарий для новичков" [level=3] [ref=e135]:
+                  - text: Глоссарий
+                  - text: для новичков
+                - paragraph [ref=e136]: Разбираем сленг, типы ботов и нюансы накрутки простыми словами.
+                - generic [ref=e137]:
+                  - text: Открыть словарь
+                  - img [ref=e138]
+            - 'link "Telegram Как набрать первых 1000 подписчиков в Telegram: Гид 2026 Подробнее" [ref=e140] [cursor=pointer]':
+              - /url: /academy/telegram-subscribers-guide-2026
+              - generic [ref=e141]: Telegram
+              - 'heading "Как набрать первых 1000 подписчиков в Telegram: Гид 2026" [level=3] [ref=e142]'
+              - generic [ref=e143]:
+                - text: Подробнее
+                - img [ref=e144]
+            - 'link "Instagram Instagram Reels 2026: Наука удержания и виральности Подробнее" [ref=e146] [cursor=pointer]':
+              - /url: /academy/instagram-reels-retention-guide-2026
+              - generic [ref=e147]: Instagram
+              - 'heading "Instagram Reels 2026: Наука удержания и виральности" [level=3] [ref=e148]'
+              - generic [ref=e149]:
+                - text: Подробнее
+                - img [ref=e150]
+            - 'link "YouTube YouTube Watch Time: Как попасть в РР (Рекомендованное) Подробнее" [ref=e152] [cursor=pointer]':
+              - /url: /academy/youtube-watch-time-algorithm-2026
+              - generic [ref=e153]: YouTube
+              - 'heading "YouTube Watch Time: Как попасть в РР (Рекомендованное)" [level=3] [ref=e154]'
+              - generic [ref=e155]:
+                - text: Подробнее
+                - img [ref=e156]
+        - generic [ref=e159]:
+          - generic [ref=e160]:
+            - heading "Доказанная эффективность" [level=2] [ref=e161]
+            - button "Добавить мой отзыв" [ref=e162]
+          - generic [ref=e166]:
+            - generic [ref=e167]:
+              - generic [ref=e168]:
+                - generic [ref=e169]:
+                  - img [ref=e170]
+                  - img [ref=e172]
+                  - img [ref=e174]
+                  - img [ref=e176]
+                  - img [ref=e178]
+                - paragraph [ref=e180]: Перепробовал десяток сервисов, но Smmplan реально удивил. Подписчики пришли быстро.
+              - generic [ref=e181]:
+                - img [ref=e184]
+                - generic [ref=e188]:
+                  - heading "Алексей С." [level=4] [ref=e189]
+                  - paragraph [ref=e190]: Telegram-блогер
+            - generic [ref=e191]:
+              - generic [ref=e192]:
+                - generic [ref=e193]:
+                  - img [ref=e194]
+                  - img [ref=e196]
+                  - img [ref=e198]
+                  - img [ref=e200]
+                  - img [ref=e202]
+                - paragraph [ref=e204]: Постоянно использую для клиентских проектов. Очень выручает 'мгновенный заказ'!
+              - generic [ref=e205]:
+                - img [ref=e208]
+                - generic [ref=e212]:
+                  - heading "Мария В." [level=4] [ref=e213]
+                  - paragraph [ref=e214]: SMM-специалист
+            - generic [ref=e215]:
+              - generic [ref=e216]:
+                - generic [ref=e217]:
+                  - img [ref=e218]
+                  - img [ref=e220]
+                  - img [ref=e222]
+                  - img [ref=e224]
+                  - img [ref=e226]
+                - paragraph [ref=e228]: Сделал пробный заказ на продвижение ВК группы. Результат превзошел ожидания.
+              - generic [ref=e229]:
+                - img [ref=e232]
+                - generic [ref=e236]:
+                  - heading "Игорь Д." [level=4] [ref=e237]
+                  - paragraph [ref=e238]: Владелец бизнеса
+    - generic [ref=e239]:
+      - button "Отзывы" [ref=e240]:
+        - img [ref=e241]
+        - generic: Отзывы
+      - button "Нашли баг?" [ref=e243]:
+        - img [ref=e244]
+        - generic: Нашли баг?
+    - generic [ref=e255]:
+      - generic [ref=e256]:
+        - generic [ref=e257]:
+          - img [ref=e259]
+          - generic [ref=e264]: ~850.0k+
+        - generic [ref=e265]: Заказов выполнено
+      - generic [ref=e266]:
+        - generic [ref=e267]:
+          - img [ref=e269]
+          - generic [ref=e271]: 45.0k+
+        - generic [ref=e272]: Счастливых клиентов
+      - generic [ref=e273]:
+        - generic [ref=e274]:
+          - img [ref=e276]
+          - generic [ref=e278]: 99.9%
+        - generic [ref=e279]: Успешных стартов
+      - generic [ref=e280]:
+        - generic [ref=e281]:
+          - img [ref=e283]
+          - generic [ref=e288]: ~4м
+        - generic [ref=e289]: Средняя скорость
+    - contentinfo [ref=e290]:
+      - generic [ref=e292]:
+        - generic [ref=e293]:
+          - generic [ref=e294]:
+            - img [ref=e296]
+            - generic [ref=e301]: Smmplan
+          - paragraph [ref=e302]: Профессиональная платформа для роста и доминирования в социальных медиа. С 2024 года.
+          - generic [ref=e303]:
+            - link "telegram Техподдержка 24/7 Написать в Telegram" [ref=e304] [cursor=pointer]:
+              - /url: https://t.me/smmplan
+              - img "telegram" [ref=e307]
+              - generic [ref=e308]:
+                - generic [ref=e309]: Техподдержка 24/7
+                - generic [ref=e310]: Написать в Telegram
+            - link "Для предложений & PR support@smmplan.pro" [ref=e311] [cursor=pointer]:
+              - /url: mailto:support@smmplan.pro
+              - img [ref=e313]
+              - generic [ref=e316]:
+                - generic [ref=e317]: Для предложений & PR
+                - generic [ref=e318]: support@smmplan.pro
+        - generic [ref=e319]:
+          - heading "Навигация" [level=4] [ref=e320]
+          - generic [ref=e321]:
+            - link "Главная" [ref=e322] [cursor=pointer]:
+              - /url: /
+            - link "Каталог" [ref=e323] [cursor=pointer]:
+              - /url: /catalog
+            - link "Помощь (FAQ)" [ref=e324] [cursor=pointer]:
+              - /url: /faq
+            - link "AI-Ready Manifest" [ref=e325] [cursor=pointer]:
+              - /url: /ai-manifest
+              - text: AI-Ready Manifest
+              - img [ref=e326]
+            - link "Отзывы" [ref=e328] [cursor=pointer]:
+              - /url: /#reviews
+        - generic [ref=e329]:
+          - heading "Юридически" [level=4] [ref=e330]
+          - generic [ref=e331]:
+            - link "Условия использования" [ref=e332] [cursor=pointer]:
+              - /url: /legal/terms
+            - link "Приватность" [ref=e333] [cursor=pointer]:
+              - /url: /legal/privacy
+            - link "Публичная оферта" [ref=e334] [cursor=pointer]:
+              - /url: /legal/offer
+        - generic [ref=e335]:
+          - heading "Безопасная оплата" [level=4] [ref=e336]
+          - generic [ref=e337]:
+            - img "Visa" [ref=e338]
+            - img "Mastercard" [ref=e339]
+            - img "Mir" [ref=e340]
+            - generic [ref=e341]:
+              - img [ref=e342]
+              - generic [ref=e344]: Crypto
+          - generic [ref=e347]: Secure Protocol v4.0
+      - generic [ref=e348]:
+        - generic [ref=e349]: © 2024-2026 Smmplan. Все права защищены. Эксклюзивная платформа профессионального уровня.
+        - paragraph [ref=e350]: "*Компания Meta, которой принадлежат Instagram и Facebook, признана экстремистской организацией и запрещена на территории РФ"
+  - generic [ref=e352]:
+    - img [ref=e354]
+    - generic [ref=e356]:
+      - generic [ref=e357]:
+        - heading "Файлы Cookie" [level=3] [ref=e358]
+        - button [ref=e359]:
+          - img [ref=e360]
+      - paragraph [ref=e363]:
+        - text: Мы используем файлы cookie для улучшения работы сайта. Оставаясь на сайте, вы соглашаетесь с нашей
+        - link "Политикой в отношении использования файлов cookie" [ref=e364] [cursor=pointer]:
+          - /url: /docs/policy
+        - text: .
+      - generic [ref=e365]:
+        - button "Принять" [ref=e366]
+        - link "Подробнее" [ref=e367] [cursor=pointer]:
+          - /url: /docs/policy
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e373] [cursor=pointer]:
+    - img [ref=e374]
+  - alert [ref=e377]
+```

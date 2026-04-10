@@ -5,7 +5,6 @@
  */
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
-import { LedgerService } from '@/services/finance';
 import { PromoService } from '@/services/users';
 import { PricingService } from '@/services/finance/pricing.service';
 import { SubscriptionService } from '@/services/finance/subscription.service';
@@ -133,6 +132,33 @@ export class MassOrderService {
                 }
             });
 
+            // 1.4 FIX: Atomic deduction first
+            const updateResult = await tx.user.updateMany({
+                where: { id: userId, balance: { gte: totalBatchAmount } },
+                data: {
+                    balance: { decrement: totalBatchAmount },
+                    spent: { increment: totalBatchAmount }
+                }
+            });
+
+            if (updateResult.count === 0) {
+                throw new Error('Insufficient balance or concurrent transaction conflict');
+            }
+
+            // Create single ledger entry for the batch instead of N separate entries
+            await tx.ledgerEntry.create({
+                data: {
+                    projectId,
+                    userId,
+                    amount: totalBatchAmount,
+                    referenceId: `MASS_ORDER_${batch.id}`,
+                    type: 'WITHDRAWAL',
+                    balanceBefore: user.balance,
+                    balanceAfter: user.balance.minus(totalBatchAmount),
+                    description: `Оплата массовых заказов (${validatedEntries.length} шт.)`
+                }
+            });
+
             for (const entry of validatedEntries) {
                 const order = await tx.order.create({
                     data: {
@@ -171,20 +197,6 @@ export class MassOrderService {
                         status: 'COMPLETED'
                     }
                 });
-
-                await LedgerService.record(tx, userId, entry.price, 'WITHDRAWAL', order.id.toString(), `Bulk Order: ${entry.serviceName}`);
-            }
-
-            const updateResult = await tx.user.updateMany({
-                where: { id: userId, balance: { gte: totalBatchAmount } },
-                data: {
-                    balance: { decrement: totalBatchAmount },
-                    spent: { increment: totalBatchAmount }
-                }
-            });
-
-            if (updateResult.count === 0) {
-                throw new Error('Insufficient balance or concurrent transaction conflict');
             }
 
             // Loyalty Check
