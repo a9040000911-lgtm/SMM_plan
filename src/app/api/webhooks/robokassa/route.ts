@@ -84,6 +84,14 @@ export async function POST(req: NextRequest) {
                 return;
             }
 
+            // L-04 FIX: Verify paid amount matches expected amount
+            const paidAmount = parseFloat(outSum);
+            const expectedAmount = currentTx.amount.toNumber();
+            if (Math.abs(paidAmount - expectedAmount) > 0.01) {
+                console.error(`[Robokassa Webhook] AMOUNT MISMATCH: paid=${outSum}, expected=${expectedAmount}, txId=${targetId}`);
+                throw new Error(`AMOUNT_MISMATCH: paid=${paidAmount}, expected=${expectedAmount}`);
+            }
+
             // Атомарный захват PENDING транзакции (Race Condition Prevention)
             const captureResult = await tx.transaction.updateMany({
                 where: { id: targetId, status: 'PENDING' },

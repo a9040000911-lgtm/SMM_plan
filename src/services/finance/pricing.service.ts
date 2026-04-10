@@ -13,7 +13,7 @@ import { PricingRules } from '@/types/project-settings';
 import { SubscriptionService } from '@/services/finance/subscription.service';
 
 import { MarkupRule, LadderLevel } from '@/services/types';
-import { ACQUIRING_SAFE_MAX, SAFETY_FLOOR_MARKUP, MAX_MARKUP_MULTIPLIER as MAX_MARKUP_CONST, B2B_DEFAULT_MARKUP } from './financial-constants';
+import { ACQUIRING_SAFE_MAX, SAFETY_FLOOR_MARKUP, MAX_MARKUP_MULTIPLIER as MAX_MARKUP_CONST, B2B_DEFAULT_MARKUP, MAX_TOTAL_DISCOUNT } from './financial-constants';
 
 export class PricingService {
     private static readonly LADDER_SETTINGS_KEY = 'PRICING_LADDER';
@@ -418,6 +418,8 @@ export class PricingService {
             }
         }
 
+        // L-07 FIX: Hard ceiling on total stacked discount
+        if (discountPercent > MAX_TOTAL_DISCOUNT) discountPercent = MAX_TOTAL_DISCOUNT;
         if (discountPercent > 100) discountPercent = 100;
 
         let discountAmount = basePrice.mul(discountPercent).div(100).toDecimalPlaces(2);

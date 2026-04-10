@@ -9,6 +9,7 @@ import { Header } from "@/components/stitch/layout/Header";
 import { Footer } from "@/components/stitch/layout/Footer";
 import { MobileAppNav } from "@/components/stitch/layout/MobileAppNav";
 import { FloatingActionButtons } from "@/components/client/FloatingActionButtons";
+import { CookieConsentBanner } from "@/components/stitch/ui/CookieConsentBanner";
 import { StatsSection } from "@/components/stitch/sections/StatsSection";
 import { ClientLayoutWrapper } from "@/components/stitch/layout/ClientLayoutWrapper";
 
@@ -68,6 +69,7 @@ export default async function ClientLayout({ children }: { children: React.React
                         >
                             {children}
                         </ClientLayoutWrapper>
+                        <CookieConsentBanner />
                     </div>
                 </TmaRedirect>
             </CmsBridgeProvider>

@@ -8,7 +8,10 @@ import { prisma } from '../lib/prisma';
 import { CryptoService } from '../services/core/crypto.service';
 
 async function main() {
-    const token = '8580696545:AAEOttbpfVTmGyQMNHQ5e22WBKpKiBq6zVc';
+    const token = process.env.TEST_BOT_TOKEN || '';
+    if (!token) {
+        console.warn('⚠️ TEST_BOT_TOKEN не задан, проект создается без бота');
+    }
     const encryptedToken = CryptoService.encrypt(token);
 
     try {

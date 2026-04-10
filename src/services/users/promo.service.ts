@@ -66,6 +66,16 @@ export class PromoService {
 
     if (!promo) return { valid: false, error: 'Промокод не найден' };
 
+    // L-08 FIX: Check expiration date
+    if (promo.expiresAt && promo.expiresAt < new Date()) {
+      return { valid: false, error: 'Промокод истёк' };
+    }
+
+    // L-08 FIX: Check global usage limit
+    if (promo.maxUses !== null && promo.currentUses >= promo.maxUses) {
+      return { valid: false, error: 'Лимит использований исчерпан' };
+    }
+
     const userPromo = await prisma.userPromo.findUnique({
       where: { userId_promoCodeId: { userId, promoCodeId: promo.id } }
     });

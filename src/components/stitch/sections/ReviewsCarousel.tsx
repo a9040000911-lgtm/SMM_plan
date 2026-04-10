@@ -90,11 +90,7 @@ export const ReviewsCarousel = memo(({ reviews }: ReviewsCarouselProps) => {
     const [isMobile, setIsMobile] = useState(false);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-    const displayReviews = useMemo(() => reviews.length > 0 ? reviews : [
-        { id: '1', userName: 'Алексей С.', userRole: 'Telegram-блогер', rating: 5, text: 'Перепробовал десяток сервисов, но Smmplan реально удивил. Подписчики пришли быстро.', isAnonymous: false },
-        { id: '2', userName: 'Мария В.', userRole: 'SMM-специалист', rating: 5, text: "Постоянно использую для клиентских проектов. Очень выручает 'мгновенный заказ'!", isAnonymous: false },
-        { id: '3', userName: 'Игорь Д.', userRole: 'Владелец бизнеса', rating: 5, text: 'Сделал пробный заказ на продвижение ВК группы. Результат превзошел ожидания.', isAnonymous: false },
-    ], [reviews]);
+    const displayReviews = useMemo(() => reviews.length > 0 ? reviews : [], [reviews]);
 
     const showNavigation = displayReviews.length > (isMobile ? 1 : 3);
 
@@ -143,6 +139,24 @@ export const ReviewsCarousel = memo(({ reviews }: ReviewsCarouselProps) => {
             <div className="relative">
                 {/* Contain with enough padding for navigation arrows and shadows */}
                 <div className="relative overflow-visible min-h-[280px] -m-4 px-12 py-4">
+                    {displayReviews.length === 0 ? (
+                        <div className="flex items-center justify-center w-full h-full min-h-[280px]">
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.6 }}
+                                className="text-center max-w-md glass rounded-3xl p-10 border border-blue-100/30"
+                            >
+                                <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-amber-400/20 to-amber-500/10 flex items-center justify-center">
+                                    <Star size={28} className="text-amber-400" />
+                                </div>
+                                <h3 className="text-lg font-black text-slate-900 mb-2">Станьте первым!</h3>
+                                <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                                    Пока ещё никто не оставил отзыв. Поделитесь своим опытом и помогите другим сделать выбор.
+                                </p>
+                            </motion.div>
+                        </div>
+                    ) : (
                     <div className={cn(
                         "flex gap-4 md:gap-6 w-full h-full",
                         !showNavigation && "justify-center"
@@ -156,6 +170,7 @@ export const ReviewsCarousel = memo(({ reviews }: ReviewsCarouselProps) => {
                             ))}
                         </AnimatePresence>
                     </div>
+                    )}
                 </div>
 
                 {/* Navigation - Only show if enough reviews */}

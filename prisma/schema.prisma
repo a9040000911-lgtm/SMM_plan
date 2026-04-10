@@ -425,6 +425,9 @@ model PromoCode {
   description     String?
   isActive        Boolean     @default(true)
   projectId       String?
+  maxUses         Int?        // L-08: null = unlimited
+  currentUses     Int         @default(0) // L-08: incremented on each use
+  expiresAt       DateTime?   // L-08: null = never expires
   orders          Order[]
   project         Project?    @relation(fields: [projectId], references: [id])
   userPromos      UserPromo[]

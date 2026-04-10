@@ -2,20 +2,22 @@
  * (c) 2024-2026 Smmplan. All rights reserved.
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
+ *
+ * TMA Orders API — Unified through OrderActivationService (L-01 / L-09 audit fix).
+ * Previously created orders directly via prisma.$transaction(), bypassing
+ * B2B billing, PricingGuard, promo tracking, and loyalty checks.
  */
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateProjectTMAData } from '@/utils/tma-auth';
 import { SafetyService } from '@/services/users';
-import { bot } from '@/services/bot/bot-registry';
-import { formatAmount } from '@/utils/formatter';
-import { LedgerService } from '@/services/finance';
+import { OrderActivationService } from '@/services/orders/order-activation.service';
 import { OrderQueueService } from '@/services/orders/order-queue.service';
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. АВТОРИЗАЦИЯ
+    // 1. АВТОРИЗАЦИЯ (unchanged — TMA-specific auth stays here)
     const auth = await validateProjectTMAData(req);
 
     if (!auth.isValid || !auth.data?.user) {
@@ -46,14 +48,13 @@ export async function POST(req: NextRequest) {
       }, { status: 422 });
     }
 
-    // 4. РАСЧЕТ СТОИМОСТИ
+    // 4. РАСЧЕТ СТОИМОСТИ (через unified PricingService)
     const service = await prisma.internalService.findUnique({ where: { id: serviceId } });
     if (!service) return NextResponse.json({ error: 'Service not found' }, { status: 404 });
 
     const { PricingService } = await import('@/services/finance/pricing.service');
-    const details = await PricingService.calculateOrderDetails(user.id, serviceId, quantity);
+    const details = await PricingService.calculateOrderDetails(user.id, serviceId, quantity, user.projectId);
     const total = details.finalPrice;
-    const discountAmount = details.discountAmount;
 
     // Проверка баланса
     if (user.balance.lt(total)) {
@@ -64,68 +65,23 @@ export async function POST(req: NextRequest) {
       }, { status: 402 });
     }
 
-    // 5. СОЗДАНИЕ ЗАКАЗА (ТРАНЗАКЦИЯ)
-    const order = await prisma.$transaction(async (tx) => {
-      // Атомарное списание баланса с проверкой (защита от Race Condition)
-      const updateResult = await tx.user.updateMany({
-        where: { id: user.id, balance: { gte: total } },
-        data: {
-          balance: { decrement: total },
-          spent: { increment: total }
-        }
-      });
-
-      if (updateResult.count === 0) throw new Error('Insufficient funds or race condition');
-
-      // ЗАПИСЬ В LEDGER
-      await LedgerService.record(tx, user.id, total, 'WITHDRAWAL', service.id, `Заказ через приложение: ${service.name}`);
-
-      const ord = await tx.order.create({
-        data: {
-          projectId: user.projectId,
-          userId: user.id,
-          internalServiceId: service.id,
-          link: link,
-          quantity: quantity,
-          totalPrice: total,
-          discountAmount: discountAmount,
-          costPrice: service.lastProviderPrice,
-          status: 'PENDING'
-        }
-      });
-
-      await tx.transaction.create({
-        data: {
-          projectId: user.projectId,
-          userId: user.id,
-          amount: total,
-          type: 'ORDER_PAYMENT',
-          provider: 'INTERNAL',
-          status: 'COMPLETED',
-          metadata: { tma: true, orderId: ord.id }
-        }
-      });
-
-      return ord;
+    // 5. СОЗДАНИЕ ЗАКАЗА — через UNIFIED OrderActivationService (L-01 FIX)
+    // This ensures: B2B billing, PricingGuard, promo tracking, loyalty checks,
+    // correct costPrice calculation (L-09 FIX), and consistent ledger entries.
+    const order = await OrderActivationService.initiateOrder({
+      userId: user.id,
+      serviceId: serviceId,
+      projectId: user.projectId,
+      link: link,
+      qty: quantity,
+      totalPrice: total,
+      discountAmount: details.discountAmount,
+      promoId: details.promoId,
+      tgId: Number(tgId),
+      username: auth.data.user.username || user.username || undefined,
     });
 
-    // 6. УВЕДОМЛЕНИЕ
-    try {
-      const { BotRegistry } = await import('@/services/bot/bot-registry');
-      const projectBot = BotRegistry.get(auth.project?.id || user.projectId);
-      const targetBot = projectBot || bot;
-
-      await targetBot.telegram.sendMessage(Number(tgId),
-        `🚀 <b>Заказ из приложения!</b>\n\n` +
-        `Услуга: ${service.name}\n` +
-        `Сумма: <b>${formatAmount(total)}₽</b>\n` +
-        `ID: <code>${order.id}</code>\n\n` +
-        `<i>Статус выполнения можно отследить в разделе "Мои заказы".</i>`,
-        { parse_mode: 'HTML' }
-      );
-    } catch (_e) { console.error('Failed to send TMA order notification'); }
-
-    // Trigger asynchronous non-blocking background queue execution instantly
+    // 6. Trigger asynchronous background queue execution
     process.nextTick(() => {
       OrderQueueService.processPendingOrders().catch(e => console.error('[TMA OrderQueue Error]', e));
     });
@@ -134,8 +90,15 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('[API TMA Orders Error]:', error);
+
+    // Provide specific error messages for known errors
+    if (error.message === 'B2B_INSUFFICIENT_FUNDS') {
+      return NextResponse.json({ error: 'Organization balance insufficient' }, { status: 402 });
+    }
+    if (error.message === 'SERVICE_UNAVAILABLE') {
+      return NextResponse.json({ error: 'Service is currently unavailable' }, { status: 503 });
+    }
+
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
-
-

@@ -121,6 +121,12 @@ export class OrderActivationService {
                     update: { usedAt: new Date() },
                     create: { userId: data.userId, promoCodeId: data.promoId, usedAt: new Date() }
                 });
+
+                // L-08 FIX: Increment global usage counter
+                await txPrisma.promoCode.update({
+                    where: { id: data.promoId },
+                    data: { currentUses: { increment: 1 } }
+                });
             }
 
             await txPrisma.transaction.create({

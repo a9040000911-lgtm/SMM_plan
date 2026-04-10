@@ -52,3 +52,7 @@ npro-*.json
 .env.production
 .env.development
 .env.test
+
+# Database Backups
+backups/
+*.sql

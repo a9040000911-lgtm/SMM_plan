@@ -79,7 +79,13 @@ export class DripFeedService {
         }
 
         const mappings = order.internalService.providerMappings;
-        const qtyToOrder = Math.floor(order.quantity / order.runs);
+        // L-03 FIX: Last run gets remainder to prevent unit loss
+        // e.g. qty=1000, runs=3: runs 1-2 get 333, run 3 gets 334 (total=1000)
+        const baseQty = Math.floor(order.quantity / order.runs);
+        const isLastRun = (order.currentRun + 1) >= order.runs;
+        const qtyToOrder = isLastRun
+            ? order.quantity - baseQty * (order.runs - 1)
+            : baseQty;
         const userPaidPer1000 = order.totalPrice.mul(1000).div(order.quantity);
 
         // Пробуем запустить через Smart Switching
