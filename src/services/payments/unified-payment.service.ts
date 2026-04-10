@@ -42,6 +42,28 @@ export class UnifiedPaymentService {
         metadata?: Record<string, any>
     ): Promise<UnifiedPaymentResult> {
         try {
+            // [FIX 3.4] Idempotency Protection: Preventing double-clicks for identical deposit forms
+            const thirtySecondsAgo = new Date(Date.now() - 30 * 1000);
+            const recentPending = await prisma.transaction.findFirst({
+                where: {
+                    userId,
+                    amount: new Decimal(amount),
+                    status: 'PENDING',
+                    createdAt: { gte: thirtySecondsAgo }
+                }
+            });
+
+            if (recentPending && recentPending.externalId) {
+                 // Return the already generated URL if user double clicked within 30 seconds
+                 const url = recentPending.metadata && typeof recentPending.metadata === 'object' && 'paymentUrl' in recentPending.metadata 
+                     ? (recentPending.metadata as any).paymentUrl 
+                     : await (await PaymentProviderFactory.getProviderForProject(projectId)).createPayment(projectId, amount, recentPending.id, description).then(p => p.confirmationUrl);
+                 
+                 if (url) {
+                      return { success: true, confirmationUrl: url, transactionId: recentPending.id, paymentId: recentPending.externalId };
+                 }
+            }
+
             // 1. Получаем провайдер из settings проекта (YooKassa или Robokassa)
             const provider = await PaymentProviderFactory.getProviderForProject(projectId);
             const providerName = provider.constructor.name === 'YooKassaProvider' ? 'YOOKASSA' : 'ROBOKASSA';
@@ -87,8 +109,8 @@ export class UnifiedPaymentService {
                 data: {
                     externalId: payment.id,
                     metadata: {
-                        ...metadata,
-                        description,
+                        ...transaction.metadata as any,
+                        paymentUrl: payment.confirmationUrl,
                         paymentId: payment.id,
                         provider: providerName,
                         createdAt: new Date().toISOString()

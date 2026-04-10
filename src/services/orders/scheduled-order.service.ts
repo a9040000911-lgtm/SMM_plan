@@ -57,7 +57,7 @@ export class ScheduledOrderService {
             if (scheduled.totalPrice && scheduled.user.balance.lt(scheduled.totalPrice)) {
                 await tx.scheduledOrder.update({
                     where: { id },
-                    data: { status: 'FAILED' }
+                    data: { status: 'CANCELED' }
                 });
                 console.warn(`[ScheduledOrderService] Order ${id} failed: Insufficient balance`);
 
@@ -115,6 +115,16 @@ export class ScheduledOrderService {
                 if (scheduled.repeatInterval && scheduled.repeatInterval > 0) {
                     const nextTime = new Date(scheduled.scheduleTime.getTime() + scheduled.repeatInterval * 60000);
 
+                    // [FIX 3.2] Recalculate price dynamically for recurring order to prevent stale prices
+                    let newTotalPrice = scheduled.totalPrice;
+                    try {
+                        const { PricingService } = await import('@/services/finance/pricing.service');
+                        const details = await PricingService.calculateOrderDetails(scheduled.userId, scheduled.serviceId, Number(scheduled.quantity));
+                        newTotalPrice = details.finalPrice;
+                    } catch (e) {
+                         console.warn(`[ScheduledOrderService] Could not recalculate price for ${id}, using stale price.`);
+                    }
+
                     await tx.scheduledOrder.create({
                         data: {
                             userId: scheduled.userId,
@@ -122,8 +132,8 @@ export class ScheduledOrderService {
                             projectId: scheduled.projectId,
                             link: scheduled.link,
                             quantity: scheduled.quantity,
-                            totalPrice: scheduled.totalPrice,
-                            costPrice: scheduled.costPrice,
+                            totalPrice: newTotalPrice,
+                            costPrice: liveCostPrice, // Use updated live costPrice
                             scheduleTime: nextTime,
                             repeatInterval: scheduled.repeatInterval,
                             status: 'PENDING'
@@ -139,7 +149,7 @@ export class ScheduledOrderService {
 
                 await tx.scheduledOrder.update({
                     where: { id },
-                    data: { status: 'FAILED' }
+                    data: { status: 'CANCELED' }
                 });
 
                 // Notify user about the failure

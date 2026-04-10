@@ -66,9 +66,9 @@ export class SessionService {
 
     const session = await prisma.session.findUnique({
       where: {
-        projectId_userId: {
+        projectId_tgId: {
           projectId,
-          userId: BigInt(userId)
+          tgId: BigInt(userId)
         }
       }
     });
@@ -90,15 +90,15 @@ export class SessionService {
 
     await prisma.session.upsert({
       where: {
-        projectId_userId: {
+        projectId_tgId: {
           projectId,
-          userId: BigInt(userId)
+          tgId: BigInt(userId)
         }
       },
       update: { data: state as any },
       create: {
         projectId,
-        userId: BigInt(userId),
+        tgId: BigInt(userId),
         data: state as any
       }
     });
@@ -113,7 +113,7 @@ export class SessionService {
     await prisma.session.deleteMany({
       where: {
         projectId,
-        userId: BigInt(userId)
+        tgId: BigInt(userId)
       }
     });
   }

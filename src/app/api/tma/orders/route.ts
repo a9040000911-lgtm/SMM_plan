@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
     const { PricingService } = await import('@/services/finance/pricing.service');
     const details = await PricingService.calculateOrderDetails(user.id, serviceId, quantity);
     const total = details.finalPrice;
+    const discountAmount = details.discountAmount;
 
     // Проверка баланса
     if (user.balance.lt(total)) {

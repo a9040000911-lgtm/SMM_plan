@@ -27,7 +27,6 @@ export const Category = {
     REACTIONS: 'REACTIONS',
     COMMENTS: 'COMMENTS',
     BOOSTS: 'BOOSTS',
-    SHARES: 'SHARES',
     SAVES: 'SAVES',
     POLLS: 'POLLS',
     DISLIKES: 'DISLIKES',
@@ -41,6 +40,10 @@ export const Category = {
     REFERRALS: 'REFERRALS',
     WATCH_TIME: 'WATCH_TIME',
     STARS: 'STARS',
+    RECOVER: 'RECOVER',
+    PREMIUM: 'PREMIUM',
+    TRAFFIC: 'TRAFFIC',
+    STREAMS: 'STREAMS',
     OTHER: 'OTHER'
 } as const;
 

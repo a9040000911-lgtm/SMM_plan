@@ -246,21 +246,28 @@ export async function POST(req: NextRequest) {
 
             // 3. Check Balance (If Auth)
             if (session) {
-                const user = await prisma.user.findUnique({ where: { id: userId } });
-                if (user && user.balance.gte(totalBatchPrice)) {
-                    const balanceBefore = user.balance;
-                    const balanceAfter = user.balance.minus(totalBatchPrice);
-                    
+                let paidFromBalance = false;
+
+                try {
                     // Pay from balance (Atomic)
                     await prisma.$transaction(async (tx) => {
+                        const freshUser = await tx.user.findUnique({ where: { id: userId }, select: { balance: true } });
+                        if (!freshUser || freshUser.balance.lt(totalBatchPrice)) {
+                            throw new Error('INSUFFICIENT_FUNDS');
+                        }
+
+                        // Атомарное списание
                         const updated = await tx.user.updateMany({
                             where: { id: userId, balance: { gte: totalBatchPrice } },
                             data: { balance: { decrement: totalBatchPrice }, spent: { increment: totalBatchPrice } }
                         });
 
                         if (updated.count === 0) {
-                            throw new Error('Недостаточно средств на балансе.');
+                            throw new Error('INSUFFICIENT_FUNDS');
                         }
+
+                        const balanceAfter = freshUser.balance.minus(totalBatchPrice);
+                        const balanceBefore = freshUser.balance;
 
                         const referenceId = `BATCH_PAY_${userId}_${Date.now()}`;
                         await tx.ledgerEntry.create({
@@ -303,9 +310,18 @@ export async function POST(req: NextRequest) {
                             });
                         }
                     });
+                    paidFromBalance = true;
+                } catch (e: any) {
+                    if (e.message !== 'INSUFFICIENT_FUNDS') {
+                        throw e; // Если реальная БД ошибка — пробрасываем выше
+                    }
+                    // Иначе просто идём дальше создавать AWAITING_PAYMENT заказы
+                }
+
+                if (paidFromBalance) {
                     // Trigger asynchronous non-blocking background queue execution instantly 
                     process.nextTick(() => {
-                        OrderQueueService.processPendingOrders().catch(e => console.error('[Batch OrderQueue Error]', e));
+                        OrderQueueService.processPendingOrders().catch((e: any) => console.error('[Batch OrderQueue Error]', e));
                     });
                     return NextResponse.json({ success: true, requiresPayment: false });
                 }

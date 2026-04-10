@@ -27,7 +27,7 @@ export const LINK_RULES: LinkRule[] = [
         platform: IntelligencePlatform.INSTAGRAM,
         type: 'post',
         pattern: /instagram\.com\/(?:p|reel|tv)\/([\w-]+)/,
-        suggestedCategories: ['LIKES', 'SAVES', 'REELS_SHARES', 'IMPRESSIONS'],
+        suggestedCategories: ['LIKES', 'SAVES', 'REPOSTS', 'IMPRESSIONS'],
         context: 'viral_momentum'
     },
     {
@@ -62,7 +62,7 @@ export const LINK_RULES: LinkRule[] = [
         platform: IntelligencePlatform.TIKTOK,
         type: 'short_link',
         pattern: /(?:vm\.tiktok\.com|vt\.tiktok\.com|tiktok\.com\/t)\/([\w-]+)/,
-        suggestedCategories: ['VIEWS', 'LIKES', 'SHARES'],
+        suggestedCategories: ['VIEWS', 'LIKES', 'REPOSTS'],
         context: 'mobile_viral'
     },
     {
@@ -97,7 +97,7 @@ export const LINK_RULES: LinkRule[] = [
         platform: IntelligencePlatform.TIKTOK,
         type: 'video',
         pattern: /tiktok\.com\/@[\w.]+\/video\/(\d+)/,
-        suggestedCategories: ['VIEWS', 'LIKES', 'SHARES'],
+        suggestedCategories: ['VIEWS', 'LIKES', 'REPOSTS'],
         context: 'viral_reach'
     },
     {

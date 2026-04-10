@@ -164,7 +164,8 @@ export function ServicesTableWidget() {
         selectedInternalId, setSelectedInternalId,
         platforms, providers,
         selectedIds, setSelectedIds, overrides, setServices, categories,
-        paginatedServices, currentPage, setCurrentPage, totalPages
+        paginatedServices, currentPage, setCurrentPage, totalPages,
+        activeProjectId
     } = useServiceDashboard();
     const { unit, formatPrice } = usePriceDisplay();
 

@@ -17,7 +17,7 @@ export const CATEGORY_MAPPINGS: Record<string, CategoryMapping[]> = {
         { category: 'FOLLOWERS', keywords: ['followers', 'подписчики'], triggers: ['subs', 'profiles'] },
         { category: 'LIKES', keywords: ['likes', 'лайки'], triggers: ['hearts', 'favs'] },
         { category: 'VIEWS', keywords: ['views', 'просмотры', 'reels'], triggers: ['impressions', 'reach'] },
-        { category: 'SHARES', keywords: ['shares', 'репосты'], triggers: ['dm', 'send'] }
+        { category: 'REPOSTS', keywords: ['shares', 'репосты'], triggers: ['dm', 'send'] }
     ],
     [IntelligencePlatform.TELEGRAM]: [
         { category: 'FOLLOWERS', keywords: ['members', 'subs', 'подписчики'], triggers: ['adds', 'joins'] },

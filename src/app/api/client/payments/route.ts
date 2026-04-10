@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
         const { amount } = await req.json();
         const numAmount = parseFloat(amount);
 
-        if (isNaN(numAmount) || numAmount < 10) {
-            return NextResponse.json({ error: 'Минимальная сумма пополнения - 10 ₽' }, { status: 400 });
+        if (isNaN(numAmount) || numAmount < 10 || numAmount > 1000000) {
+            return NextResponse.json({ error: 'Сумма пополнения должна быть от 10 до 1 000 000 ₽' }, { status: 400 });
         }
 
         const projectId = await getClientProjectId();

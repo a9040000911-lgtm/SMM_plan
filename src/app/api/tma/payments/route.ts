@@ -11,6 +11,7 @@ import { TelegramAuth } from '@/lib/telegram/auth';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 export async function POST(req: NextRequest) {
+  let transaction: any = null;
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('tma ')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -35,8 +36,6 @@ export async function POST(req: NextRequest) {
     const tgId = BigInt(auth.data.user.id);
     const user = await prisma.user.findFirst({ where: { tgId } });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-
-    let transaction: any = null;
 
     // Создаем запись транзакции в базе
     transaction = await prisma.transaction.create({

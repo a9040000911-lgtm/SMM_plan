@@ -37,22 +37,37 @@ class ServiceEventBus {
      */
     on<K extends keyof ServiceEvents>(event: K, handler: (payload: ServiceEvents[K]) => void | Promise<void>): void {
         this.bus.on(event, async (payload) => {
-            try {
-                await handler(payload);
-            } catch (error: any) {
-                this.logger.error(`Error in handler for event [${event}]:`, {
-                    error: error.message,
-                    stack: error.stack,
-                    payload
-                });
-                
-                // If it's not a SYSTEM_ALERT event itself, emit an alert
-                if (event !== 'SYSTEM_ALERT') {
-                    this.emit('SYSTEM_ALERT', {
-                        level: 'ERROR',
-                        message: `Event handler failure for ${event}`,
-                        details: { error: error.message }
+            let attempt = 0;
+            const maxAttempts = 3;
+            // [FIX 3.5] Retry logic for failed event handlers
+            while (attempt < maxAttempts) {
+                try {
+                    await handler(payload);
+                    return; // Success, exit retry loop
+                } catch (error: any) {
+                    attempt++;
+                    
+                    const isLastAttempt = attempt >= maxAttempts;
+                    
+                    this.logger[isLastAttempt ? 'error' : 'warn'](`Error in handler for event [${event}] (Attempt ${attempt}/${maxAttempts}):`, {
+                        error: error.message,
+                        stack: error.stack,
+                        payload
                     });
+                    
+                    if (isLastAttempt) {
+                        // If it's not a SYSTEM_ALERT event itself, emit an alert
+                        if (event !== 'SYSTEM_ALERT') {
+                            this.emit('SYSTEM_ALERT', {
+                                level: 'ERROR',
+                                message: `Event handler failure for ${event} after ${maxAttempts} attempts`,
+                                details: { error: error.message }
+                            });
+                        }
+                    } else {
+                        // Exponential backoff: 1s, then 2s
+                        await new Promise(res => setTimeout(res, attempt * 1000));
+                    }
                 }
             }
         });

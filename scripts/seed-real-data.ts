@@ -1,6 +1,7 @@
 import { PrismaClient, Role, Decimal } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import * as dotenv from 'dotenv';
+import crypto from 'crypto';
 import { ServiceSyncService } from '../src/services/providers/sync.service';
 
 dotenv.config();
@@ -26,7 +27,8 @@ async function main() {
 
     // 2. Create Admin (CRITICAL: DO FIRST)
     console.log('Step 2: Creating/Updating admin art@artmspektr.ru...');
-    const hashedPassword = await bcrypt.hash('admin12345678', 10);
+    const rawPassword = process.env.ADMIN_SEED_PASSWORD || crypto.randomBytes(8).toString('hex');
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
     const existingAdmin = await prisma.user.findFirst({
         where: { email: 'art@artmspektr.ru' }
@@ -89,7 +91,7 @@ async function main() {
     console.log('✅ RECOVERY COMPLETE!');
     console.log('You can now log in at /admin');
     console.log('Email: art@artmspektr.ru');
-    console.log('Password: admin12345678');
+    console.log(`Password: ${rawPassword}`);
     console.log('-------------------------------------------');
 }
 

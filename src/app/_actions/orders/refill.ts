@@ -35,10 +35,6 @@ export async function refillOrder(orderId: number) {
             return { success: false, error: 'Для данного заказа не предусмотрена гарантия (Refill)' };
         }
 
-        if (!order.warrantyDays || order.warrantyDays <= 0) {
-            return { success: false, error: 'Для данного заказа не предусмотрена гарантия (Refill)' };
-        }
-
         // Check if warranty period has expired
         const warrantyExpiry = new Date(order.createdAt);
         warrantyExpiry.setDate(warrantyExpiry.getDate() + order.warrantyDays);

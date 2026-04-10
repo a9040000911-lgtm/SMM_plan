@@ -61,6 +61,7 @@ model Project {
   subscriptions           Subscription[]
   organizationId          String?
   organization            Organization?            @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  settings                Settings[]
 
   @@map("Project")
 }
@@ -282,7 +283,7 @@ model BusinessExpense {
 model ServiceCategory {
   id               String                   @id @default(uuid())
   name             String
-  slug             String?
+  slug             String                   @default("")
   description      String?
   icon             String?
   platform         Platform
@@ -408,7 +409,7 @@ model BatchOrder {
   userId      String
   totalAmount Decimal  @db.Decimal(20, 2)
   orderCount  Int
-  status      String   @default("COMPLETED")
+  status      OrderStatus @default(COMPLETED)
   createdAt   DateTime @default(now())
   project     Project? @relation(fields: [projectId], references: [id])
   user        User     @relation(fields: [userId], references: [id])
@@ -614,16 +615,7 @@ model Transaction {
   @@map("Transaction")
 }
 
-model ProviderLog {
-  id        Int      @id @default(autoincrement())
-  serviceId Int
-  eventType String
-  oldValue  String?
-  newValue  String?
-  createdAt DateTime @default(now())
 
-  @@map("ProviderLog")
-}
 
 model ProviderBalanceLog {
   id         String   @id @default(uuid())
@@ -641,6 +633,7 @@ model Settings {
   value     String
   id        String  @id @default(uuid())
   projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, key])
   @@map("Settings")
@@ -662,13 +655,13 @@ model News {
 
 model Session {
   id        String   @id @default(uuid())
-  userId    BigInt
+  tgId      BigInt   @map("userId") // Mapped to userId in DB but clearly named tgId (Telegram ID)
   data      Json
   updatedAt DateTime @updatedAt
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id])
 
-  @@unique([projectId, userId])
+  @@unique([projectId, tgId])
   @@map("Session")
 }
 
@@ -888,7 +881,7 @@ model ScheduledOrder {
   costPrice      Decimal?        @db.Decimal(20, 4)
   scheduleTime   DateTime
   repeatInterval Int?
-  status         String          @default("PENDING")
+  status         OrderStatus     @default(PENDING)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   project        Project?        @relation(fields: [projectId], references: [id])
@@ -1185,7 +1178,7 @@ model CmsString {
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   page        CmsPage? @relation(fields: [pageId], references: [id])
 
-  @@unique([projectId, key, pageId])
+  @@unique([projectId, key, pageId]) // Note: NULL pageId means global string. PG allows multiple NULLs, so app-level uniqueness is required for globals.
   @@index([projectId, key])
   @@map("CmsString")
 }

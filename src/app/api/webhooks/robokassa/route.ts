@@ -23,13 +23,13 @@ export async function POST(req: NextRequest) {
 
         console.log(`[Robokassa Webhook] Received result for ${shpTxId || invId}, OutSum: ${outSum}`);
 
-        if (!outSum || !invId || !signatureValue) {
-            console.error('[Robokassa Webhook] Missing required parameters');
+        if (!outSum || !invId || !signatureValue || !shpTxId) {
+            console.error('[Robokassa Webhook] Missing required parameters or Shp_txId');
             return new NextResponse('ERR: Missing parameters', { status: 400 });
         }
 
-        // Найти транзакцию по Shp_txId (или fallback на invId, если старый заказ)
-        const targetId = shpTxId || invId;
+        // [FIX 3.7] Найти транзакцию СТРОГО по Shp_txId (UUID). InvId в Robokassa - это число, он не совместим с UUID Smmplan.
+        const targetId = shpTxId;
         const transaction = await prisma.transaction.findUnique({
             where: { id: targetId },
             include: {
