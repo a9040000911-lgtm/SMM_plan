@@ -37,6 +37,14 @@ const nextConfig = {
     webpackMemoryOptimizations: false,
     webpackBuildWorker: false,
   },
+  webpack: (config) => {
+    // Не следовать по симлинкам Windows (Application Data = EPERM junction)
+    config.resolve = {
+      ...config.resolve,
+      symlinks: false,
+    };
+    return config;
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
