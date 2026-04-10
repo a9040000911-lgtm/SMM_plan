@@ -30,9 +30,9 @@ test.describe('Guest Checkout: Magic Token Auto-Registration', () => {
 
         // Ensure test service exists
         const svc = await prisma.internalService.upsert({
-            where: { id: 'e2e-srv-1' },
+            where: { id: 'e2e-srv-tel-1' },
             create: {
-                id: 'e2e-srv-1',
+                id: 'e2e-srv-tel-1',
                 name: 'E2E Test Views',
                 description: 'E2E Test Service Description',
                 isActive: true,
@@ -44,7 +44,11 @@ test.describe('Guest Checkout: Magic Token Auto-Registration', () => {
                 targetType: 'POST',
                 geo: 'All',
             },
-            update: { isActive: true },
+            update: { 
+                isActive: true,
+                platform: 'TELEGRAM',
+                category: 'VIEWS'
+            },
         });
         serviceId = svc.id;
 
@@ -65,12 +69,7 @@ test.describe('Guest Checkout: Magic Token Auto-Registration', () => {
         });
     });
 
-    test.afterAll(async () => {
-        // Cleanup auto-created guest user
-        await prisma.user.deleteMany({ where: { email: guestEmail } });
-    });
-
-    // ────────────────────────────────────────────────────────────────
+    // Cleanup removed due to foreign key constraint with Order logs.
     // GAP-1: New guest → auto-registration + loginToken returned
     // ────────────────────────────────────────────────────────────────
     test('GAP-1: New guest email → auto-creates user and returns loginToken', async ({ request }) => {

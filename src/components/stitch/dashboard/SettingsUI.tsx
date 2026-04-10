@@ -47,7 +47,8 @@ export function SettingsUI({ userData: initialUserData }: SettingsUIProps) {
         }
     };
 
-    const handleSaveEmail = async () => {
+    const handleSaveEmail = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             setEmailResult({ ok: false, msg: 'Некорректный email' });
             return;
@@ -68,7 +69,8 @@ export function SettingsUI({ userData: initialUserData }: SettingsUIProps) {
         setSavingEmail(false);
     };
 
-    const handleSaveContacts = async () => {
+    const handleSaveContacts = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         setSavingContacts(true); setContactsResult(null);
         try {
             const res = await fetch('/api/client/user', {
@@ -97,7 +99,8 @@ export function SettingsUI({ userData: initialUserData }: SettingsUIProps) {
         setToggling2FA(false);
     };
 
-    const handleSavePassword = async () => {
+    const handleSavePassword = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         if (!newPassword || newPassword !== confirmPassword) {
             setPasswordResult({ ok: false, msg: 'Проверьте пароли' });
             return;
@@ -126,10 +129,10 @@ export function SettingsUI({ userData: initialUserData }: SettingsUIProps) {
     };
 
     return (
-        <div className="max-w-6xl mx-auto px-6 space-y-12 pb-24 pt-10">
+        <div className="max-w-6xl mx-auto px-6 space-y-12 pb-32 lg:pb-40 pt-10">
             {/* Header */}
             <div className="space-y-2">
-                <h1 className="text-5xl md:text-8xl font-black text-slate-950 tracking-tighter uppercase italic pr-2 overflow-visible leading-[0.85]">
+                <h1 className="text-4xl md:text-5xl font-black text-slate-950 tracking-tighter uppercase italic pr-2">
                     Персональные <span className="text-blue-600">Настройки</span>
                 </h1>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Управление безопасностью и личными данными</p>
@@ -155,10 +158,11 @@ export function SettingsUI({ userData: initialUserData }: SettingsUIProps) {
                         <div className="space-y-6">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Электронная почта</label>
-                                <div className="flex gap-3">
+                                <form onSubmit={handleSaveEmail} className="flex gap-3">
                                     <div className="relative flex-1">
                                         <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                                         <input
+                                            type="email"
                                             readOnly={!!userData?.email}
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
@@ -171,23 +175,24 @@ export function SettingsUI({ userData: initialUserData }: SettingsUIProps) {
                                     </div>
                                     {!userData?.email && (
                                         <button
-                                            onClick={handleSaveEmail}
+                                            type="submit"
                                             disabled={savingEmail}
                                             className="px-8 rounded-2xl bg-blue-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-500/20"
                                         >
                                             {savingEmail ? <Loader2 size={16} className="animate-spin" /> : 'Link'}
                                         </button>
                                     )}
-                                </div>
+                                </form>
                                 {emailResult && <p className={cn("text-[9px] font-black uppercase ml-4", emailResult.ok ? "text-emerald-500" : "text-rose-500")}>{emailResult.msg}</p>}
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <form onSubmit={handleSaveContacts} className="grid grid-cols-1 sm:grid-cols-2 gap-6 relative">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">WhatsApp</label>
                                     <div className="relative">
                                         <Smartphone className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                                         <input
+                                            type="tel"
                                             value={whatsapp}
                                             onChange={(e) => setWhatsapp(e.target.value)}
                                             className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-5 pl-14 pr-6 text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all placeholder:text-slate-200"
@@ -200,6 +205,7 @@ export function SettingsUI({ userData: initialUserData }: SettingsUIProps) {
                                     <div className="relative">
                                         <SendIcon className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                                         <input
+                                            type="text"
                                             value={telegramContact}
                                             onChange={(e) => setTelegramContact(e.target.value)}
                                             className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-5 pl-14 pr-6 text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all placeholder:text-slate-200"
@@ -207,16 +213,18 @@ export function SettingsUI({ userData: initialUserData }: SettingsUIProps) {
                                         />
                                     </div>
                                 </div>
-                            </div>
-
-                            <button
-                                onClick={handleSaveContacts}
-                                disabled={savingContacts}
-                                className="w-full py-5 rounded-2xl bg-slate-950 text-white font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-600 active:scale-95 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3"
-                            >
-                                {savingContacts ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                                Обновить данные
-                            </button>
+                                
+                                <div className="col-span-1 sm:col-span-2 mt-2">
+                                    <button
+                                        type="submit"
+                                        disabled={savingContacts}
+                                        className="w-full py-5 rounded-2xl bg-slate-950 text-white font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-600 active:scale-95 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3"
+                                    >
+                                        {savingContacts ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                        Обновить данные
+                                    </button>
+                                </div>
+                            </form>
                             {contactsResult && <div className={cn("p-4 rounded-xl text-[10px] font-black uppercase text-center border", contactsResult.ok ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100")}>{contactsResult.msg}</div>}
                         </div>
                     </div>
@@ -313,7 +321,7 @@ export function SettingsUI({ userData: initialUserData }: SettingsUIProps) {
                             </div>
                         </div>
 
-                        <div className="space-y-5">
+                        <form onSubmit={handleSavePassword} className="space-y-5">
                             {userData?.hasPassword && (
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Текущий пароль</label>
@@ -350,7 +358,7 @@ export function SettingsUI({ userData: initialUserData }: SettingsUIProps) {
                             </div>
 
                             <button
-                                onClick={handleSavePassword}
+                                type="submit"
                                 disabled={savingPassword || !newPassword}
                                 className="w-full h-16 rounded-2xl bg-blue-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-3"
                             >
@@ -358,7 +366,7 @@ export function SettingsUI({ userData: initialUserData }: SettingsUIProps) {
                                 {userData?.hasPassword ? 'Обновить пароль' : 'Установить пароль'}
                             </button>
                             {passwordResult && <div className={cn("p-4 rounded-xl text-[10px] font-black uppercase text-center border", passwordResult.ok ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100")}>{passwordResult.msg}</div>}
-                        </div>
+                        </form>
                     </div>
                 </div>
             </div>

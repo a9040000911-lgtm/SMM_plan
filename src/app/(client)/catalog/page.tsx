@@ -8,7 +8,7 @@ import { getClientProjectId } from '@/utils/project-resolver';
 import { getTenantDomain } from '@/lib/tenant/server';
 import { CompactCatalog } from '@/components/stitch/catalog/CompactCatalog';
 import { CatalogService } from '@/services/core/catalog.service';
-import { Zap } from 'lucide-react';
+import { Zap, ArrowDown } from 'lucide-react';
 import type { Metadata } from 'next';
 import { PLATFORM_SEO, DEFAULT_SEO } from '@/configs/seo-platforms';
 
@@ -107,10 +107,6 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
                     <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-indigo-400/10 blur-[100px] rounded-full pointer-events-none" />
 
                     <div className="relative z-10 flex flex-col items-center text-center space-y-6">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-blue-100 rounded-full shadow-sm">
-                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                            <span className="text-[10px] font-black text-blue-600/60 uppercase tracking-widest">Live Catalog v4.0</span>
-                        </div>
 
                         <h1 className="text-5xl md:text-8xl font-black text-slate-900 tracking-tighter leading-[0.85]">
                             {mainH1} <br />
@@ -124,6 +120,12 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
                             <br className="hidden md:block" />
                             <span className="inline-block">Лучшие цены и мгновенный результат для вашего продвижения.</span>
                         </p>
+
+                        <div className="pt-8 flex justify-center w-full">
+                            <div className="w-14 h-14 bg-white/60 backdrop-blur-xl border border-blue-100/50 shadow-sm rounded-full flex flex-col items-center justify-center text-blue-500 animate-bounce cursor-default">
+                                <ArrowDown strokeWidth={2.5} size={24} />
+                            </div>
+                        </div>
                     </div>
                 </div>
 

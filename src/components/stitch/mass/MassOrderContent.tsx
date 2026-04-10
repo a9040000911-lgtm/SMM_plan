@@ -6,16 +6,10 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { 
-    FileText, 
-    AlertCircle, 
-    CheckCircle2, 
-    Loader2, 
-    PlusCircle
-} from "lucide-react";
+import { FileText, AlertCircle, CheckCircle2, Loader2, PlusCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export function MassOrderContent() {
+export function MassOrderContent({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
     const [ordersText, setOrdersText] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -173,7 +167,18 @@ export function MassOrderContent() {
 
                 <div className="lg:col-span-2 space-y-6">
                     <form onSubmit={handleSubmit} className="bg-card border border-border p-8 rounded-[2.5rem] shadow-2xl space-y-6">
-                        <div className="space-y-4 pt-4 border-t border-border/10">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Список заказов</label>
+                            <textarea 
+                                value={ordersText}
+                                onChange={(e) => setOrdersText(e.target.value)}
+                                placeholder="Service_ID | Quantity | Link"
+                                className="w-full h-80 bg-muted/20 border border-border focus:border-primary/50 outline-none rounded-3xl p-6 text-sm font-mono whitespace-pre resize-none transition-all"
+                            />
+                        </div>
+
+                        {!isAuthenticated && (
+                            <div className="space-y-4 pt-4 border-t border-border/10">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2 text-primary">Email для подтверждения</label>
                                 <input 
@@ -241,6 +246,7 @@ export function MassOrderContent() {
                                 )}
                             </AnimatePresence>
                         </div>
+                        )}
 
                         {status?.error && (
                             <motion.div 

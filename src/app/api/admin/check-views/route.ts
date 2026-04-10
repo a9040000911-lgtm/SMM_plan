@@ -6,10 +6,15 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
+import { getAdminSession } from '@/utils/admin-session';
+
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
+        const session = await getAdminSession();
+        if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
         const services = await prisma.internalService.findMany({
             where: {
                 serviceCategory: { categoryType: 'VIEWS' },

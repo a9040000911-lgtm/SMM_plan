@@ -90,7 +90,7 @@ export function NewOrderUI({ initialService, serviceId }: NewOrderUIProps) {
     }
 
     return (
-        <div className="space-y-10 pb-24 max-w-5xl mx-auto">
+        <div className="space-y-10 pb-32 lg:pb-40 max-w-5xl mx-auto">
             {/* Simple Back Link */}
             <Link href="/catalog" className="group flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-all">
                 <div className="w-10 h-10 bg-white border border-slate-100 rounded-xl flex items-center justify-center group-hover:bg-blue-50 group-hover:border-blue-200 transition-all">

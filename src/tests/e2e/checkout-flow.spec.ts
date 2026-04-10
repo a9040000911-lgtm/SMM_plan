@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
 import bcrypt from 'bcryptjs';
 
-test.describe.skip('Checkout Flow (User Journey)', () => {
+test.describe('Checkout Flow (User Journey)', () => {
     let testUserId: string;
 
     test.beforeAll(async () => {
@@ -48,8 +48,10 @@ test.describe.skip('Checkout Flow (User Journey)', () => {
                 targetType: 'POST',
                 geo: 'All'
             },
-            update: {
-                isActive: true
+            update: { 
+                isActive: true,
+                platform: 'TELEGRAM',
+                category: 'VIEWS'
             }
         });
     });

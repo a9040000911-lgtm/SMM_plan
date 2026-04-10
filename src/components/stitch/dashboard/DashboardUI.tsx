@@ -10,9 +10,10 @@ import { motion } from 'framer-motion';
 import {
     Package, CheckCircle2, Zap,
     ArrowUpRight, Target, Headphones,
-    TrendingUp, Wallet, ShieldCheck, Clock
+    TrendingUp, Wallet, ShieldCheck, Clock, Crown
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/utils/ui';
 import { BrandIcon } from '@/components/stitch/ui/BrandIcon';
 import { formatAmount } from '@/utils/formatter';
@@ -29,9 +30,10 @@ interface DashboardUIProps {
 
 export function DashboardUI({ user, stats, recentOrders }: DashboardUIProps) {
     const [quickLink, setQuickLink] = React.useState('');
+    const router = useRouter();
 
     return (
-        <div className="max-w-6xl mx-auto px-6 space-y-6 pb-20 pt-10">
+        <div className="max-w-6xl mx-auto px-6 space-y-6 pb-32 lg:pb-40 pt-10">
             {/* Header / Greeting */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -47,6 +49,11 @@ export function DashboardUI({ user, stats, recentOrders }: DashboardUIProps) {
                             <span className="px-2 py-0.5 bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-widest rounded-md border border-amber-100/50">
                                 Admin
                             </span>
+                        )}
+                        {user.hasPriorityPass && (
+                            <Link href="/priority-pass" className="px-2 py-0.5 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 text-[9px] font-black uppercase tracking-widest rounded-md border border-yellow-500/30 flex items-center gap-1 transition-colors">
+                                <Crown size={10} /> Priority Активен
+                            </Link>
                         )}
                     </div>
                     <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-900 leading-tight">
@@ -81,15 +88,15 @@ export function DashboardUI({ user, stats, recentOrders }: DashboardUIProps) {
                                 <div className="w-9 h-9 bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl flex items-center justify-center">
                                     <Wallet className="text-blue-400 w-4 h-4" />
                                 </div>
-                                <span className="text-blue-100/40 text-[9px] font-black uppercase tracking-[0.2em]">Ваш баланс</span>
+                                <span className="text-blue-200/80 text-[9px] font-black uppercase tracking-[0.2em]">Ваш баланс</span>
                             </div>
                         </div>
 
-                        <div className="flex items-baseline gap-2 text-white">
-                            <span className="text-5xl font-black tracking-tighter tabular-nums">
+                        <div className="flex items-baseline gap-2 text-white flex-wrap sm:flex-nowrap">
+                            <span className="text-4xl md:text-5xl font-black tracking-tighter tabular-nums whitespace-nowrap">
                                 {formatAmount(user.balance)}
                             </span>
-                            <span className="text-xl font-black text-blue-500 italic uppercase pr-2">rub&nbsp;</span>
+                            <span className="text-xl font-black text-blue-500 italic uppercase pr-2 whitespace-nowrap">rub&nbsp;</span>
                         </div>
 
                         <div className="flex items-center gap-3 pt-2">
@@ -109,24 +116,28 @@ export function DashboardUI({ user, stats, recentOrders }: DashboardUIProps) {
                         <div className="text-[9px] font-black text-blue-300 uppercase tracking-widest flex items-center gap-2">
                             <Zap size={12} /> Мгновенный заказ
                         </div>
-                        <div className="relative">
+                        <form 
+                            onSubmit={(e) => { e.preventDefault(); if (quickLink) router.push(`/catalog?link=${encodeURIComponent(quickLink)}`); }} 
+                            className="relative"
+                        >
                             <input
-                                type="text"
+                                type="url"
                                 placeholder="Вставьте ссылку..."
                                 value={quickLink}
                                 onChange={(e) => setQuickLink(e.target.value)}
-                                className="w-full bg-white/10 border border-white/10 rounded-xl py-3 px-4 text-xs font-bold text-white placeholder:text-white/20 outline-none focus:border-blue-500/50 transition-all"
+                                enterKeyHint="search"
+                                className="w-full bg-slate-900 border border-slate-700/50 rounded-xl py-3 px-4 text-xs font-bold text-white placeholder:text-slate-500 outline-none focus:border-blue-500/50 transition-all focus:bg-slate-800"
                             />
                             {quickLink && (
-                                <Link
-                                    href={`/catalog?link=${encodeURIComponent(quickLink)}`}
+                                <button
+                                    type="submit"
                                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
                                 >
                                     <ArrowUpRight size={14} />
-                                </Link>
+                                </button>
                             )}
-                        </div>
-                        <p className="text-[8px] text-white/40 font-bold leading-relaxed">
+                        </form>
+                        <p className="text-[8px] text-slate-400 font-bold leading-relaxed">
                             ИИ автоматически подберет лучшую <br /> услугу для вашего контента
                         </p>
                     </div>
@@ -173,7 +184,7 @@ export function DashboardUI({ user, stats, recentOrders }: DashboardUIProps) {
                     </div>
 
                     <div className="mt-4 flex items-center gap-2 text-emerald-600 font-bold text-[9px] uppercase tracking-widest">
-                        <TrendingUp size={12} /> Live Статистика
+                        <TrendingUp size={12} /> Статистика онлайн
                     </div>
                 </motion.div>
             </div>

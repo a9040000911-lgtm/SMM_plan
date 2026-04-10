@@ -30,47 +30,53 @@ export class PaymentConfirmationService {
 
         if (!tx) return false;
 
-        await prisma.$transaction(async (txPrisma: Prisma.TransactionClient) => {
-            // Атомарный захват PENDING-транзакции (Prevent Double-Credit Race Condition)
-            const capture = await txPrisma.transaction.updateMany({
-                where: { id: tx.id, status: 'PENDING' },
-                data: { status: 'COMPLETED' }
+        try {
+            const isCaptured = await prisma.$transaction(async (txPrisma: Prisma.TransactionClient) => {
+                // Атомарный захват PENDING-транзакции (Prevent Double-Credit Race Condition)
+                const capture = await txPrisma.transaction.updateMany({
+                    where: { id: tx.id, status: 'PENDING' },
+                    data: { status: 'COMPLETED' }
+                });
+
+                if (capture.count === 0) {
+                    console.warn(`[PaymentConfirmation] Transaction ${tx.id} already processed. Blocked Double-Credit attempt.`);
+                    return false;
+                }
+
+                // 1. ЗАПИСЬ В LEDGER (ПОПОЛНЕНИЕ)
+                await LedgerService.record(txPrisma, tx.userId, tx.amount, 'DEPOSIT', tx.id, 'Пополнение через YooKassa');
+                await txPrisma.user.update({ where: { id: tx.userId }, data: { balance: { increment: tx.amount } } });
+                
+                try {
+                    await BotRegistry.get(tx.projectId).telegram.sendMessage(
+                        Number(tx.user.tgId),
+                        NotificationTemplates.FINANCE.DEPOSIT_SUCCESS_USER(
+                            formatAmount(tx.amount),
+                            formatAmount(tx.user.balance.add(tx.amount))
+                        ),
+                        { parse_mode: 'HTML' }
+                    );
+                } catch (_e) { this.logger.error('Failed to send payment confirmation:', _e); }
+
+                await PromoService.checkLargeDeposit(tx.userId, Number(tx.user.tgId), tx.amount.toNumber(), txPrisma);
+                await PromoService.processAutomationRules('DEPOSIT_GTE', { userId: tx.userId, tgId: Number(tx.user.tgId), value: tx.amount.toNumber(), projectId: tx.projectId || undefined }, txPrisma);
+
+                await ReferralService.processReferralBonus(txPrisma, tx.userId, tx.amount, tx.id);
+                return true;
             });
 
-            if (capture.count === 0) {
-                console.warn(`[PaymentConfirmation] Transaction ${tx.id} already processed. Blocked Double-Credit attempt.`);
-                return false;
-            }
-
-            // 1. ЗАПИСЬ В LEDGER (ПОПОЛНЕНИЕ)
-            await LedgerService.record(txPrisma, tx.userId, tx.amount, 'DEPOSIT', tx.id, 'Пополнение через YooKassa');
-            await txPrisma.user.update({ where: { id: tx.userId }, data: { balance: { increment: tx.amount } } });
-            
-            try {
-                await BotRegistry.get(tx.projectId).telegram.sendMessage(
-                    Number(tx.user.tgId),
-                    NotificationTemplates.FINANCE.DEPOSIT_SUCCESS_USER(
-                        formatAmount(tx.amount),
-                        formatAmount(tx.user.balance.add(tx.amount))
-                    ),
-                    { parse_mode: 'HTML' }
-                );
-            } catch (_e) { this.logger.error('Failed to send payment confirmation:', _e); }
-
-            await PromoService.checkLargeDeposit(tx.userId, Number(tx.user.tgId), tx.amount.toNumber(), txPrisma);
-            await PromoService.processAutomationRules('DEPOSIT_GTE', { userId: tx.userId, tgId: Number(tx.user.tgId), value: tx.amount.toNumber(), projectId: tx.projectId || undefined }, txPrisma);
-
-            await ReferralService.processReferralBonus(txPrisma, tx.userId, tx.amount, tx.id);
-
-        }).then(async () => {
             // 2. ЭМИССИЯ СОБЫТИЯ (После фиксации транзакции в БД)
-            eventBus.emit('PAYMENT_CONFIRMED', {
-                txId: tx.id,
-                userId: tx.userId,
-                amount: tx.amount.toNumber(),
-                orderMetadata: tx.metadata
-            });
-        }).catch(async (err) => {
+            if (isCaptured) {
+                eventBus.emit('PAYMENT_CONFIRMED', {
+                    txId: tx.id,
+                    userId: tx.userId,
+                    amount: tx.amount.toNumber(),
+                    orderMetadata: tx.metadata
+                });
+            }
+            
+            return isCaptured;
+        } catch (err: any) {
             this.logger.error('[confirmPayment Error]', err);
             const telegramConfig = await ConfigService.getTelegramConfig();
             if (telegramConfig.adminId) {
@@ -80,9 +86,7 @@ export class PaymentConfirmationService {
                 ).catch(console.error);
             }
             throw err;
-        });
-
-        return true;
+        }
     }
 
     /**

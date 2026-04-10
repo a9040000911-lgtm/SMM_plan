@@ -283,51 +283,67 @@ export class AchievementService {
     /**
      * Claim achievement reward
      */
-    static async claimReward(achievementId: string): Promise<{ success: boolean; reward?: any }> {
-        const achievement = await prisma.achievement.findUnique({
-            where: { id: achievementId },
-            include: { user: true }
-        });
-
-        if (!achievement || achievement.claimed) {
-            return { success: false };
-        }
-
-        const config = ACHIEVEMENT_CONFIG[achievement.type as AchievementType];
-        const { reward } = config;
-
-        // Apply reward
-        if (reward.type === 'BALANCE') {
-            await prisma.user.update({
-                where: { id: achievement.userId },
-                data: {
-                    balance: { increment: reward.value }
-                }
+    static async claimReward(achievementId: string, callingUserId?: string): Promise<{ success: boolean; reward?: any }> {
+        return await prisma.$transaction(async (tx) => {
+            const achievement = await tx.achievement.findUnique({
+                where: { id: achievementId },
+                include: { user: true }
             });
 
-            await prisma.ledgerEntry.create({
-                data: {
-                    userId: achievement.userId,
-                    projectId: achievement.user.projectId,
-                    amount: reward.value,
-                    balanceBefore: achievement.user.balance,
-                    balanceAfter: Number(achievement.user.balance) + reward.value,
-                    type: 'MANUAL_ADJUSTMENT',
-                    description: `Achievement Reward: ${config.name}`
-                }
-            });
-        }
-
-        // Mark as claimed
-        await prisma.achievement.update({
-            where: { id: achievementId },
-            data: {
-                claimed: true,
-                claimedAt: new Date()
+            if (!achievement || achievement.claimed) {
+                return { success: false };
             }
-        });
 
-        return { success: true, reward };
+            // Security IDOR Guard: If callingUserId is provided, ensure it matches the owner
+            if (callingUserId && achievement.userId !== callingUserId) {
+                return { success: false };
+            }
+
+            const config = ACHIEVEMENT_CONFIG[achievement.type as AchievementType];
+            const { reward } = config;
+
+            // Atomic Guard: Mark as claimed FIRST
+            const updateResult = await tx.achievement.updateMany({
+                where: { 
+                    id: achievementId, 
+                    claimed: false,
+                    ...(callingUserId ? { userId: callingUserId } : {})
+                },
+                data: {
+                    claimed: true,
+                    claimedAt: new Date()
+                }
+            });
+
+            if (updateResult.count === 0) {
+                // Another transaction got here first
+                return { success: false };
+            }
+
+            // Apply reward
+            if (reward.type === 'BALANCE') {
+                await tx.user.update({
+                    where: { id: achievement.userId },
+                    data: {
+                        balance: { increment: reward.value }
+                    }
+                });
+
+                await tx.ledgerEntry.create({
+                    data: {
+                        userId: achievement.userId,
+                        projectId: achievement.user.projectId,
+                        amount: reward.value,
+                        balanceBefore: achievement.user.balance,
+                        balanceAfter: Number(achievement.user.balance) + reward.value,
+                        type: 'MANUAL_ADJUSTMENT',
+                        description: `Achievement Reward: ${config.name}`
+                    }
+                });
+            }
+
+            return { success: true, reward };
+        });
     }
 }
 
@@ -376,34 +392,59 @@ export class ChallengeService {
      * Update challenge progress
      */
     static async updateProgress(userId: string, type: ChallengeType, increment: number = 1) {
-        const challenge = await this.getOrCreateChallenge(userId, type);
+        return await prisma.$transaction(async (tx) => {
+            const challenge = await this.getOrCreateChallenge(userId, type);
 
-        if (challenge.completed) return challenge;
+            if (challenge.completed) return challenge;
 
-        const newProgress = challenge.progress + increment;
-        const completed = newProgress >= challenge.target;
+            const newProgress = challenge.progress + increment;
+            const completed = newProgress >= challenge.target;
 
-        const updated = await prisma.challenge.update({
-            where: { id: challenge.id },
-            data: {
-                progress: newProgress,
-                completed,
-                completedAt: completed ? new Date() : undefined
-            }
-        });
-
-        // Auto-reward if completed
-        if (completed) {
-            const config = CHALLENGE_CONFIG[type];
-            await prisma.user.update({
-                where: { id: userId },
+            // Atomic check: Ensure we only update and reward if it wasn't completed
+            const updateResult = await tx.challenge.updateMany({
+                where: { id: challenge.id, completed: false, progress: challenge.progress },
                 data: {
-                    balance: { increment: config.reward.value }
+                    progress: newProgress,
+                    completed,
+                    completedAt: completed ? new Date() : undefined
                 }
             });
-        }
 
-        return updated;
+            if (updateResult.count === 0) {
+                // If it hits here, another process modified the challenge simultaneously.
+                return tx.challenge.findUnique({ where: { id: challenge.id } });
+            }
+
+            // Auto-reward if completed
+            if (completed) {
+                const config = CHALLENGE_CONFIG[type];
+                const user = await tx.user.findUnique({ where: { id: userId } });
+                if (user) {
+                    await tx.user.update({
+                        where: { id: userId },
+                        data: {
+                            balance: { increment: config.reward.value }
+                        }
+                    });
+
+                    if (config.reward.type === 'BALANCE') {
+                        await tx.ledgerEntry.create({
+                            data: {
+                                userId: userId,
+                                projectId: user.projectId,
+                                amount: config.reward.value,
+                                balanceBefore: user.balance,
+                                balanceAfter: Number(user.balance) + config.reward.value,
+                                type: 'MANUAL_ADJUSTMENT',
+                                description: `Challenge Complete: ${config.name}`
+                            }
+                        });
+                    }
+                }
+            }
+
+            return tx.challenge.findUnique({ where: { id: challenge.id } });
+        });
     }
 
     /**

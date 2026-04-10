@@ -49,17 +49,20 @@ export class ServiceSyncService {
      * Синхронизирует услуги конкретного провайдера.
      */
     static async syncProvider(providerId: string, providedRates?: any) {
-        // 0. Sync Lock Check
+        // 0. Sync Lock Check & Atomic Lock (Race Condition Guard)
         const provider = await prisma.provider.findUnique({ where: { id: providerId } });
         if (!provider) throw new Error(`Provider ${providerId} not found`);
         if (!provider.isEnabled) throw new Error(`Provider ${provider.name} is disabled`);
-        if (provider.syncLock) {
+
+        const lockResult = await prisma.provider.updateMany({
+            where: { id: providerId, syncLock: false },
+            data: { syncLock: true }
+        });
+
+        if (lockResult.count === 0) {
             console.log(`[ServiceSync] ${provider.name} is already syncing (Locked). Skipping.`);
             return;
         }
-
-        // Lock
-        await prisma.provider.update({ where: { id: providerId }, data: { syncLock: true } });
 
         try {
             const rates = providedRates || await import('@/services/finance/currency.service').then(m => m.CurrencyService.getRates());

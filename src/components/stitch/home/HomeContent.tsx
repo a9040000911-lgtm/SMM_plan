@@ -6,7 +6,7 @@
  */
 
 import Link from "next/link";
-import { motion, Variants } from "framer-motion";
+import { motion, Variants, AnimatePresence } from "framer-motion";
 import { Star, ArrowRight, Headphones, Clock, Timer } from "lucide-react";
 import { InstantOrder } from "@/components/stitch/sections/InstantOrder";
 import { ReviewsCarousel } from "@/components/stitch/sections/ReviewsCarousel";
@@ -38,9 +38,47 @@ const staggerItem: Variants = {
         opacity: 1, 
         y: 0, 
         filter: "blur(0px)",
-        transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } 
+        transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } 
     }
 };
+
+const awwwardsTransition = { duration: 0.85, ease: [0.76, 0, 0.24, 1] as [number, number, number, number] };
+
+const maskVariants: Variants = {
+    initial: { y: "200%", rotate: 2 }, 
+    animate: { 
+        y: "0%", 
+        rotate: 0,
+        transition: awwwardsTransition
+    },
+    exit: { 
+        y: "-200%", 
+        rotate: -2,
+        transition: awwwardsTransition 
+    }
+};
+
+const MaskContainer = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
+    <div 
+        className={`inline-block align-bottom ${className}`}
+        style={{ clipPath: "inset(-40px -40px -25px -40px)" }}
+    >
+        {children}
+    </div>
+);
+
+const arrowVariants: Variants = {
+    initial: { opacity: 0, x: -40, scale: 0.8 },
+    animate: { 
+        opacity: 1, x: 0, scale: 1,
+        transition: { delay: 0.15, duration: 0.85, ease: [0.76, 0, 0.24, 1] as [number, number, number, number] }
+    },
+    exit: { 
+        opacity: 0, x: -40, scale: 0.5,
+        transition: { duration: 0.6, ease: [0.76, 0, 0.24, 1] as [number, number, number, number] }
+    }
+};
+
 
 export function HomeContent({ 
     initialReviews = [], 
@@ -86,6 +124,14 @@ export function HomeContent({
     const [hubLink, setHubLink] = React.useState("");
     const [hubPlatform, setHubPlatform] = React.useState<string | null>(null);
     const [isOrderExpanded, setIsOrderExpanded] = React.useState(false);
+    
+    // Stable transition state
+    const [heroState, setHeroState] = React.useState<'initial' | 'link'>('initial');
+
+    React.useEffect(() => {
+        const timer = setTimeout(() => setHeroState('link'), 4000);
+        return () => clearTimeout(timer);
+    }, []);
 
     const searchParams = useSearchParams();
     const serviceId = searchParams.get('serviceId');
@@ -137,30 +183,105 @@ export function HomeContent({
                         animate="show"
                         className="w-full lg:col-span-6 flex flex-col items-center text-center lg:items-start lg:text-left order-1"
                     >
-                        <motion.div variants={staggerItem} className="flex flex-col sm:flex-row items-center gap-3 mb-6">
-                            <div className="flex items-center gap-3 px-4 py-2 bg-blue-500/5 rounded-full border border-blue-500/10 backdrop-blur-md">
-                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-600/80 text-center">
-                                    Powered by Cognitive AI v5.0
-                                </span>
-                            </div>
+                        <motion.div variants={staggerItem} className="flex flex-col sm:flex-row items-center justify-center lg:justify-start w-full gap-3 mb-6 md:mb-8">
                             {globalStats && globalStats.promoRemaining > 0 && (
-                                <div className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 rounded-full border border-rose-500/20 backdrop-blur-md shadow-[0_0_20px_rgba(244,63,94,0.15)] animate-shimmer relative overflow-hidden">
+                                <div className="flex items-center gap-3 px-6 py-3 bg-rose-500/10 rounded-full border border-rose-500/20 backdrop-blur-md shadow-[0_0_20px_rgba(244,63,94,0.15)] animate-shimmer relative overflow-hidden">
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-rose-600">
+                                    <span className="text-xs font-black uppercase tracking-widest text-rose-600 drop-shadow-sm">
                                         🎁 Статус Первопроходца (Скидка 20%)
                                     </span>
-                                    <span className="text-[9px] font-bold text-rose-500/80 border-l border-rose-500/20 pl-2">
-                                        Осталось мест: <span className="font-black text-rose-600">{globalStats.promoRemaining}</span>
+                                    <span className="text-xs font-bold text-rose-500/80 border-l border-rose-500/20 pl-3">
+                                        Осталось мест: <span className="font-black text-rose-600 drop-shadow-sm">{globalStats.promoRemaining}</span>
                                     </span>
                                 </div>
                             )}
                         </motion.div>
 
-                        <motion.h1 variants={staggerItem} className="text-4xl md:text-5xl lg:text-6xl xl:text-[5rem] font-black tracking-tight text-slate-950 mb-6 md:mb-8 leading-[1.05] text-balance max-w-2xl w-full">
-                            {t('home.hero.title', 'Доминируйте')} <br className="hidden md:block" /> 
-                            <span className="text-blue-600 italic font-serif inline-block">{t('home.hero.subtitle', 'в соцсетях')}</span>
-                        </motion.h1>
+                        <motion.div variants={staggerItem} className="w-full relative min-h-[140px] md:min-h-[170px] lg:min-h-[220px] flex flex-col justify-end lg:justify-center mb-6 md:mb-8 text-balance max-w-2xl lg:mb-12">
+                            {/* 
+                                Using a relative wrapper with min-height prevents layout shifting! 
+                                The absolute positioning ensures the incoming and outgoing text crossfade concurrently in place.
+                            */}
+                            <AnimatePresence>
+                                {heroState === 'initial' ? (
+                                    <motion.h1 
+                                        key="initial"
+                                        initial="initial"
+                                        animate="animate"
+                                        exit="exit"
+                                        variants={{
+                                            animate: { transition: { staggerChildren: 0.1 } },
+                                            exit: { transition: { staggerChildren: 0.06 } }
+                                        }}
+                                        className="text-4xl md:text-5xl lg:text-6xl xl:text-[5rem] font-black tracking-tight text-slate-950 leading-relaxed w-full flex flex-col md:block absolute bottom-0 lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2 pointer-events-none"
+                                    >
+                                        <MaskContainer>
+                                            <motion.span variants={maskVariants} className="inline-block transform-gpu origin-bottom-left">
+                                                {t('home.hero.title', 'Доминируйте')}
+                                            </motion.span> 
+                                        </MaskContainer>
+                                        <div className="w-full h-0 -mt-6 lg:-mt-12 hidden md:block"></div>
+                                        <MaskContainer>
+                                            <motion.span variants={maskVariants} className="inline-block transform-gpu origin-bottom-left">
+                                                <motion.span 
+                                                    animate={{ backgroundPosition: ["0% 50%", "200% 50%"] }}
+                                                    transition={{ duration: 8, ease: "linear", repeat: Infinity }}
+                                                    style={{ backgroundSize: "200% auto" }}
+                                                    className="italic font-serif text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 inline-block pr-2"
+                                                >
+                                                    {t('home.hero.subtitle', 'в соцсетях')}
+                                                </motion.span>
+                                            </motion.span>
+                                        </MaskContainer>
+                                    </motion.h1>
+                                ) : (
+                                    <motion.h1 
+                                        key="link"
+                                        initial="initial"
+                                        animate="animate"
+                                        exit="exit"
+                                        variants={{
+                                            animate: { transition: { staggerChildren: 0.1 } },
+                                            exit: { transition: { staggerChildren: 0.06 } }
+                                        }}
+                                        className="text-4xl md:text-5xl lg:text-6xl xl:text-[5rem] font-black tracking-tight text-slate-950 leading-relaxed w-full flex flex-col items-center lg:block absolute bottom-0 lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2"
+                                    >
+                                        <MaskContainer>
+                                            <motion.span variants={maskVariants} className="inline-block pr-3 transform-gpu origin-bottom-left">Вставьте</motion.span> 
+                                        </MaskContainer>
+                                        <div className="w-full h-0 -mt-6 lg:-mt-12 hidden md:block"></div>
+                                        <div className="flex items-center lg:mt-2">
+                                            <MaskContainer>
+                                                <motion.div variants={maskVariants} className="flex items-center transform-gpu origin-bottom-left">
+                                                    <motion.span 
+                                                        animate={{ backgroundPosition: ["0% 50%", "200% 50%"] }}
+                                                        transition={{ duration: 8, ease: "linear", repeat: Infinity }}
+                                                        style={{ backgroundSize: "200% auto" }}
+                                                        className="italic font-serif inline-block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 pr-2"
+                                                    >
+                                                        ссылку
+                                                    </motion.span>
+                                                </motion.div>
+                                            </MaskContainer>
+                                            
+                                            <motion.div 
+                                                variants={arrowVariants}
+                                                className="flex items-center pt-2"
+                                            >
+                                                <span className="lg:hidden text-[2.5rem] text-blue-500 animate-bounce shadow-none ml-2">⬇</span>
+                                                <motion.span 
+                                                    animate={{ x: [0, 15, 0] }}
+                                                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                                                    className="hidden lg:inline-block text-[3.5rem] text-blue-500 shadow-none ml-6"
+                                                >
+                                                    ➔
+                                                </motion.span>
+                                            </motion.div>
+                                        </div>
+                                    </motion.h1>
+                                )}
+                            </AnimatePresence>
+                        </motion.div>
 
                         <motion.div variants={staggerItem} className="w-full lg:hidden mb-10 order-2">
                              <HubInput 

@@ -122,6 +122,21 @@ export async function POST(req: NextRequest) {
                         });
                         console.log(`[Webhook] B2B Topup confirmed for organization: ${verifiedMetadata.organization_id}`);
                     });
+                } else if (verifiedMetadata.type === 'SUBSCRIPTION_INIT' || verifiedMetadata.type === 'SUBSCRIPTION_RENEWAL') {
+                    // It's a Subscription Payment (Priority Pass)
+                    const { SubscriptionService } = await import('@/services/finance/subscription.service');
+                    const paymentMethodId = verification.raw?.payment_method?.id;
+                    
+                    if (!paymentMethodId) {
+                        console.error(`[Webhook] ERROR: No payment_method_id returned for subscription payment ${paymentId}`);
+                    } else {
+                        try {
+                            await SubscriptionService.handleSuccessfulPayment(verifiedMetadata.user_id, paymentMethodId, paymentId);
+                            console.log(`[Webhook] Subscription activated/renewed for user ${verifiedMetadata.user_id}`);
+                        } catch (subErr) {
+                            console.error(`[Webhook] Subscription Payment Error:`, subErr);
+                        }
+                    }
                 } else {
                     // It's a standard Retail Payment — with idempotency check
                     const existingTx = await prisma.transaction.findFirst({

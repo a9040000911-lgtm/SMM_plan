@@ -14,7 +14,7 @@ import {
     LayoutDashboard, ShoppingCart, Users, Briefcase,
     Package, Database, Layers, Newspaper, Tag, Award,
     TrendingUp, MessageSquare, BookOpen, Settings, History,
-    ShieldAlert, ChevronRight, ChevronsLeft, ChevronsRight,
+    ShieldAlert, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, 
     Star, Crown, Rss, Clock, PieChart, BarChart, ReceiptText, Bug, Landmark
 } from 'lucide-react';
 
@@ -66,6 +66,26 @@ export function LayoutWrapper({
         const newState = !isCollapsed;
         setIsCollapsed(newState);
         document.cookie = `sidebar-collapsed=${newState}; path=/admin; max-age=31536000`; // 1 year
+    };
+    
+    // Accordion state
+    const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+        'Управление': true,
+        'Витрина': true,
+        'Финансы': true,
+        'Маркетинг': false,
+        'Поддержка': false,
+        'Система': false,
+        'Management': true,
+        'Showcase': true,
+        'Finance': true,
+        'Marketing': false,
+        'Support': false,
+        'System': false,
+    });
+
+    const toggleGroup = (title: string) => {
+        setOpenGroups(prev => ({ ...prev, [title]: prev[title] !== false ? false : true }));
     };
 
     const roleNames: Record<string, string> = {
@@ -213,23 +233,33 @@ export function LayoutWrapper({
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 px-3 space-y-6 mt-4 overflow-y-auto custom-scrollbar pb-6 nav-container overflow-x-hidden">
+                <nav className="flex-1 px-3 space-y-6 mt-4 overflow-y-auto custom-scrollbar pb-20 min-h-0 nav-container overflow-x-hidden">
                     {navGroups.map((group, groupIdx) => {
                         const visibleItems = isGlobalAdmin
                             ? group.items
                             : group.items.filter(item => user.allowedTabs.includes(item.id));
 
                         if (visibleItems.length === 0) return null;
+                        
+                        const isOpen = isCollapsed ? true : (openGroups[group.title] !== false);
 
                         return (
                             <div key={groupIdx} className="space-y-1">
-                                <h3 className={cn(
-                                    "px-3 text-[10px] uppercase font-black tracking-widest text-slate-500 mb-2 transition-all duration-300 truncate",
-                                    isCollapsed && "text-center text-[0px] h-0 mb-0 opacity-0" // Hide titles when collapsed
-                                )}>
-                                    {group.title}
-                                </h3>
-                                {visibleItems.map(item => {
+                                <div 
+                                    onClick={() => !isCollapsed && toggleGroup(group.title)}
+                                    className={cn(
+                                        "px-3 mb-2 flex items-center justify-between cursor-pointer group/title transition-all duration-300",
+                                        isCollapsed && "h-0 mb-0 opacity-0 overflow-hidden pointer-events-none"
+                                    )}
+                                >
+                                    <h3 className="text-[10px] uppercase font-black tracking-widest text-slate-500 group-hover/title:text-slate-300 transition-colors truncate">
+                                        {group.title}
+                                    </h3>
+                                    {!isCollapsed && (
+                                        <ChevronDown size={14} className={cn("text-slate-500 group-hover/title:text-slate-300 transition-transform", isOpen ? "" : "-rotate-90")} />
+                                    )}
+                                </div>
+                                {isOpen && visibleItems.map(item => {
                                     const Icon = item.icon;
                                     const isActive = pathname === item.href;
 
@@ -293,10 +323,10 @@ export function LayoutWrapper({
                     })}
                 </nav>
 
-                {/* Footer / Profile */}
-                <div className={cn("border-t border-slate-800 bg-slate-950/50 flex items-center transition-all duration-300 overflow-hidden", isCollapsed ? "justify-center p-2 flex-col gap-2" : "justify-between p-4")}>
+                {/* Footer / Profile Safe Zone (Hardsized to exactly min-h-16) */}
+                <div className={cn("border-t border-slate-800 bg-slate-950 flex flex-shrink-0 items-center transition-all duration-300 overflow-hidden min-h-[4rem]", isCollapsed ? "justify-center p-2 flex-col gap-2" : "justify-between px-4 py-3")}>
                     <div className={cn("flex items-center gap-3 overflow-hidden", isCollapsed ? "flex-col" : "")}>
-                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center font-bold text-xs uppercase shrink-0 shadow-md shadow-blue-500/20 border border-blue-500">
                             {user.username?.substring(0, 2) || (lang === 'ru' ? 'АД' : 'AD')}
                         </div>
 

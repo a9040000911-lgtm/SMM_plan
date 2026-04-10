@@ -10,9 +10,10 @@ import { LoyaltyService } from '@/services/users/loyalty.service';
 import { PromoService } from '@/services/users/promo.service';
 import { Category } from '@prisma/client';
 import { PricingRules } from '@/types/project-settings';
+import { SubscriptionService } from '@/services/finance/subscription.service';
 
 import { MarkupRule, LadderLevel } from '@/services/types';
-import { ACQUIRING_SAFE_MAX, SAFETY_FLOOR_MARKUP, MAX_MARKUP_MULTIPLIER as MAX_MARKUP_CONST } from './financial-constants';
+import { ACQUIRING_SAFE_MAX, SAFETY_FLOOR_MARKUP, MAX_MARKUP_MULTIPLIER as MAX_MARKUP_CONST, B2B_DEFAULT_MARKUP } from './financial-constants';
 
 export class PricingService {
     private static readonly LADDER_SETTINGS_KEY = 'PRICING_LADDER';
@@ -140,13 +141,30 @@ export class PricingService {
     }
 
     /**
-     * Возвращает абсолютную минимальную цену продажи (Себестоимость + Маржа + Шлюз)
+     * Возвращает абсолютную минимальную цену продажи (Safe Floor).
+     * Математически гарантирует, что после вычета всех налогов (УСН+НДС) и эквайринга,
+     * чистая маржа Smmplan поверх себестоимости провайдера составит не менее MIN_PROFIT_MARGIN (100%).
      */
     static getSafetyPrice(providerCost: Decimal | number): Decimal {
         const cost = new Decimal(providerCost);
-        // Формула: (Закуп + 100% маржи) * 1.03 (шлюз)
-        const safetyPrice = cost.mul(1 + this.MIN_PROFIT_MARGIN).mul(1 + this.PAYMENT_GATEWAY_FEE);
-        return safetyPrice.mul(10).toDecimalPlaces(0, Decimal.ROUND_CEIL).div(10);
+        // Из financial-constants.ts: TOTAL_MANDATORY_DEDUCTIONS (Налоги 11% + Шлюз 3.5% = 14.5%)
+        // Формула: Retail = (Cost + TargetProfit) / (1 - Taxes) = (Cost * (1 + Markup)) / (1 - 0.145)
+        const TOTAL_MANDATORY_DEDUCTIONS = 0.145; // УСН + НДС + ЮКасса
+        const safetyPrice = cost.mul(1 + this.MIN_PROFIT_MARGIN).div(1 - TOTAL_MANDATORY_DEDUCTIONS);
+        // Округляем до копеек вверх
+        return safetyPrice.toDecimalPlaces(2, Decimal.ROUND_CEIL);
+    }
+
+    /**
+     * Возвращает оптовую (B2B) цену для реселлеров.
+     * Использует B2B_DEFAULT_MARKUP (сейчас 200%).
+     */
+    static calculateB2BPrice(providerCost: Decimal | number): Decimal {
+        const cost = new Decimal(providerCost);
+        const TOTAL_MANDATORY_DEDUCTIONS = 0.145; // УСН + НДС + ЮКасса
+        // B2B Retail = Cost * (1 + B2B_DEFAULT_MARKUP) / (1 - Taxes)
+        const b2bPrice = cost.mul(1 + B2B_DEFAULT_MARKUP).div(1 - TOTAL_MANDATORY_DEDUCTIONS);
+        return b2bPrice.toDecimalPlaces(2, Decimal.ROUND_CEIL);
     }
 
     /**
@@ -402,20 +420,58 @@ export class PricingService {
 
         if (discountPercent > 100) discountPercent = 100;
 
-        const discountAmount = basePrice.mul(discountPercent).div(100).toDecimalPlaces(2);
-        const finalPrice = basePrice.minus(discountAmount).toDecimalPlaces(2);
+        let discountAmount = basePrice.mul(discountPercent).div(100).toDecimalPlaces(2);
+        
+        // [GUARD] Защита от багов округления: скидка не может быть больше базовой цены
+        if (discountAmount.gt(basePrice)) {
+             discountAmount = basePrice.toDecimalPlaces(2, Decimal.ROUND_DOWN);
+        }
+
+        let finalPrice = basePrice.minus(discountAmount).toDecimalPlaces(2);
+        if (finalPrice.lt(0)) finalPrice = new Decimal(0);
+
+        // --- B2B FINANCIAL GUARD / PRIORITY PASS ---
+        const service = await prisma.internalService.findUnique({
+             where: { id: serviceId },
+             select: { lastProviderPrice: true }
+        });
+
+        // ПРОВЕРКА ПОДПИСКИ PRIORITY PASS
+        const hasPriorityPass = await SubscriptionService.checkActiveSubscription(userId);
+        let appliedPriorityPass = false;
+
+        if (hasPriorityPass && service && service.lastProviderPrice) {
+            const providerCost = service.lastProviderPrice.mul(quantity).div(1000);
+            const priorityPassPrice = this.getSafetyPrice(providerCost);
+            
+            // Если базовая розница со скидками всё ещё дороже оптовой цены по Priority Pass, применяем VIP цену
+            if (finalPrice.gt(priorityPassPrice)) {
+                finalPrice = priorityPassPrice;
+                discountPercent = 100; // Символически "максимальная" базовая скидка
+                discountAmount = basePrice.minus(finalPrice).toDecimalPlaces(2);
+                appliedPriorityPass = true;
+            }
+        }
+        
+        if (service && service.lastProviderPrice) {
+             const providerCost = service.lastProviderPrice.mul(quantity).div(1000);
+             const { PricingGuard } = require('./pricing-guard.service');
+             PricingGuard.validateCheckoutPayload(finalPrice, providerCost);
+        }
 
         return {
             basePrice,
             discountPercent,
             discountAmount,
             finalPrice,
-            promoId
+            promoId,
+            appliedPriorityPass // Флаг для UI, чтобы показать шильдик "Priority Pass"
         };
     }
 
     /**
      * Возвращает аналитику наценок по всем услугам для суперадмина
+
      */
     static async getMarkupAnalytics() {
         const services = await prisma.internalService.findMany({

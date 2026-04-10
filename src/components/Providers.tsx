@@ -11,9 +11,9 @@ import { LanguageProvider } from "@/providers/language-provider";
 import React from "react";
 import { Toaster } from "sonner";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children, session }: { children: React.ReactNode; session?: any }) {
     return (
-        <SessionProvider>
+        <SessionProvider session={session}>
             <LanguageProvider>
                 {children}
                 <Toaster position="top-right" richColors closeButton />

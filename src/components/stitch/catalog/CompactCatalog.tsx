@@ -12,8 +12,10 @@ import { cn } from "@/utils/ui";
 import { BrandIcon } from '../ui/BrandIcon';
 import { SerializedServiceV2 } from "@/types/catalog";
 import { translatePlatform } from "@/utils/translations";
+import { formatUnitPrice } from "@/utils/formatter";
 
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ServiceDescription } from "./ServiceDescription";
 
 interface CompactCatalogProps {
     groupedServices: Record<string, Record<string, SerializedServiceV2[]>>;
@@ -310,23 +312,20 @@ export function CompactCatalog({ groupedServices, isLoggedIn }: CompactCatalogPr
                                         </h3>
 
                                         <div className="mb-6 md:mb-10 flex-1 relative z-10 text-pretty">
-                                            <p className={cn("text-xs font-medium leading-relaxed italic border-l-4 pl-4 md:pl-6 transition-all duration-500 line-clamp-3 md:line-clamp-4", service.isHot ? "text-orange-100 border-white/20 group-hover:border-white" : "text-slate-400 border-blue-500/20 group-hover:border-blue-500")}>
-                                                {service.description || "Премиальная услуга с гарантированным результатом. Оптимизирована для роста охватов и вовлеченности."}
-                                            </p>
+                                            <ServiceDescription 
+                                                text={service.description || "Премиальная услуга с гарантированным результатом. Оптимизирована для роста охватов и вовлеченности."}
+                                                className={cn("text-xs font-medium leading-relaxed italic border-l-4 pl-4 md:pl-6 transition-all duration-500", service.isHot ? "text-orange-100 border-white/20 group-hover:border-white" : "text-slate-400 border-blue-500/20 group-hover:border-blue-500")}
+                                                maxLines={4}
+                                            />
                                         </div>
                                     </div>
 
                                     <div className={cn("relative z-10 pt-8 border-t flex items-end justify-between gap-4", service.isHot ? "border-white/10" : "border-slate-50")}>
                                         <div className="min-w-0 flex-1 pr-2">
                                             <span className={cn("block text-[10px] font-black uppercase tracking-widest", service.isHot ? "text-orange-200" : "text-slate-400")}>Цена за 1 шт.</span>
-                                            <div className="flex items-baseline gap-1.5">
-                                                <span className={cn("text-2xl 2xl:text-3xl font-black tracking-tighter tabular-nums drop-shadow-sm truncate", service.isHot ? "text-white" : "text-slate-900")}>
-                                                    {(() => {
-                                                        const price = Number(service.pricePer1000) / 1000;
-                                                        if (price === 0) return "0,00";
-                                                        if (price >= 1) return price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                                                        return price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 5 });
-                                                    })()}
+                                            <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+                                                <span className={cn("text-2xl 2xl:text-3xl font-black tracking-tighter tabular-nums drop-shadow-sm", service.isHot ? "text-white" : "text-slate-900")}>
+                                                    {formatUnitPrice(service.pricePer1000)}
                                                 </span>
                                                 <span className={cn("text-base font-bold shrink-0", service.isHot ? "text-white/60" : "text-slate-400")}>₽</span>
                                             </div>

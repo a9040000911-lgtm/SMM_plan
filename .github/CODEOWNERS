@@ -1,0 +1,6 @@
+# Финансы и Административная часть требуют жесткого ручного ревью
+# AI Боты (CodeRabbit, Copilot) НЕ ИМЕЮТ ПРАВА мерджить файлы ниже без аппрува от @a9040000911-lgtm
+
+src/services/orders/order-financial.service.ts @a9040000911-lgtm
+src/app/api/admin/ @a9040000911-lgtm
+src/services/finance/ @a9040000911-lgtm

@@ -7,7 +7,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Rocket, Sparkles, Bug } from "lucide-react";
+import { Rocket, Sparkles, Bug, Mail } from "lucide-react";
 import { BrandIcon } from "../ui/BrandIcon";
 import { useCmsBridge } from "@/components/cms/CmsBridge";
 
@@ -74,13 +74,23 @@ export const Footer = ({ cmsContent = {} }: { cmsContent?: Record<string, string
                     <div className="flex flex-col gap-4">
                         <Link href="https://t.me/smmplan" className="flex items-center gap-3 px-5 py-3 bg-slate-900 rounded-2xl hover:bg-blue-600 transition-all shadow-lg shadow-black/20 group border border-slate-800/50 hover:border-blue-500/30">
                             <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                                <BrandIcon name="telegram" size={20} colorMode="white" className="group-hover:scale-110 transition-transform" />
+                                <BrandIcon name="telegram" size={24} colorMode="original" className="group-hover:scale-110 transition-transform" />
                             </div>
                             <div className="flex flex-col items-start leading-tight">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-white">Техподдержка 24/7</span>
                                 <span className="text-[9px] font-bold text-slate-500 group-hover:text-blue-100 transition-colors">Написать в Telegram</span>
                             </div>
                         </Link>
+
+                        <a href="mailto:support@smmplan.pro" className="flex items-center gap-3 px-5 py-3 bg-slate-900/40 rounded-2xl hover:bg-slate-800 transition-all group border border-slate-800/30 hover:border-slate-700/50">
+                            <div className="w-10 h-10 rounded-xl bg-slate-800/50 flex items-center justify-center group-hover:bg-slate-700 transition-colors">
+                                <Mail size={18} className="text-slate-400 group-hover:text-white transition-colors" />
+                            </div>
+                            <div className="flex flex-col items-start leading-tight">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Для предложений & PR</span>
+                                <span className="text-[9px] font-bold text-slate-500 group-hover:text-slate-300 transition-colors">support@smmplan.pro</span>
+                            </div>
+                        </a>
                     </div>
                 </div>
 

@@ -104,7 +104,7 @@ export function OrderDetailsUI({ order }: OrderDetailsUIProps) {
     }
 
     return (
-        <div className="space-y-10 pb-20 max-w-5xl">
+        <div className="space-y-10 pb-32 lg:pb-40 max-w-5xl">
             {/* Back Navigation */}
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
                 <Link href="/dashboard/orders" className="group flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-all">
@@ -126,7 +126,7 @@ export function OrderDetailsUI({ order }: OrderDetailsUIProps) {
                             <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] leading-none mb-1">
                                 {order.internalService?.platform} • {order.internalService?.category} {(order.internalService?.numericId) && `• ID: #${order.internalService.numericId}`}
                             </p>
-                            <h1 className="text-4xl font-black text-slate-950 tracking-tighter uppercase italic">{order.internalService?.name}</h1>
+                            <h1 className="text-4xl md:text-5xl font-black text-slate-950 tracking-tighter uppercase italic pr-2">{order.internalService?.name}</h1>
                         </div>
                     </div>
                 </div>

@@ -35,6 +35,7 @@ module.exports = {
   // Ignore
   testPathIgnorePatterns: [
     "/node_modules/",
+    "/.next/",
     "/src/tests/e2e/",
     "/_trash/",
     "/deploy_lean/",

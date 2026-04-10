@@ -42,9 +42,9 @@ interface ReferralsUIProps {
 }
 
 const TIER_INFO = [
-    { tier: 1, name: 'Bronze Team', icon: <Star size={24} />, bonus: '10%', range: '0-5000₽', color: 'text-amber-600 bg-amber-50', glow: 'shadow-amber-200/20' },
-    { tier: 2, name: 'Silver Partner', icon: <Crown size={24} />, bonus: '15%', range: '5000-25000₽', color: 'text-slate-400 bg-slate-50', glow: 'shadow-slate-200/20' },
-    { tier: 3, name: 'Gold Affiliate', icon: <Sparkles size={24} />, bonus: '20%', range: '25000₽+', color: 'text-blue-600 bg-blue-50', glow: 'shadow-blue-200/20' }
+    { tier: 1, name: 'Бронзовый Партнер', icon: <Star size={24} />, bonus: '10%', range: '0-5000₽', color: 'text-amber-600 bg-amber-50', glow: 'shadow-amber-200/20' },
+    { tier: 2, name: 'Серебряный Партнер', icon: <Crown size={24} />, bonus: '15%', range: '5000-25000₽', color: 'text-slate-400 bg-slate-50', glow: 'shadow-slate-200/20' },
+    { tier: 3, name: 'Золотой Партнер', icon: <Sparkles size={24} />, bonus: '20%', range: '25000₽+', color: 'text-blue-600 bg-blue-50', glow: 'shadow-blue-200/20' }
 ];
 
 export function ReferralsUI({ initialLeaderboard, initialUserStats }: ReferralsUIProps) {
@@ -61,11 +61,11 @@ export function ReferralsUI({ initialLeaderboard, initialUserStats }: ReferralsU
     };
 
     return (
-        <div className="space-y-12 pb-24">
+        <div className="space-y-12 pb-32 lg:pb-40">
             {/* Header Hero */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-10">
                 <div className="space-y-3">
-                    <h1 className="text-5xl font-black text-slate-950 tracking-tighter uppercase italic leading-none">
+                    <h1 className="text-4xl md:text-5xl font-black text-slate-950 tracking-tighter uppercase italic pr-2">
                         Партнерский <span className="text-blue-600">Клуб</span>
                     </h1>
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Пассивный доход на продвижении в соцсетях</p>
@@ -97,18 +97,18 @@ export function ReferralsUI({ initialLeaderboard, initialUserStats }: ReferralsU
                     </div>
 
                     <div className="space-y-4 relative z-10">
-                        <div className="relative group/link">
-                            <div className="w-full h-16 bg-white/5 border border-white/10 rounded-2xl px-6 flex items-center font-bold text-sm text-blue-200 overflow-hidden pr-20 select-all">
+                        <div className="group/link w-full bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                            <div className="font-bold text-xs md:text-sm text-blue-200 break-all select-all flex-1 py-1 pl-3">
                                 {referralLink}
                             </div>
                             <button
                                 onClick={handleCopy}
                                 className={cn(
-                                    "absolute right-2 top-2 bottom-2 px-6 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all",
+                                    "shrink-0 w-full md:w-auto h-12 px-8 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center",
                                     copied ? "bg-emerald-500 text-white" : "bg-white text-slate-950 hover:bg-blue-500 hover:text-white"
                                 )}
                             >
-                                {copied ? <Check size={18} /> : "Copy"}
+                                {copied ? <Check size={18} /> : "Копировать"}
                             </button>
                         </div>
                         <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest text-center">Делитесь ссылкой и получайте прибыль</p>
@@ -134,7 +134,7 @@ export function ReferralsUI({ initialLeaderboard, initialUserStats }: ReferralsU
                             <span className="text-2xl font-black italic tabular-nums">{tier.bonus}</span>
                         </div>
                         <h3 className="text-xl font-black uppercase tracking-tight italic mb-2">{tier.name}</h3>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">Revenue: {tier.range}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">Оборот: {tier.range}</p>
                     </motion.div>
                 ))}
             </div>
@@ -188,11 +188,11 @@ export function ReferralsUI({ initialLeaderboard, initialUserStats }: ReferralsU
                                     </div>
                                     <div className="flex-1">
                                         <div className="text-sm font-black uppercase tracking-tight">{user.username}</div>
-                                        <div className={cn("text-[9px] font-bold uppercase tracking-widest mt-1", idx === 0 ? "text-blue-400" : "text-slate-400")}>{user.referralCount} Partners</div>
+                                        <div className={cn("text-[9px] font-bold uppercase tracking-widest mt-1", idx === 0 ? "text-blue-400" : "text-slate-400")}>{user.referralCount} Партнеров</div>
                                     </div>
                                     <div className="text-right">
                                         <div className={cn("text-lg font-black italic tracking-tighter tabular-nums", idx === 0 ? "text-blue-400" : "text-slate-950")}>{Number(user.revenue).toLocaleString()} ₽</div>
-                                        <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Payouts Generated</div>
+                                        <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Принесено выплатами</div>
                                     </div>
                                 </motion.div>
                             )) : (

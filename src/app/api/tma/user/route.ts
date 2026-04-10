@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       authProject = auth.project;
     }
 
-    // Если нет авторизации, берем первого пользователя для тестов в браузере
+    // Если нет авторизации, запрет доступа!
     let user;
     if (tgId) {
       user = await prisma.user.findFirst({
@@ -31,12 +31,7 @@ export async function GET(req: NextRequest) {
         }
       });
     } else {
-      user = await prisma.user.findFirst({
-        include: {
-          orders: { orderBy: { createdAt: 'desc' }, take: 10, include: { internalService: true } },
-          _count: { select: { referrals: true } }
-        }
-      });
+        return NextResponse.json({ error: 'Unauthorized: Invalid TMA initialization data' }, { status: 401 });
     }
 
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });

@@ -26,6 +26,7 @@ import { cn } from "@/utils/ui";
 import { formatUnitPrice, formatCartTotal, formatCartTotalRaw } from "@/utils/formatter";
 import { translateCategory, translatePlatform, translateTargetType } from "@/utils/translations";
 import { analyzeLink, mapObjectTypeToTargetType } from "@/utils/link-analyzer";
+import { sanitizeGarbageFromText } from "@/utils/service-sanitizer";
 import { BrandIcon } from "../ui/BrandIcon";
 
 // ─── Neuro-UX: Semantic Name Cleaner ────────────────────────────────────────
@@ -798,9 +799,9 @@ export const InstantOrder = ({
                                                         {cleanServiceName(selectedService.name)}
                                                     </h2>
                                                     <div className="flex items-center gap-3 pt-1">
-                                                        <span className="text-blue-400 font-black text-sm">{formatUnitPrice(selectedService.pricePer1000)} ₽<span className="text-[7px] text-blue-400/60 font-bold ml-1">/ шт</span></span>
-                                                        <span className="text-[7px] text-slate-500">•</span>
-                                                        <span className="text-[8px] text-slate-400 font-bold">от {selectedService.minQty} шт</span>
+                                                        <span className="text-blue-400 font-black text-sm whitespace-nowrap shrink-0">{formatUnitPrice(selectedService.pricePer1000)} ₽<span className="text-[7px] text-blue-400/60 font-bold ml-1 inline-block">/ шт</span></span>
+                                                        <span className="text-[7px] text-slate-500 shrink-0">•</span>
+                                                        <span className="text-[8px] text-slate-400 font-bold shrink-0 overflow-hidden text-ellipsis whitespace-nowrap">от {selectedService.minQty} шт</span>
                                                     </div>
                                                 </div>
                                                 
@@ -838,7 +839,7 @@ export const InstantOrder = ({
                                                     >
                                                         <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
                                                             {selectedService.description && (
-                                                                <p className="text-[10px] text-slate-300 leading-relaxed">{selectedService.description}</p>
+                                                                <p className="text-[10px] text-slate-300 leading-relaxed whitespace-pre-wrap">{sanitizeGarbageFromText(selectedService.description)}</p>
                                                             )}
                                                             {selectedService.requirements && (
                                                                 <p className="text-[9px] text-amber-400/80 flex items-start gap-1.5">
@@ -959,11 +960,23 @@ export const InstantOrder = ({
                                                     const min = selectedService.minQty || 1;
                                                     const max = selectedService.maxQty;
                                                     const step = selectedService.qtyStep || 10;
-                                                    const standards = [100, 500, 1000, 5000, 10000];
-                                                    let presets = standards.filter(v => v >= min && (!max || v <= max));
+                                                    
+                                                    let presets: number[] = [min];
+                                                    
+                                                    // Генерируем динамическую шкалу множителей
+                                                    while (presets.length < 5) {
+                                                        const idx = presets.length;
+                                                        const sequence = [2, 5, 10, 25, 50, 100, 500, 1000];
+                                                        const multiplier = sequence[idx - 1] || sequence[sequence.length - 1] + sequence[idx - sequence.length];
+                                                        const val = parseFloat((min + step * multiplier).toFixed(4));
+                                                        if (max && val > max) break;
+                                                        if (!presets.includes(val)) presets.push(val);
+                                                    }
+                                                    
                                                     // Add minQty as first preset if it's not already a standard value
-                                                    if (min > 1 && !standards.includes(min)) presets = [min, ...presets];
-                                                    presets = presets.slice(0, 5);
+                                                    if (min > 1 && !presets.includes(min)) presets = [min, ...presets];
+                                                    presets = Array.from(new Set(presets)).sort((a,b) => a - b).slice(0, 5);
+                                                    
                                                     return presets.length > 0 ? (
                                                         <div className="flex gap-1">
                                                             {presets.map((preset) => (
@@ -971,13 +984,13 @@ export const InstantOrder = ({
                                                                     key={preset}
                                                                     onClick={() => setQuantity(preset)}
                                                                     className={cn(
-                                                                        "flex-1 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all border",
+                                                                        "flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all border",
                                                                         quantity === preset 
                                                                             ? "bg-blue-600 text-white border-blue-600 shadow-sm" 
                                                                             : "bg-white text-slate-500 border-slate-200 hover:border-blue-200 hover:text-blue-600"
                                                                     )}
                                                                 >
-                                                                    {preset >= 1000 ? `${preset / 1000}K` : preset}
+                                                                    {preset >= 1000 && preset % 1000 === 0 ? `${preset / 1000}K` : preset}
                                                                 </button>
                                                             ))}
                                                         </div>
@@ -1138,11 +1151,11 @@ export const InstantOrder = ({
                                             <div className="md:col-span-6 flex items-stretch gap-2 h-16">
                                                 <div className="flex-1 bg-blue-600 rounded-2xl p-1 flex items-stretch shadow-xl shadow-blue-600/20 group">
                                                     {/* Price Part */}
-                                                    <div className="flex-[0.4] bg-white/10 rounded-xl flex flex-col justify-center items-center px-2 sm:px-4">
+                                                    <div className="px-3 sm:px-5 bg-white/10 rounded-xl flex flex-col justify-center items-center min-w-[35%] shrink-0">
                                                         <span className="text-[7px] font-black text-blue-100 uppercase tracking-widest leading-none mb-1 opacity-70">Итоговая стоимость</span>
-                                                        <div className="flex items-baseline gap-1">
-                                                            <span className="text-lg sm:text-xl font-black text-white leading-none">{selectedService ? formatCartTotal(selectedService.pricePer1000, quantity) : '0,00'}</span>
-                                                            <span className="text-[10px] font-black text-blue-200 uppercase italic leading-none">₽</span>
+                                                        <div className="flex items-baseline gap-1 overflow-visible">
+                                                            <span className="text-lg sm:text-xl font-black text-white leading-none whitespace-nowrap">{selectedService ? formatCartTotal(selectedService.pricePer1000, quantity) : '0,00'}</span>
+                                                            <span className="text-[10px] font-black text-blue-200 uppercase italic leading-none whitespace-nowrap">₽</span>
                                                         </div>
                                                     </div>
                                                     
@@ -1151,7 +1164,7 @@ export const InstantOrder = ({
                                                         onClick={handleOrder}
                                                         disabled={!canSubmit || isSubmitting}
                                                         className={cn(
-                                                            "flex-[0.6] flex items-center justify-center gap-2 sm:gap-3 text-white font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all",
+                                                            "flex-1 flex items-center justify-center gap-2 sm:gap-3 text-white font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all px-2",
                                                             (!canSubmit || isSubmitting) ? "opacity-50 cursor-not-allowed" : "hover:scale-[1.02] active:scale-95"
                                                         )}
                                                     >
@@ -1415,7 +1428,7 @@ export const InstantOrder = ({
                                     {detailService.description && (
                                         <div className="space-y-2">
                                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Описание</span>
-                                            <p className="text-sm text-slate-600 leading-relaxed font-medium italic whitespace-pre-wrap">{detailService.description}</p>
+                                            <p className="text-sm text-slate-600 leading-relaxed font-medium italic whitespace-pre-wrap">{sanitizeGarbageFromText(detailService.description)}</p>
                                         </div>
                                     )}
 
@@ -1424,9 +1437,9 @@ export const InstantOrder = ({
                                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Объем</span>
                                             <p className="text-[10px] font-black text-slate-900 uppercase tracking-tight italic">{detailService.minQty} - {detailService.maxQty || '∞'}</p>
                                         </div>
-                                        <div className="bg-blue-50 p-4 rounded-2xl text-right">
+                                        <div className="bg-blue-50 p-4 rounded-2xl text-right overflow-hidden">
                                             <span className="text-[9px] font-black text-blue-400 uppercase tracking-wider block mb-1">Цена</span>
-                                            <p className="text-lg font-black text-blue-600 italic">{formatUnitPrice(detailService.pricePer1000)}₽ <span className="text-[8px] uppercase text-blue-400 not-italic">/ шт</span></p>
+                                            <p className="text-lg font-black text-blue-600 italic whitespace-nowrap overflow-visible">{formatUnitPrice(detailService.pricePer1000)}₽ <span className="text-[8px] uppercase text-blue-400 not-italic inline-block">/ шт</span></p>
                                         </div>
                                     </div>
 

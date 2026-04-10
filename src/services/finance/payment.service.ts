@@ -245,6 +245,121 @@ export class PaymentService {
       };
     }
   }
+
+  /**
+   * Инициализирует платеж для привязки карты (save_payment_method: true)
+   */
+  static async createSubscriptionPayment(
+    amount: number,
+    userId: string,
+    returnUrl: string
+  ): Promise<PaymentResult> {
+    try {
+      const idempotenceKey = crypto.randomUUID();
+      const sysConfig = await ConfigService.getPaymentConfig();
+      const legalDescription = 'Оплата подписки Priority Pass (привязка карты)';
+
+      const response = await axios.post(
+        YOOKASSA_API_URL,
+        {
+          amount: {
+            value: amount.toFixed(2),
+            currency: 'RUB',
+          },
+          confirmation: {
+            type: 'redirect',
+            return_url: returnUrl,
+          },
+          capture: true,
+          description: legalDescription,
+          save_payment_method: true,
+          metadata: {
+            user_id: userId,
+            type: 'SUBSCRIPTION_INIT',
+            source: 'WEB'
+          }
+        },
+        {
+          headers: {
+            'Authorization': await this.getAuthHeader(sysConfig.shopId, sysConfig.secretKey),
+            'Idempotence-Key': idempotenceKey,
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        }
+      );
+
+      return {
+        success: true,
+        paymentId: response.data.id,
+        confirmationUrl: response.data.confirmation.confirmation_url,
+      };
+    } catch (error) {
+      const err = error as any;
+      console.error('--- YOOKASSA API ERROR (Subscription Init) ---');
+      console.error('Details:', JSON.stringify(err.response?.data, null, 2));
+
+      return {
+        success: false,
+        error: `Ошибка создания подписки: ${err.message}`
+      };
+    }
+  }
+
+  /**
+   * Списывает средства с сохраненного способа оплаты
+   */
+  static async chargeSavedMethod(
+    amount: number,
+    userId: string,
+    paymentMethodId: string
+  ): Promise<{ success: boolean; paymentId?: string; error?: string }> {
+    try {
+      const idempotenceKey = crypto.randomUUID();
+      const sysConfig = await ConfigService.getPaymentConfig();
+      const legalDescription = 'Автоматическое продление Priority Pass';
+
+      const response = await axios.post(
+        YOOKASSA_API_URL,
+        {
+          amount: {
+            value: amount.toFixed(2),
+            currency: 'RUB',
+          },
+          payment_method_id: paymentMethodId,
+          capture: true,
+          description: legalDescription,
+          metadata: {
+            user_id: userId,
+            type: 'SUBSCRIPTION_RENEWAL',
+            source: 'WORKER'
+          }
+        },
+        {
+          headers: {
+            'Authorization': await this.getAuthHeader(sysConfig.shopId, sysConfig.secretKey),
+            'Idempotence-Key': idempotenceKey,
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        }
+      );
+
+      return {
+        success: response.data.status === 'succeeded' || response.data.status === 'pending',
+        paymentId: response.data.id,
+      };
+    } catch (error) {
+      const err = error as any;
+      console.error('--- YOOKASSA API ERROR (Charge Saved) ---');
+      console.error('Details:', JSON.stringify(err.response?.data, null, 2));
+
+      return {
+        success: false,
+        error: err.response?.data?.description || err.message,
+      };
+    }
+  }
 }
 
 

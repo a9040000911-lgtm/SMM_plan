@@ -74,7 +74,16 @@ bot.use(async (ctx: any, next) => {
 });
 bot.use(projectMiddleware);
 bot.use(moderationMiddleware);
-bot.use(session({ store: RedisSessionStore }));
+bot.use(session({ 
+  store: RedisSessionStore,
+  getSessionKey: (ctx: any) => {
+    if (ctx.from && ctx.chat) {
+      const projectId = ctx.project?.id || 'default';
+      return `${projectId}:${ctx.from.id}:${ctx.chat.id}`;
+    }
+    return undefined;
+  }
+}));
 bot.use(stage.middleware() as any);
 
 // --- QUEUES ---

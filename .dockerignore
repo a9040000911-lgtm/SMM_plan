@@ -24,3 +24,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .sh
+
+TRASH/
+deploy_lean/
+scripts/all_orders_data/
+src/generated/

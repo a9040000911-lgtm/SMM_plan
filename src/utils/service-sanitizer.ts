@@ -80,4 +80,28 @@ export function sanitizeService(service: any) {
     };
 }
 
+/**
+ * Очищает описания и названия услуг от технического мусора провайдеров
+ * (id серверов, домены, ссылки, лишние теги в скобках).
+ */
+export function sanitizeGarbageFromText(text: string | null | undefined): string {
+    if (!text) return "";
+    let cleaned = String(text);
 
+    // Удаляем любые URL-адреса
+    cleaned = cleaned.replace(/https?:\/\/[^\s]+/gi, '');
+    
+    // Удаляем типичный мусор провайдеров: server id, provider id
+    cleaned = cleaned.replace(/id:\s*\d+/gi, '');
+    cleaned = cleaned.replace(/provider:\s*\d+/gi, '');
+    cleaned = cleaned.replace(/server:\s*\d+/gi, '');
+    
+    // Удаляем текст в квадратных скобках, если он похож на ID [1234] или домен [smmpanel.com]
+    cleaned = cleaned.replace(/\[\d+\]/g, ''); 
+    cleaned = cleaned.replace(/\[[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\]/g, '');
+    
+    // Чистим множественные пробелы возникшие после удаления
+    cleaned = cleaned.replace(/\s{2,}/g, ' ');
+
+    return cleaned.trim();
+}

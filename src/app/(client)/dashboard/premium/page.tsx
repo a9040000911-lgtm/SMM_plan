@@ -1,18 +1,19 @@
-"use client";
-/**
- * (c) 2024-2026 Smmplan. All rights reserved.
- * Created by Artem (http://artmspektr.ru)
- * Unauthorized copying of this file is strictly prohibited.
- */
-
 import React from 'react';
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
+import { SubscriptionService } from '@/services/finance/subscription.service';
+import { PremiumUI } from '@/components/stitch/dashboard/PremiumUI';
 
 export const dynamic = 'force-dynamic';
 
-export default function PremiumDashboardPage() {
+export default async function PremiumDashboardPage() {
+    const session = await auth();
+    if (!session?.user?.id) redirect('/login');
+    const subscription = await SubscriptionService.getSubscriptionDetails(session.user.id);
+
     return (
-        <div className="flex items-center justify-center min-h-[50vh]">
-            <h1 className="text-2xl font-bold text-slate-400">Premium Dashboard (В разработке)</h1>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10">
+            <PremiumUI subscription={subscription} />
         </div>
     );
 }

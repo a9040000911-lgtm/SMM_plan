@@ -48,17 +48,22 @@ export class OrderQueueService {
             if (rawPending.length === 0) return;
 
             // Атомарный захват заказов в работу (Race Condition Deduplication)
-            // Исключает дублирование отправок внешнему провайдеру при параллельных CRON-запусках
-            const pendingIds = rawPending.map(o => o.id);
-            const lockResult = await prisma.order.updateMany({
-                where: { id: { in: pendingIds }, status: 'PENDING' },
-                data: { status: 'PROCESSING' }
-            });
+            // Обновляем по одному, чтобы точно знать, какие ID захватил этот процесс
+            const lockedIds: number[] = [];
+            for (const { id } of rawPending) {
+                const lockResult = await prisma.order.updateMany({
+                    where: { id, status: 'PENDING' },
+                    data: { status: 'PROCESSING' }
+                });
+                if (lockResult.count > 0) {
+                    lockedIds.push(id);
+                }
+            }
 
-            if (lockResult.count === 0) return;
+            if (lockedIds.length === 0) return;
 
             const pending = await prisma.order.findMany({
-                where: { id: { in: pendingIds }, status: 'PROCESSING', externalId: null },
+                where: { id: { in: lockedIds }, status: 'PROCESSING', externalId: null },
                 include: {
                     user: true,
                     project: true,

@@ -5,6 +5,7 @@
  */
 import { MassOrderContent } from "@/components/stitch/mass/MassOrderContent";
 import { Metadata } from "next";
+import { auth } from "@/auth";
 
 export const dynamic = 'force-dynamic';
 
@@ -17,10 +18,13 @@ export const metadata: Metadata = {
     }
 };
 
-export default function MassOrderPage() {
+export default async function MassOrderPage() {
+    const session = await auth();
+    const isAuthenticated = !!session?.user;
+
     return (
         <div className="min-h-screen bg-white">
-            <MassOrderContent />
+            <MassOrderContent isAuthenticated={isAuthenticated} />
         </div>
     );
 }

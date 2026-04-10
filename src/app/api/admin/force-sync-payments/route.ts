@@ -9,6 +9,8 @@ import { prisma } from '@/lib/prisma';
 import { PaymentService } from '@/services/finance/payment.service';
 import { confirmPayment } from '@/services/orders/order-processor.service';
 
+import { getAdminSession } from '@/utils/admin-session';
+
 /**
  * GET /api/admin/force-sync-payments
  * 
@@ -17,6 +19,9 @@ import { confirmPayment } from '@/services/orders/order-processor.service';
  */
 export async function GET(_req: NextRequest) {
     try {
+        const session = await getAdminSession();
+        if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
         const pending = await prisma.transaction.findMany({
             where: {
                 status: 'PENDING',

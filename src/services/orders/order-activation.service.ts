@@ -32,6 +32,10 @@ export class OrderActivationService {
                 console.error(`[OrderActivation Exploit Attempt] Invalid Quantity detected: ${data.qty} for user ${data.userId}`);
                 throw new Error('QUANTITY_MUST_BE_POSITIVE_INTEGER');
             }
+            if (new Decimal(data.totalPrice).lt(0)) {
+                console.error(`[OrderActivation Exploit Attempt] Negative Price detected: ${data.totalPrice} for user ${data.userId}`);
+                throw new Error('PRICE_CANNOT_BE_NEGATIVE');
+            }
 
             // 1. Fetch service details to verify price integrity (Last Defense)
             const service = await txPrisma.internalService.findUnique({

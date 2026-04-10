@@ -10,6 +10,7 @@ import { Footer } from "@/components/stitch/layout/Footer";
 import { MobileAppNav } from "@/components/stitch/layout/MobileAppNav";
 import { FloatingActionButtons } from "@/components/client/FloatingActionButtons";
 import { StatsSection } from "@/components/stitch/sections/StatsSection";
+import { ClientLayoutWrapper } from "@/components/stitch/layout/ClientLayoutWrapper";
 
 import { getClientProjectId } from "@/utils/project-resolver";
 import { ProjectService } from "@/services/core";
@@ -53,17 +54,20 @@ export default async function ClientLayout({ children }: { children: React.React
                 <TmaRedirect>
                     <div className="font-sans bg-white text-slate-900 antialiased selection:bg-blue-600/10 min-h-screen relative overflow-x-hidden">
                         <Toaster position="top-center" expand={false} richColors />
-                        <Header />
-                        <main className="min-h-screen pt-20 pb-20 md:pb-0 flex flex-col">
+                        <ClientLayoutWrapper
+                            header={<Header />}
+                            statsSection={<StatsSection globalStats={globalStats} />}
+                            footer={<Footer cmsContent={cmsStrings} />}
+                            mobileAppNav={<MobileAppNav />}
+                            floatingActionButtons={
+                                <FloatingActionButtons
+                                    enableBugReporter={enableBugReporter}
+                                    enableReviews={enableReviews}
+                                />
+                            }
+                        >
                             {children}
-                        </main>
-                        <FloatingActionButtons
-                            enableBugReporter={enableBugReporter}
-                            enableReviews={enableReviews}
-                        />
-                        <StatsSection globalStats={globalStats} />
-                        <Footer cmsContent={cmsStrings} />
-                        <MobileAppNav />
+                        </ClientLayoutWrapper>
                     </div>
                 </TmaRedirect>
             </CmsBridgeProvider>

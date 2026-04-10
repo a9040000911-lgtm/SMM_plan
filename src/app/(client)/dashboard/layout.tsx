@@ -7,7 +7,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, CreditCard, Headphones, Settings, Sparkles, LogOut, Key, Users, Clock } from 'lucide-react';
+import { LayoutDashboard, Package, CreditCard, Headphones, Settings, Sparkles, LogOut, Key, Users, Clock, Globe } from 'lucide-react';
 import { cn } from '@/utils/ui';
 import { signOut } from 'next-auth/react';
 import { motion } from 'framer-motion';
@@ -38,7 +38,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DesktopSidebar />
                 <MobileHeader />
 
-                <main className="flex-1 w-full px-4 lg:px-0 mt-20 lg:mt-0 pb-32 lg:pb-0">
+                <main className="flex-1 w-full px-4 lg:px-0 mt-20 lg:mt-0 pb-32 lg:pb-0 relative">
+                    <div className="hidden lg:flex justify-end mb-6">
+                        <Link
+                            href="/"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:shadow-lg transition-all group"
+                        >
+                            <Globe size={14} className="group-hover:-translate-x-1 transition-transform" />
+                            На сайт Smmplan
+                        </Link>
+                    </div>
                     {children}
                 </main>
             </div>

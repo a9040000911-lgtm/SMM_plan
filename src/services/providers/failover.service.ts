@@ -158,16 +158,26 @@ export class FailoverService {
                 // Перед переключением проверяем статус еще раз через API
                 const status = await ProviderService.getOrderStatus(order);
 
-                // Если провайдер говорит, что заказ уже в работе или выполнен - не трогаем
-                if (status.status !== 'PENDING' && status.status !== 'PROCESSING') {
+                // Если провайдер говорит, что заказ уже в работе или выполнен - просто синхронизируем статус и НЕ ТРОГАЕМ
+                if ((status.status as string) === 'PROCESSING' || (status.status as string) === 'IN_PROGRESS' || status.status === 'PARTIAL' || status.status === 'COMPLETED') {
                     await prisma.order.update({
                         where: { id: order.id },
                         data: { status: status.status as OrderStatus }
                     });
-                    continue;
+                    continue; // Skip failover!
                 }
 
-                // Если реально висит долго в Pending - переключаем
+                // ВАЖНО: Если статус 'CANCELED', мы должны сделать Failover.
+                // ВАЖНО: Если статус остался 'PENDING' спустя 45 минут, мы тоже делаем Failover.
+                if (status.status === 'CANCELED') {
+                    // Синхронизируем, что он отменился у старого (хотя failover сам принудительно обновит статус)
+                    await prisma.order.update({
+                        where: { id: order.id },
+                        data: { status: 'CANCELED' }
+                    });
+                }
+                
+                // Если реально висит долго в Pending или отменен у провайдера - переключаем к запасному
                 await this.failoverOrder(order.id);
             } catch (e: any) {
                 console.error(`[Failover] Ошибка обработки зависшего заказа ${order.id}:`, e.message);

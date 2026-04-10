@@ -9,6 +9,7 @@ import { getClientProjectId } from '@/utils/project-resolver';
 import { DashboardUI } from "@/components/stitch/dashboard/DashboardUI";
 import { UserService } from "@/services/users/user.service";
 import { AnalyticsService } from "@/services/users/analytics.service";
+import { SubscriptionService } from "@/services/finance/subscription.service";
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Дашборд — Ваш обзор деятельности | Smmplan' };
@@ -32,8 +33,13 @@ export default async function DashboardPage() {
         AnalyticsService.getRecentOrders(user.id, 5)
     ]);
 
+    const hasPriorityPass = await SubscriptionService.checkActiveSubscription(user.id);
+
     // Serialize data for Client Components
-    const serializedUser = JSON.parse(JSON.stringify(user));
+    const serializedUser = {
+        ...JSON.parse(JSON.stringify(user)),
+        hasPriorityPass
+    };
     const serializedOrders = JSON.parse(JSON.stringify(recentOrders));
 
     return (

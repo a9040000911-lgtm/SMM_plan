@@ -56,6 +56,9 @@ export const PLATFORM_TRANSLATIONS: Record<string, string> = {
     TROVO: 'Trovo',
     YANDEX: 'Яндекс',
     WEBSITE: 'Web-сайт',
+    VKONTAKTE: 'ВКонтакте',
+    ODNOKLASSNIKI: 'Одноклассники',
+    'TWITTER-X': 'Twitter (X)'
 };
 
 export function translateCategory(category: string): string {

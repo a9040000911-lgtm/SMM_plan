@@ -8,13 +8,15 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { confirmPayment } from '@/services/orders/order-processor.service';
 import { prisma } from '@/lib/prisma';
+import { getAdminSession } from '@/utils/admin-session';
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const paymentId = searchParams.get('id');
     const secret = searchParams.get('secret');
 
-    if (secret !== 'super-secret-123') {
+    const session = await getAdminSession();
+    if (!session || secret !== 'super-secret-123') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

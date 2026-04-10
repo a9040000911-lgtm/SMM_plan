@@ -23,11 +23,18 @@ export interface AnalysisResult {
 
 export class LinkService {
   static analyze(link: string): AnalysisResult | null {
+    // --- SECURITY GUARD: XSS & Schema Validation ---
+    const lowerLink = link.trim().toLowerCase();
+    if (lowerLink.startsWith('javascript:') || lowerLink.startsWith('data:') || lowerLink.startsWith('vbscript:')) {
+        console.warn(`[LinkService Security] Blocked malicious link payload: ${link}`);
+        return null;
+    }
+
     const analysis = analyzeLink(link);
     if (!analysis) return null;
 
     let targetType: TargetType = 'CHANNEL'; // Fallback
-
+    
     // Mapping Layer: Generic -> Legacy
     switch (analysis.objectType) {
       // TELEGRAM

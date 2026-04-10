@@ -61,8 +61,7 @@ export function formatNumber(value: number | undefined | null): string {
 }
 
 /**
- * Форматтер цены за 1 штуку для отображения в каталогах (Умные красивые цены).
- * Убирает "лишние нули": 1.5₽ вместо 1.500₽.
+ * Форматтер цены за 1 штуку для отображения в каталогах.
  */
 export function formatUnitPrice(pricePer1000: number | Decimal): string {
   const p1k = typeof pricePer1000 === 'object' ? pricePer1000.toNumber() : Number(pricePer1000);
@@ -70,7 +69,7 @@ export function formatUnitPrice(pricePer1000: number | Decimal): string {
   
   const formatter = new Intl.NumberFormat('ru-RU', {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 4, // По нашей математике больше 3 не бывает
+      maximumFractionDigits: 2, // Строго 2 знака, как просил пользователь
       useGrouping: true
   });
   
@@ -78,14 +77,14 @@ export function formatUnitPrice(pricePer1000: number | Decimal): string {
 }
 
 /**
- * Форматтер итоговой корзины при перемножении произвольного количества штук (например, 14 шт * 0.003₽).
- * Всегда округляет ровно до 2 копеек (вверх).
+ * Форматтер итоговой корзины при перемножении.
+ * Строго 2 знака, по желанию пользователя (место под UI теперь хватает).
  */
 export function formatCartTotal(pricePer1000: number | Decimal, quantity: number): string {
   const p1k = typeof pricePer1000 === 'object' ? pricePer1000.toNumber() : Number(pricePer1000);
   const total = (p1k * quantity) / 1000;
   
-  // Жестко округляем до ближайшей копейки вверх (0.042 -> 0.05)
+  // Всегда 2 знака, округление вверх
   const roundedTotal = Math.ceil(total * 100) / 100;
 
   const formatter = new Intl.NumberFormat('ru-RU', {

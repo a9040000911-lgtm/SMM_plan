@@ -219,7 +219,7 @@ export async function POST(req: NextRequest) {
                 }
 
                 // Batch Link Validation
-                const svcPlatformEnum = (service.socialPlatform?.slug?.toUpperCase() || 'OTHER') as import('@prisma/client').Platform;
+                const svcPlatformEnum = (service.platform || service.socialPlatform?.slug?.toUpperCase() || 'OTHER') as import('@prisma/client').Platform;
                 const validation = LinkService.validate(link, svcPlatformEnum, service.targetType, service.allowedTargetTypes);
                 if (!validation.isValid) {
                     return NextResponse.json({ error: `Item ${service.name}: ${validation.error || 'Invalid link'}` }, { status: 400 });
@@ -480,7 +480,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 3. Link Validation
-        const singleSvcPlatformEnum = (service.socialPlatform?.slug?.toUpperCase() || 'OTHER') as import('@prisma/client').Platform;
+        const singleSvcPlatformEnum = (service.platform || service.socialPlatform?.slug?.toUpperCase() || 'OTHER') as import('@prisma/client').Platform;
         const validation = LinkService.validate(link, singleSvcPlatformEnum, service.targetType, service.allowedTargetTypes);
         if (!validation.isValid) {
             return NextResponse.json({ error: validation.error || 'Invalid link for this service' }, { status: 400 });

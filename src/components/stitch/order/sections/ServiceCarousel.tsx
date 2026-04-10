@@ -12,6 +12,7 @@ import {
 import { cn } from '@/utils/ui';
 import { formatUnitPrice } from '@/utils/formatter';
 import { translateCategory } from '@/utils/translations';
+import { ServiceDescription } from '../../catalog/ServiceDescription';
 import type { SmmService, ServiceFilter } from '../hooks/useOrderFlow';
 
 interface ServiceCarouselProps {
@@ -259,7 +260,7 @@ export const ServiceCarousel: React.FC<ServiceCarouselProps> = ({
                                         {/* Compact Info Bullets */}
                                         <div className="space-y-0.5 mb-2 text-[11px] text-slate-500 font-medium">
                                             {service.description && (
-                                                <p className="line-clamp-2 leading-snug">{service.description}</p>
+                                                <ServiceDescription text={service.description} expandable={false} maxLines={2} className="leading-snug" />
                                             )}
                                             {service.requirements && (
                                                 <p className="text-blue-600/70 leading-snug">ℹ️ {service.requirements}</p>

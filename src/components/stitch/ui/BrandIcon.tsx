@@ -13,7 +13,7 @@ import { cn } from "@/utils/ui";
  * Derived from official Simple Icons, optimized for Tailwind styling.
  */
 
-type IconName = "telegram" | "tg" | "vk" | "tiktok" | "youtube" | "yt" | "instagram" | "inst" | "likee" | "twitch" | "ok" | "discord" | "twitter" | "facebook" | "fb" | "threads" | "reddit" | "whatsapp" | "spotify" | "soundcloud" | "linkedin" | "pinterest" | "snapchat" | "kick" | "rutube" | "dzen" | "appstore" | "googleplay" | "steam" | "google" | "trovo" | "max" | "yandex" | "web" | "generic";
+type IconName = "telegram" | "tg" | "vk" | "vkontakte" | "odnoklassniki" | "twitter-x" | "tiktok" | "youtube" | "yt" | "instagram" | "inst" | "likee" | "twitch" | "ok" | "discord" | "twitter" | "facebook" | "fb" | "threads" | "reddit" | "whatsapp" | "spotify" | "soundcloud" | "linkedin" | "pinterest" | "snapchat" | "kick" | "rutube" | "dzen" | "appstore" | "googleplay" | "steam" | "google" | "trovo" | "max" | "yandex" | "web" | "generic";
 
 interface BrandIconProps {
     name: IconName | string;
@@ -60,7 +60,10 @@ export const BrandIcon = ({ name, className, size = 24, colorMode = "white" }: B
         max: "/brands/max.svg",
         yandex: "/brands/yandex.svg",
         web: "/brands/web.svg",
-        generic: "/brands/generic.svg"
+        generic: "/brands/generic.svg",
+        vkontakte: "/brands/vk.svg",
+        odnoklassniki: "/brands/ok.svg",
+        "twitter-x": "/brands/x.svg"
     };
 
     const src = iconFiles[name as IconName] || iconFiles.generic;

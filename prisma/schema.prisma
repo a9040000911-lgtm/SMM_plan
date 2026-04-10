@@ -58,6 +58,7 @@ model Project {
   transactions            Transaction[]
   users                   User[]
   staff                   User[]                   @relation("StaffProjects")
+  subscriptions           Subscription[]
   organizationId          String?
   organization            Organization?            @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
@@ -103,7 +104,7 @@ model ProjectServiceOverride {
   customRequirements String?
   customIcon         String?
   markup             Decimal?         @db.Decimal(10, 2)
-  serviceCategory    ServiceCategory? @relation(fields: [categoryId], references: [id])
+  serviceCategory    ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   internalService    InternalService  @relation(fields: [internalServiceId], references: [id], onDelete: Cascade)
   project            Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
@@ -195,6 +196,7 @@ model User {
   accessibleProjects   Project[]             @relation("StaffProjects")
   adminLogs            AdminLog[]            @relation("AdminToLog")
   ownedOrganizations   Organization[]        @relation("OrganizationOwner")
+  subscription         Subscription?
 
   @@unique([projectId, earlyBirdRank])
   @@map("User")
@@ -213,7 +215,7 @@ model SupportTicket {
   verifiedUserId String?
   orderId        Int?
   messages       SupportMessage[]
-  order          Order?           @relation(fields: [orderId], references: [id])
+  order          Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
   project        Project?         @relation(fields: [projectId], references: [id])
   user           User             @relation("UserTickets", fields: [userId], references: [id])
   verifiedUser   User?            @relation("VerifiedTickets", fields: [verifiedUserId], references: [id])
@@ -294,8 +296,8 @@ model ServiceCategory {
   isActive         Boolean                  @default(true)
   internalServices InternalService[]
   projectOverrides ProjectServiceOverride[]
-  project          Project?                 @relation(fields: [projectId], references: [id])
-  socialPlatform   SocialPlatform?          @relation(fields: [socialPlatformId], references: [id])
+  project          Project?                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  socialPlatform   SocialPlatform?          @relation(fields: [socialPlatformId], references: [id], onDelete: SetNull)
 
   @@unique([projectId, socialPlatformId, slug])
   @@unique([projectId, platform, name])
@@ -483,8 +485,8 @@ model InternalService {
   socialPlatformId         String?
   allowedTargetTypes       String[]                 @default([])
   autoMonitorings          AutoMonitoring[]
-  serviceCategory          ServiceCategory?         @relation(fields: [categoryId], references: [id])
-  socialPlatform           SocialPlatform?          @relation(fields: [socialPlatformId], references: [id])
+  serviceCategory          ServiceCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  socialPlatform           SocialPlatform?          @relation(fields: [socialPlatformId], references: [id], onDelete: SetNull)
   providerMappings         InternalServiceMapping[]
   managedChannels          ManagedChannel[]         @relation("ChannelService")
   orders                   Order[]
@@ -524,7 +526,7 @@ model InternalServiceMapping {
   internalService   InternalService @relation(fields: [internalServiceId], references: [id], onDelete: Cascade)
   project           Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   provider          Provider        @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  providerService   ProviderService @relation(fields: [providerServiceId], references: [id])
+  providerService   ProviderService @relation(fields: [providerServiceId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, internalServiceId, providerId])
   @@index([providerServiceId])
@@ -554,7 +556,7 @@ model ProviderService {
   refill              Boolean                  @default(false)
   mappings            InternalServiceMapping[]
   provider            Provider                 @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  socialPlatform      SocialPlatform?          @relation(fields: [socialPlatformId], references: [id])
+  socialPlatform      SocialPlatform?          @relation(fields: [socialPlatformId], references: [id], onDelete: SetNull)
 
   @@unique([providerId, externalId])
   @@index([providerId])
@@ -601,7 +603,7 @@ model Transaction {
   projectId  String?
   updatedAt  DateTime          @updatedAt
   orderId    Int?
-  order      Order?            @relation(fields: [orderId], references: [id])
+  order      Order?            @relation(fields: [orderId], references: [id], onDelete: SetNull)
   project    Project?          @relation(fields: [projectId], references: [id])
   user       User              @relation(fields: [userId], references: [id])
 
@@ -926,6 +928,7 @@ enum LedgerEntryType {
   REFERRAL_BONUS
   LOYALTY_BONUS
   MANUAL_ADJUSTMENT
+  SUBSCRIPTION_PAYMENT
 }
 
 enum BusinessExpenseType {
@@ -1239,4 +1242,22 @@ model OrganizationLedgerEntry {
   @@index([organizationId])
   @@index([createdAt])
   @@map("OrganizationLedgerEntry")
+}
+
+model Subscription {
+  id                 String    @id @default(uuid())
+  userId             String    @unique
+  projectId          String?
+  status             String    @default("ACTIVE") // ACTIVE, CANCELED, PAST_DUE
+  currentPeriodEnd   DateTime
+  autoRenew          Boolean   @default(true)
+  paymentMethodId    String?   // Сохраненный токен от YooKassa
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project            Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("Subscription")
 }

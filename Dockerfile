@@ -21,9 +21,9 @@ ENV IS_BUILD true
 
 # Patch prisma enums if needed and build
 RUN npx prisma generate
-ENV NODE_OPTIONS="--max-old-space-size=2048"
+ENV NODE_OPTIONS="--max-old-space-size=1536"
 ENV NEXT_PRIVATE_LOCAL_WEBPACK_WORKERS=0
-RUN npm run build
+RUN npx next build && npm run prisma:patch
 
 # STAGE 3: Bot Runner
 FROM node:20-slim AS bot-runner

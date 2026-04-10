@@ -7,6 +7,8 @@ import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
 import { LedgerService } from '@/services/finance';
 import { PromoService } from '@/services/users';
+import { PricingService } from '@/services/finance/pricing.service';
+import { SubscriptionService } from '@/services/finance/subscription.service';
 
 export interface MassOrderEntry {
     serviceId: string;
@@ -40,11 +42,13 @@ export class MassOrderService {
     /**
    * Validates a mass order and returns a summary for preview
    */
-    static async validateMassOrder(userId: string, projectId: string | null, entries: MassOrderEntry[]) {
+    static async validateMassOrder(userId: string, projectId: string | null, entries: MassOrderEntry[], options: { isB2B?: boolean } = {}) {
         if (entries.length === 0) throw new Error('No valid order entries found');
 
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) throw new Error('User not found');
+
+        const hasPriorityPass = await SubscriptionService.checkActiveSubscription(userId);
 
         const serviceIds = [...new Set(entries.map(e => e.serviceId))];
 
@@ -77,7 +81,17 @@ export class MassOrderService {
 
             if (entry.quantity < svc.minQty || entry.quantity > svc.maxQty) continue;
 
-            const price = svc.pricePer1000.mul(entry.quantity).div(1000).toDecimalPlaces(2, Decimal.ROUND_CEIL);
+            let pricePer1000 = svc.pricePer1000;
+            if (options.isB2B) {
+                // If lastProviderPrice is null, estimate cost as retail / B2C_RECOMMENDED_MULTIPLIER (6)
+                const cost = svc.lastProviderPrice || svc.pricePer1000.div(6);
+                pricePer1000 = PricingService.calculateB2BPrice(cost);
+            } else if (hasPriorityPass) {
+                const cost = svc.lastProviderPrice || svc.pricePer1000.div(6);
+                pricePer1000 = PricingService.getSafetyPrice(cost);
+            }
+
+            const price = pricePer1000.mul(entry.quantity).div(1000).toDecimalPlaces(2, Decimal.ROUND_CEIL);
             totalBatchAmount = totalBatchAmount.plus(price);
             validatedEntries.push({
                 ...entry,
@@ -101,8 +115,8 @@ export class MassOrderService {
     /**
      * Processes a list of mass order entries (Execution)
      */
-    static async processMassOrder(userId: string, projectId: string | null, entries: MassOrderEntry[]) {
-        const { user, totalBatchAmount, validatedEntries, hasSufficientBalance } = await this.validateMassOrder(userId, projectId, entries);
+    static async processMassOrder(userId: string, projectId: string | null, entries: MassOrderEntry[], options: { isB2B?: boolean } = {}) {
+        const { user, totalBatchAmount, validatedEntries, hasSufficientBalance } = await this.validateMassOrder(userId, projectId, entries, options);
 
         if (!hasSufficientBalance) {
             throw new Error(`Insufficient balance. Required: ${totalBatchAmount} RUB, available: ${user.balance} RUB.`);

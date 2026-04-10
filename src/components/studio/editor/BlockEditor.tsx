@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 /**
  * (c) 2024-2026 Smmplan. All rights reserved.
@@ -56,7 +55,7 @@ export const BlockEditor = ({ initialContent, onChange, placeholder }: BlockEdit
             }),
         ],
         content: initialContent,
-        onUpdate: ({ editor }) => {
+        onUpdate: ({ editor }: { editor: any }) => {
             onChange?.(editor.getJSON());
         },
         editorProps: {

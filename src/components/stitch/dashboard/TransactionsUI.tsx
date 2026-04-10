@@ -126,23 +126,23 @@ export function TransactionsUI({ initialBalance, initialTransactions }: Transact
     return (
         <div className="space-y-10 pb-40">
             {/* Header / Wallet Card Area */}
-            <div className="flex flex-col lg:flex-row gap-8 lg:items-end justify-between">
+            <div className="flex flex-col xl:flex-row gap-8 xl:items-end justify-between">
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     className="space-y-2"
                 >
-                    <h1 className="text-5xl md:text-8xl font-black text-slate-950 tracking-tighter uppercase italic pr-2 overflow-visible leading-[0.85]">
+                    <h1 className="text-4xl md:text-5xl font-black text-slate-950 tracking-tighter uppercase italic pr-2">
                         Финансовый <span className="text-blue-600">Хаб</span>
                     </h1>
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Управление балансом и контроль расходов</p>
                 </motion.div>
 
-                <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="flex-1 lg:flex-none p-6 bg-slate-950 rounded-[2.5rem] border border-blue-500/10 shadow-2xl flex items-center gap-6 group relative overflow-hidden"
+                        className="flex-1 xl:flex-none p-6 bg-slate-950 rounded-[2.5rem] border border-blue-500/10 shadow-2xl flex items-center gap-6 group relative overflow-hidden"
                     >
                         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl" />
                         <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/5 group-hover:rotate-6 transition-transform">
@@ -151,7 +151,7 @@ export function TransactionsUI({ initialBalance, initialTransactions }: Transact
                         <div className="pr-4">
                             <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest block mb-1">Доступно</span>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-3xl font-black text-white tracking-tighter tabular-nums">{formatAmount(initialBalance)}</span>
+                                <span className="text-3xl font-black text-white tracking-tighter tabular-nums whitespace-nowrap">{formatAmount(initialBalance)}</span>
                                 <span className="text-xs font-black text-blue-500 uppercase italic pr-2">rub&nbsp;</span>
                             </div>
                         </div>

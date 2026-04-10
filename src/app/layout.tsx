@@ -10,9 +10,10 @@ import { Providers } from "@/components/Providers";
 import { getTenantDomain, getTenantConfig } from "@/lib/tenant/server";
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { CookieBanner } from '@/components/stitch/ui/CookieBanner';
+import { auth } from "@/auth";
 
 const jakarta = Plus_Jakarta_Sans({
-  subsets: ['latin', 'latin-ext'],
+  subsets: ['latin', 'latin-ext', 'cyrillic-ext'],
   variable: '--font-jakarta',
   display: 'swap',
 });
@@ -89,6 +90,7 @@ export default async function RootLayout({
 }>) {
   const config = await getTenantConfig();
   const themeClass = `theme-${config.theme}`;
+  const session = await auth();
 
   return (
     <html lang="ru" suppressHydrationWarning className={`${jakarta.variable} ${themeClass}`}>
@@ -99,7 +101,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="font-jakarta antialiased selection:bg-blue-500/10 selection:text-blue-600" suppressHydrationWarning={true}>
-        <Providers>
+        <Providers session={session}>
           {children}
           <CookieBanner />
         </Providers>

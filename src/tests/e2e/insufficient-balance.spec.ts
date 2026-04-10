@@ -12,6 +12,7 @@ test.describe('Financial Error Paths: Insufficient Balance', () => {
     const BROKE_EMAIL = 'broke-user-e2e@smmplan.pro';
     const BROKE_PASS = 'BrokePass2026!';
     let projectId: string;
+    let serviceId: string;
 
     test.beforeAll(async () => {
         const project = await prisma.project.findFirst({ orderBy: { createdAt: 'asc' } });
@@ -34,10 +35,10 @@ test.describe('Financial Error Paths: Insufficient Balance', () => {
             },
         });
 
-        await prisma.internalService.upsert({
-            where: { id: 'e2e-srv-1' },
+        const svc = await prisma.internalService.upsert({
+            where: { id: 'e2e-srv-tel-1' },
             create: {
-                id: 'e2e-srv-1',
+                id: 'e2e-srv-tel-1',
                 name: 'E2E Test Views',
                 description: 'E2E Test Service Description',
                 isActive: true,
@@ -49,15 +50,20 @@ test.describe('Financial Error Paths: Insufficient Balance', () => {
                 targetType: 'POST',
                 geo: 'All',
             },
-            update: { isActive: true },
+            update: { 
+                isActive: true,
+                platform: 'TELEGRAM',
+                category: 'VIEWS'
+            },
         });
+        serviceId = svc.id;
     });
 
     test('GAP-4a: Zero balance user → API returns requiresPayment=true with paymentUrl', async ({ request }) => {
         const res = await request.post(`${BASE_URL}/api/client/orders`, {
             headers: { 'host': 'localhost' },
             data: {
-                serviceId: 'e2e-srv-1',
+                serviceId: 'e2e-srv-tel-1',
                 link: 'https://t.me/e2etest/10',
                 quantity: 500,
                 email: BROKE_EMAIL,
@@ -81,11 +87,11 @@ test.describe('Financial Error Paths: Insufficient Balance', () => {
         await Promise.all([
             request.post(`${BASE_URL}/api/client/orders`, {
                 headers: { 'host': 'localhost' },
-                data: { serviceId: 'e2e-srv-1', link: 'https://t.me/e2etest/11', quantity: 500, email: BROKE_EMAIL, password: BROKE_PASS },
+                data: { serviceId: 'e2e-srv-tel-1', link: 'https://t.me/e2etest/11', quantity: 500, email: BROKE_EMAIL, password: BROKE_PASS },
             }),
             request.post(`${BASE_URL}/api/client/orders`, {
                 headers: { 'host': 'localhost' },
-                data: { serviceId: 'e2e-srv-1', link: 'https://t.me/e2etest/12', quantity: 500, email: BROKE_EMAIL, password: BROKE_PASS },
+                data: { serviceId: 'e2e-srv-tel-1', link: 'https://t.me/e2etest/12', quantity: 500, email: BROKE_EMAIL, password: BROKE_PASS },
             }),
         ]);
 

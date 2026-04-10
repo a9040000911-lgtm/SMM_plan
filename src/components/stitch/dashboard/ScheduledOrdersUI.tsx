@@ -55,10 +55,10 @@ export function ScheduledOrdersUI({ initialOrders }: ScheduledOrdersUIProps) {
     };
 
     return (
-        <div className="space-y-10 pb-20">
+        <div className="space-y-10 pb-32 lg:pb-40">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-1">
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">
+                    <h1 className="text-4xl md:text-5xl font-black text-slate-950 tracking-tighter uppercase italic pr-2">
                         Запланированные <span className="text-blue-600">Заказы</span>
                     </h1>
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">

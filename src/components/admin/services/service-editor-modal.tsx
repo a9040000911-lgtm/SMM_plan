@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { createManualServiceAction, updateManualServiceAction, upsertProjectOverrideAction, enhanceDescriptionAction } from '@/app/admin/services/actions';
 import { Platform, Category } from '@prisma/client';
 import { PLATFORM_LABELS, TARGET_TYPE_LABELS } from '@/services/providers/smart-analyzer.logic';
+import { FinanceTrafficLight } from './finance-traffic-light';
 
 interface ServiceEditorModalProps {
     isOpen: boolean;
@@ -268,6 +269,16 @@ export function ServiceEditorModal({
         );
     };
 
+    const handleAutoX6Price = () => {
+        if (costPrice > 0) {
+            // Округляем до математически "красивого" значения согласно PricingService (можно было бы переиспользовать applyBeautifulRounding, но здесь UI-логика)
+            // Просто умножаем на 6 и округляем до десятков
+            const val = costPrice * 6;
+            const rounded = val < 1000 ? Math.ceil(val / 10) * 10 : Math.ceil(val / 100) * 100;
+            setFormData(prev => ({ ...prev, pricePer1000: rounded }));
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-300">
             <div className="bg-white rounded-3xl w-full max-w-5xl shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-5 duration-300 my-auto border border-white/20 flex flex-col max-h-[90vh]">
@@ -435,12 +446,25 @@ export function ServiceEditorModal({
 
                                     {/* Final Price Input */}
                                     <div className="space-y-2 w-full">
-                                        <ContextToggle
-                                            label="Цена продажи за 1000 (₽)"
-                                            isLocalMode={isLocalMode}
-                                            isOverridden={useOverride.price}
-                                            onToggle={() => setUseOverride(prev => ({ ...prev, price: !prev.price }))}
-                                        />
+                                        <div className="flex items-center justify-between mb-2">
+                                            <ContextToggle
+                                                label="Цена продажи за 1000 (₽)"
+                                                isLocalMode={isLocalMode}
+                                                isOverridden={useOverride.price}
+                                                onToggle={() => setUseOverride(prev => ({ ...prev, price: !prev.price }))}
+                                            />
+                                            {formData.markupMode === 'manual' && costPrice > 0 && (
+                                                <button
+                                                    onClick={handleAutoX6Price}
+                                                    type="button"
+                                                    className="px-2 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md text-[10px] font-black uppercase transition-colors flex items-center gap-1 shadow-sm"
+                                                    title="Установить минимально безопасную цену для розницы (B2C Recommended)"
+                                                >
+                                                    <Calculator size={10} />
+                                                    Auto (x6)
+                                                </button>
+                                            )}
+                                        </div>
                                         <input
                                             type="number"
                                             value={formData.pricePer1000}
@@ -489,6 +513,9 @@ export function ServiceEditorModal({
                                         />
                                     </div>
                                 </div>
+
+                                {/* B2B Finance Traffic Light Warning System */}
+                                <FinanceTrafficLight providerCost={costPrice} retailPrice={formData.pricePer1000} />
                             </div>
 
                             {/* Descriptions */}

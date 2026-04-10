@@ -60,10 +60,10 @@ export function SupportUI({ initialTickets: tickets }: SupportUIProps) {
             {/* Header / Stats Row */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div className="space-y-2">
-                    <h1 className="text-5xl md:text-8xl font-black text-slate-950 tracking-tighter uppercase italic pr-2 overflow-visible leading-[0.85]">
+                    <h1 className="text-4xl md:text-5xl font-black text-slate-950 tracking-tighter uppercase italic pr-2">
                         Центр <span className="text-blue-600">Заботы</span>
                     </h1>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Прямая связь с экспертами Smmplan</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Прямая связь с экспертами Smmplan</p>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -109,40 +109,40 @@ export function SupportUI({ initialTickets: tickets }: SupportUIProps) {
                             <div className="max-w-4xl mx-auto space-y-10 relative z-10">
                                 <div className="space-y-2 text-center lg:text-left">
                                     <h2 className="text-3xl font-black text-slate-950 uppercase tracking-tight">Новое обращение</h2>
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Максимально подробно опишите ситуацию для быстрого решения</p>
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Максимально подробно опишите ситуацию для быстрого решения</p>
                                 </div>
 
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Тема</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Тема</label>
                                         <input
                                             value={subject}
                                             onChange={(e) => setSubject(e.target.value)}
                                             placeholder="Проблема с накруткой / Ошибка оплаты"
-                                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-5 px-6 text-sm font-black text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all placeholder:text-slate-200"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-5 px-6 text-sm font-black text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all placeholder:text-slate-400"
                                         />
                                     </div>
                                     <div className="flex items-center gap-4 px-6 md:px-0">
                                         <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shrink-0">
                                             <ShieldCheck size={24} />
                                         </div>
-                                        <p className="text-[10px] font-bold text-slate-500 leading-relaxed uppercase tracking-tight">Ваш запрос будет передан <br /> дежурному специалисту <br /> моментально.</p>
+                                        <p className="text-[10px] font-bold text-slate-600 leading-relaxed uppercase tracking-tight">Ваш запрос будет передан <br /> дежурному специалисту <br /> моментально.</p>
                                     </div>
 
                                     <div className="lg:col-span-2 space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Описание</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Описание</label>
                                         <textarea
                                             value={message}
                                             onChange={(e) => setMessage(e.target.value)}
                                             rows={5}
                                             placeholder="Укажите номер заказа, ссылки и детали..."
-                                            className="w-full bg-slate-50 border border-slate-100 rounded-[2.5rem] py-6 px-8 text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all placeholder:text-slate-200 resize-none"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-[2.5rem] py-6 px-8 text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-blue-500 transition-all placeholder:text-slate-400 resize-none"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-6 border-t border-slate-50">
-                                    <div className="flex items-center gap-4 text-slate-300">
+                                    <div className="flex items-center gap-4 text-slate-500">
                                         <Mail size={16} />
                                         <span className="text-[10px] font-black uppercase tracking-[0.2em]">Email уведомления включены</span>
                                     </div>
@@ -178,9 +178,9 @@ export function SupportUI({ initialTickets: tickets }: SupportUIProps) {
                         animate={{ opacity: 1 }}
                         className="py-32 text-center bg-slate-50/50 border-2 border-dashed border-slate-100 rounded-[3rem]"
                     >
-                        <Headphones className="mx-auto text-slate-200 mb-6" size={50} />
+                        <Headphones className="mx-auto text-slate-300 mb-6" size={50} />
                         <h3 className="font-black text-slate-950 uppercase tracking-widest text-sm mb-2">История пуста</h3>
-                        <p className="text-xs font-bold text-slate-400">У вас пока нет активных обращений в поддержку</p>
+                        <p className="text-xs font-bold text-slate-500">У вас пока нет активных обращений в поддержку</p>
                     </motion.div>
                 )}
             </div>

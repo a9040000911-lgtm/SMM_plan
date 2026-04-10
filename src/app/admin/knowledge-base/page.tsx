@@ -110,7 +110,7 @@ function CustomMedia({ type }: { type: CustomMediaType }) {
             if (maxMatch) tags.push({ label: `Лимит БД: ${maxMatch[1]}`, color: 'bg-orange-100 text-orange-800 border-orange-300', icon: '📊' });
             
             // Speed
-            const speedMatch = s.match(/SPEED\s*([^|\-]+)/i);
+            const speedMatch = s.match(/SPEED\s*([^|-]+)/i);
             if (speedMatch) tags.push({ label: `Скорость: ${speedMatch[1].trim()}`, color: 'bg-cyan-100 text-cyan-800 border-cyan-300', icon: '🚀' });
             
             return tags;

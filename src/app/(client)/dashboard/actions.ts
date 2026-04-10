@@ -9,13 +9,19 @@
 
 import { AchievementService } from '@/services/gamification/achievement.service';
 import { revalidatePath } from 'next/cache';
+import { auth } from '@/auth';
 
 /**
  * Claim achievement reward
  */
 export async function claimAchievementAction(achievementId: string) {
     try {
-        const result = await AchievementService.claimReward(achievementId);
+        const session = await auth();
+        if (!session?.user?.id) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const result = await AchievementService.claimReward(achievementId, session.user.id);
 
         if (!result.success) {
             return { success: false, error: 'Failed to claim reward' };
@@ -35,7 +41,15 @@ export async function claimAchievementAction(achievementId: string) {
  */
 export async function getUserAchievementsAction(userId: string) {
     try {
-        const achievements = await AchievementService.getUserAchievements(userId);
+        const session = await auth();
+        // Fallback for IDOR prevention: Always use session ID if caller passes different ID
+        const targetUserId = session?.user?.id;
+        
+        if (!targetUserId) {
+             return { success: false, achievements: [] };
+        }
+
+        const achievements = await AchievementService.getUserAchievements(targetUserId);
         return { success: true, achievements };
     } catch (error) {
         console.error('[Achievement] Fetch error:', error);

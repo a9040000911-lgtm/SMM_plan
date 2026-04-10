@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { MassOrderService } from '@/services/orders/mass-order.service';
 import { checkRateLimit } from '@/services/core/rate-limiter';
+import { PricingService } from '@/services/finance/pricing.service';
 
 /**
  * Standard SMM API v2 (Compatible with Perfect Panel style)
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
         }
 
         const projectId = user.projectId; // Scoping to user's assigned project if any
+        const isB2B = user.role === 'RESELLER' || user.isGlobalAdmin;
 
         // 2. Route actions
         switch (action) {
@@ -65,6 +67,7 @@ export async function POST(req: Request) {
                         serviceCategory: { select: { categoryType: true, name: true } },
                         socialPlatform: { select: { slug: true, name: true } },
                         pricePer1000: true,
+                        lastProviderPrice: true,
                         minQty: true,
                         maxQty: true,
                         description: true,
@@ -72,17 +75,25 @@ export async function POST(req: Request) {
                     }
                 });
 
-                return NextResponse.json(services.map(s => ({
-                    service: s.numericId,
-                    name: s.name,
-                    type: s.type || 'Default',
-                    category: s.serviceCategory?.name || s.serviceCategory?.categoryType || 'Other',
-                    rate: s.pricePer1000.toNumber(),
-                    min: s.minQty,
-                    max: s.maxQty,
-                    dripfeed: true,
-                    description: s.description || ''
-                })));
+                return NextResponse.json(services.map(s => {
+                    let rate = s.pricePer1000.toNumber();
+                    if (isB2B) {
+                        const cost = s.lastProviderPrice || s.pricePer1000.div(6);
+                        rate = PricingService.calculateB2BPrice(cost).toNumber();
+                    }
+
+                    return {
+                        service: s.numericId,
+                        name: s.name,
+                        type: s.type || 'Default',
+                        category: s.serviceCategory?.name || s.serviceCategory?.categoryType || 'Other',
+                        rate: rate,
+                        min: s.minQty,
+                        max: s.maxQty,
+                        dripfeed: true,
+                        description: s.description || ''
+                    };
+                }));
             }
 
             case 'add': {
@@ -126,7 +137,7 @@ export async function POST(req: Request) {
                         serviceId: serviceRecord.id,
                         link,
                         quantity
-                    }]);
+                    }], { isB2B });
 
                     return NextResponse.json({
                         order: result.batchId

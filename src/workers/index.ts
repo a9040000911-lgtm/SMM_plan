@@ -16,6 +16,7 @@ import { AutoMonitoringService } from '@/services/orders';
 import { getRedisConfig } from '@/services/core/queues';
 import { balanceWorker } from './check-balance.job';
 import { scheduledOrderWorker } from './scheduled-orders.job';
+import { billingWorker } from './billing.worker';
 
 const connection = getRedisConfig();
 
@@ -105,7 +106,8 @@ export const allWorkers = [
   failoverWorker,
   autoMonitoringWorker,
   balanceWorker,
-  scheduledOrderWorker
+  scheduledOrderWorker,
+  billingWorker
 ];
 
 // Обработка ошибок воркеров

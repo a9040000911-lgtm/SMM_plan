@@ -33,7 +33,6 @@ export class OrganizationLedgerService {
         }
 
         const balanceBefore = organization.masterBalance;
-        let balanceAfter: Decimal;
         const amount = new Decimal(params.amount);
 
         // АТОМАРНОЕ Обновление баланса организации
@@ -65,7 +64,7 @@ export class OrganizationLedgerService {
 
         // Fetch exact absolute balance for ledger consistency
         const orgRefresh = await tx.organization.findUnique({ where: { id: params.organizationId } });
-        balanceAfter = orgRefresh?.masterBalance || new Decimal(0);
+        const balanceAfter = orgRefresh?.masterBalance || new Decimal(0);
 
         // Создаем лог транзакции
         const entry = await tx.organizationLedgerEntry.create({

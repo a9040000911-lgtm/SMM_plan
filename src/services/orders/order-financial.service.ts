@@ -45,6 +45,7 @@ export class OrderFinancialService {
         const withdrawalSuccess = await OrderRepository.atomicRefundUpdate(
             order.id,
             order.totalPrice,
+            amount,
             {
                 status: newStatus,
                 remains: remains,

@@ -7,9 +7,13 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { SmartAnalyzerService } from '@/services/providers';
+import { getAdminSession } from '@/utils/admin-session';
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getAdminSession();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { names } = await req.json();
     if (!Array.isArray(names)) throw new Error('names must be an array');
 

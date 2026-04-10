@@ -144,7 +144,7 @@ export function CommandPalette() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={mode === 'knowledge'
-              ? 'Описание ситуации: \"клиент пропал из поиска\", \"scam\", \"собачки\"...'
+              ? 'Описание ситуации: "клиент пропал из поиска", "scam", "собачки"...'
               : 'Ищите что угодно: пользователя, ID заказа или тикета...'
             }
             className="flex-1 bg-transparent border-none outline-none text-lg font-medium text-slate-800 placeholder:text-slate-300"

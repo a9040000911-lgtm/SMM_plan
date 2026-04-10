@@ -66,14 +66,16 @@ export class OrderRepository {
     static async atomicRefundUpdate(
         orderId: number,
         maxPrice: Decimal | number,
+        amount: Decimal | number,
         data: Prisma.OrderUpdateManyMutationInput,
         tx?: Prisma.TransactionClient
     ): Promise<boolean> {
         const db = tx || prisma;
+        const maxRefundable = new Decimal(maxPrice).minus(amount);
         const result = await db.order.updateMany({
             where: {
                 id: orderId,
-                refundedAmount: { lt: maxPrice }
+                refundedAmount: { lte: maxRefundable }
             },
             data
         });
