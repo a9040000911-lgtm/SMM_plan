@@ -66,7 +66,7 @@ export function registerCallbackHandlers(bot: any) {
 
         const mutedUntil = new Date(Date.now() + 6 * 60 * 60 * 1000); // 6 hours
         const { SettingsService } = await import('@/services/core');
-        await SettingsService.set('BALANCE_ALERT_MUTED_UNTIL', mutedUntil.toISOString(), null); // Global setting
+        await SettingsService.set('BALANCE_ALERT_MUTED_UNTIL', mutedUntil.toISOString(), ctx.project?.id); // Project scoped
 
         await ctx.answerCbQuery('✅ Уведомления отключены на 6 часов', { show_alert: true });
         await ctx.editMessageText(ctx.callbackQuery.message.text + '\n\n🔇 <b>Уведомления отключены на 6 часов.</b>', { parse_mode: 'HTML' }).catch(() => { });
@@ -163,6 +163,16 @@ export function registerCallbackHandlers(bot: any) {
 
         if (!user) {
             return ctx.answerCbQuery('❌ Пользователь не найден', { show_alert: true });
+        }
+
+        // Check ownership
+        const order = await prisma.order.findUnique({
+            where: { id: orderId },
+            select: { userId: true }
+        });
+
+        if (!order || order.userId !== user.id) {
+            return ctx.answerCbQuery('❌ Заказ не найден или вам не принадлежит', { show_alert: true });
         }
 
         // Import AdvocacyService dynamically

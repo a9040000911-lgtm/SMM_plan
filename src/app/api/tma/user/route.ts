@@ -16,15 +16,15 @@ export async function GET(req: NextRequest) {
     const auth = await validateProjectTMAData(req);
     if (auth.isValid && auth.data?.user) {
       tgId = BigInt(auth.data.user.id);
-      // eslint-disable-next-line unused-imports/no-unused-vars
+       
       authProject = auth.project;
     }
 
     // Если нет авторизации, запрет доступа!
     let user;
-    if (tgId) {
+    if (tgId && authProject) {
       user = await prisma.user.findFirst({
-        where: { tgId },
+        where: { tgId, projectId: authProject.id },
         include: {
           orders: { orderBy: { createdAt: 'desc' }, take: 10, include: { internalService: true } },
           _count: { select: { referrals: true } }

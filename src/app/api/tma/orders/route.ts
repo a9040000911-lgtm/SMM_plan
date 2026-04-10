@@ -10,7 +10,6 @@ import { validateProjectTMAData } from '@/utils/tma-auth';
 import { SafetyService } from '@/services/users';
 import { bot } from '@/services/bot/bot-registry';
 import { formatAmount } from '@/utils/formatter';
-import { Decimal } from 'decimal.js';
 import { LedgerService } from '@/services/finance';
 import { OrderQueueService } from '@/services/orders/order-queue.service';
 
@@ -51,22 +50,9 @@ export async function POST(req: NextRequest) {
     const service = await prisma.internalService.findUnique({ where: { id: serviceId } });
     if (!service) return NextResponse.json({ error: 'Service not found' }, { status: 404 });
 
-    const rawTotal = service.pricePer1000.mul(quantity).div(1000);
-
-    // РАСЧЕТ СКИДКИ
-    const spent = user.spent.toNumber();
-    const LOYALTY_LEVELS = [
-      { min: 0, discount: 0 },
-      { min: 5000, discount: 3 },
-      { min: 15000, discount: 7 },
-      { min: 50000, discount: 10 },
-    ];
-    const baseDiscount = [...LOYALTY_LEVELS].reverse().find(l => spent >= l.min)?.discount || 0;
-    const earlyBirdDiscount = user.isEarlyBird ? 20 : 0;
-    const totalDiscountPercent = baseDiscount + earlyBirdDiscount;
-
-    const discountAmount = rawTotal.mul(totalDiscountPercent).div(100);
-    const total = rawTotal.minus(discountAmount).toDecimalPlaces(2, Decimal.ROUND_CEIL);
+    const { PricingService } = await import('@/services/finance/pricing.service');
+    const details = await PricingService.calculateOrderDetails(user.id, serviceId, quantity);
+    const total = details.finalPrice;
 
     // Проверка баланса
     if (user.balance.lt(total)) {

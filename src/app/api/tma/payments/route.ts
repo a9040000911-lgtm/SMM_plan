@@ -36,8 +36,10 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.findFirst({ where: { tgId } });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
+    let transaction: any = null;
+
     // Создаем запись транзакции в базе
-    const transaction = await prisma.transaction.create({
+    transaction = await prisma.transaction.create({
       data: {
         projectId: user.projectId,
         userId: user.id,
@@ -102,43 +104,22 @@ export async function POST(req: NextRequest) {
     console.error('[API Payments Error]:', error);
 
     // Если транзакция была создана, но произошла ошибка - помечаем её как FAILED
-    try {
-      const authHeader = req.headers.get('Authorization');
-      if (authHeader?.startsWith('tma ') && BOT_TOKEN) {
-        const auth = TelegramAuth.validateTMAData(authHeader.split('tma ')[1], BOT_TOKEN);
-        if (auth.isValid && auth.data?.user) {
-          const tgId = BigInt(auth.data.user.id);
-          const user = await prisma.user.findFirst({ where: { tgId } });
-
-          if (user) {
-            // Находим последнюю PENDING транзакцию этого пользователя и помечаем как FAILED
-            const pendingTx = await prisma.transaction.findFirst({
-              where: {
-                userId: user.id,
-                status: 'PENDING',
-                type: 'DEPOSIT'
-              },
-              orderBy: { createdAt: 'desc' }
-            });
-
-            if (pendingTx) {
-              await prisma.transaction.update({
-                where: { id: pendingTx.id },
-                data: {
-                  status: 'ERROR',
-                  metadata: {
-                    ...pendingTx.metadata as object,
-                    error: 'Payment init failed',
-                    failedAt: new Date().toISOString()
-                  }
-                }
-              });
+    if (transaction && transaction.id) {
+      try {
+        await prisma.transaction.update({
+          where: { id: transaction.id },
+          data: {
+            status: 'ERROR',
+            metadata: {
+              ...(transaction.metadata || {}),
+              error: error.message || 'Payment init failed',
+              failedAt: new Date().toISOString()
             }
           }
-        }
+        });
+      } catch (cleanupError) {
+        console.error('[Transaction cleanup error]:', cleanupError);
       }
-    } catch (cleanupError) {
-      console.error('[Transaction cleanup error]:', cleanupError);
     }
 
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });

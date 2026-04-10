@@ -15,14 +15,12 @@ export async function POST(req: NextRequest) {
 
         const user = await prisma.user.findFirst({
             where: { email: email.toLowerCase(), projectId },
-            select: { balance: true, password: true }
+            select: { id: true }
         });
 
-        return NextResponse.json({ 
-            exists: !!user,
-            balance: user ? Number(user.balance) : 0,
-            hasPassword: !!user?.password 
-        });
+    return NextResponse.json({ 
+        exists: !!user 
+    });
     } catch (_error) {
         return NextResponse.json({ error: 'Server error' }, { status: 500 });
     }

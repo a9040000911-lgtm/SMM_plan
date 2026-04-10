@@ -414,7 +414,7 @@ async function createSession(user: any) {
 
     cookieStore.set('admin_session', sessionToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_APP_URL?.startsWith('http://'),
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 // 24 hours
     });

@@ -188,12 +188,23 @@ export async function POST(req: Request) {
 
                 for (const batch of batchOrders) {
                     if (batch.orders.length > 0) {
-                        const realOrder = batch.orders[0];
+                        const charge = batch.orders.reduce((sum, o) => sum + o.totalPrice.toNumber(), 0);
+                        const remains = batch.orders.reduce((sum, o) => sum + o.remains, 0);
+                        const quantity = batch.orders.reduce((sum, o) => sum + o.quantity, 0);
+                        
+                        let aggregatedStatus = 'Pending';
+                        const statuses = batch.orders.map(o => o.status);
+                        if (statuses.every(s => s === 'COMPLETED')) aggregatedStatus = 'Completed';
+                        else if (statuses.some(s => s === 'PROCESSING' || s === 'IN_PROGRESS')) aggregatedStatus = 'Processing';
+                        else if (statuses.every(s => s === 'CANCELED')) aggregatedStatus = 'Canceled';
+                        else if (statuses.some(s => s === 'PARTIAL')) aggregatedStatus = 'Partial';
+                        else if (batch.orders.length === 1) aggregatedStatus = statusMap[batch.orders[0].status] || batch.orders[0].status;
+
                         responseObj[batch.id] = {
-                            charge: realOrder.totalPrice.toNumber(),
-                            start_count: realOrder.quantity - realOrder.remains,
-                            status: statusMap[realOrder.status] || realOrder.status,
-                            remains: realOrder.remains,
+                            charge: charge,
+                            start_count: quantity - remains,
+                            status: aggregatedStatus,
+                            remains: remains,
                             currency: user.currency
                         };
                     } else {

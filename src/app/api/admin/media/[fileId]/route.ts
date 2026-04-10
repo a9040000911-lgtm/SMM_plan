@@ -15,7 +15,14 @@ export async function GET(
 ) {
   try {
     const cookieStore = await cookies();
-    if (!cookieStore.has('admin_session')) {
+    const tokenCookie = cookieStore.get('admin_session')?.value;
+    if (!tokenCookie) {
+      return new Response('Unauthorized', { status: 401 });
+    }
+
+    const { verifyAdminSession } = await import('@/services/core/jwt');
+    const session = await verifyAdminSession(tokenCookie);
+    if (!session) {
       return new Response('Unauthorized', { status: 401 });
     }
 

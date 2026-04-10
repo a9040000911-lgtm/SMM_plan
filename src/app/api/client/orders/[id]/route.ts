@@ -98,24 +98,29 @@ export async function PATCH(
                 return NextResponse.json({ success: true, message: 'Заказ успешно отменен, средства возвращены.' });
             } 
             else if (['PROCESSING', 'IN_PROGRESS'].includes(order.status) || order.isDripFeed) {
+                // ПАТТЕРН: Сначала изменяем БД, затем внешний вызов (Compensating transaction)
+                const meta = (order.metadata as Record<string, any>) || {};
+                await prisma.order.update({
+                    where: { id: order.id },
+                    data: {
+                        status: 'CANCELED',
+                        metadata: { ...meta, internalCancelReq: true }
+                    }
+                });
+
                 const { ProviderService } = await import('@/services/providers/provider.service');
                 const cancelRes = await ProviderService.cancelOrder(order);
 
                 if (cancelRes.success) {
-                    await prisma.order.update({
-                        where: { id: order.id },
-                        data: {
-                            status: 'CANCELED',
-                            metadata: { ...(order.metadata as Record<string, any> || {}), internalCancelReq: true }
-                        }
-                    });
-                    
                     return NextResponse.json({ success: true, message: 'Запрос на отмену отправлен провайдеру (API). Средства вернутся после подтверждения.' });
                 } else {
-                    const meta = (order.metadata as Record<string, any>) || {};
+                    // ОТКАТ (Rollback) если провайдер ответил ошибкой
                     await prisma.order.update({
                         where: { id: order.id },
-                        data: { metadata: { ...meta, cancelRequested: true } }
+                        data: { 
+                            status: order.status, // Возврат старого статуса (PROCESSING/IN_PROGRESS)
+                            metadata: { ...meta, cancelRequested: true } 
+                        }
                     });
 
                     const { UnifiedNotificationService } = await import('@/services/core/notification.service');
