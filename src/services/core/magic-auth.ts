@@ -5,11 +5,13 @@
  */
 import { SignJWT, jwtVerify } from 'jose';
 
-const SECRET_KEY = process.env.NEXTAUTH_SECRET;
-if (!SECRET_KEY) {
-    throw new Error('CRITICAL: NEXTAUTH_SECRET environment variable is missing.');
-}
-const key = new TextEncoder().encode(SECRET_KEY);
+const getSecretKey = () => {
+    const SECRET_KEY = process.env.NEXTAUTH_SECRET;
+    if (!SECRET_KEY) {
+        throw new Error('CRITICAL: NEXTAUTH_SECRET environment variable is missing.');
+    }
+    return new TextEncoder().encode(SECRET_KEY);
+};
 
 export interface MagicTokenPayload {
     userId: string;
@@ -26,7 +28,7 @@ export async function signMagicToken(payload: MagicTokenPayload): Promise<string
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
         .setExpirationTime('5m')
-        .sign(key);
+        .sign(getSecretKey());
 }
 
 /**
@@ -34,7 +36,7 @@ export async function signMagicToken(payload: MagicTokenPayload): Promise<string
  */
 export async function verifyMagicToken(token: string): Promise<MagicTokenPayload | null> {
     try {
-        const { payload } = await jwtVerify(token, key);
+        const { payload } = await jwtVerify(token, getSecretKey());
         return {
             userId: payload.userId as string,
             tgId: payload.tgId as string,

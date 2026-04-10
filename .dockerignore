@@ -5,7 +5,7 @@ build
 dist
 .git
 *.log
-.env*
+# .env* (Allowed for server-side build)
 !.env.example
 .vscode
 .dockerignore

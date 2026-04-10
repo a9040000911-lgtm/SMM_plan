@@ -9,7 +9,6 @@ import Script from "next/script";
 import { Providers } from "@/components/Providers";
 import { getTenantDomain, getTenantConfig } from "@/lib/tenant/server";
 import { Plus_Jakarta_Sans } from 'next/font/google';
-import { CookieBanner } from '@/components/stitch/ui/CookieBanner';
 import { auth } from "@/auth";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -103,7 +102,6 @@ export default async function RootLayout({
       <body className="font-jakarta antialiased selection:bg-blue-500/10 selection:text-blue-600" suppressHydrationWarning={true}>
         <Providers session={session}>
           {children}
-          <CookieBanner />
         </Providers>
       </body>
     </html>

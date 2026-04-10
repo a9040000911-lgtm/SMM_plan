@@ -1,8 +1,8 @@
- 
 /**
  * (c) 2024-2026 Smmplan. All rights reserved.
  * Created by Artem (http://artmspektr.ru)
  */
+
 const securityHeaders = require("./src/configs/security-headers.config");
 
 /** @type {import('next').NextConfig} */
@@ -25,7 +25,8 @@ const nextConfig = {
       },
     ];
   },
-  output: "standalone",
+  // Отключаем standalone трассировку локально, так как это она выжирает 12+ ГБ RAM на Windows
+  output: process.env.DOCKER_BUILD === "1" ? "standalone" : undefined,
   images: {
     unoptimized: true,
   },
@@ -34,16 +35,7 @@ const nextConfig = {
     PRISMA_CLIENT_ENGINE_TYPE: "library",
   },
   experimental: {
-    webpackMemoryOptimizations: false,
-    webpackBuildWorker: false,
-  },
-  webpack: (config) => {
-    // Не следовать по симлинкам Windows (Application Data = EPERM junction)
-    config.resolve = {
-      ...config.resolve,
-      symlinks: false,
-    };
-    return config;
+    // defaults
   },
   eslint: {
     ignoreDuringBuilds: true,
