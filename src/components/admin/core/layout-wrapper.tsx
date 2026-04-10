@@ -22,6 +22,7 @@ import { ProjectSelector } from '@/components/admin/core/project-selector';
 import { AdminProvider } from '@/components/admin/core/admin-context';
 import { Toaster } from 'sonner';
 import { SmmplanLogo } from '@/components/ui/SmmplanLogo';
+import { GlobalAdminAlert } from '@/components/admin/core/global-admin-alert';
 
 interface SidebarUser {
     id: string;
@@ -347,15 +348,18 @@ export function LayoutWrapper({
             {/* Main Content Wrapper */}
             <main
                 className={cn(
-                    "min-h-screen transition-all duration-300 ease-in-out",
+                    "min-h-screen transition-all duration-300 ease-in-out flex flex-col",
                     isCollapsed ? "pl-20" : "pl-64",
                     // Special handling for support page which sets flex layout
-                    pathname.startsWith('/admin/support') ? "h-screen flex flex-col overflow-hidden" : ""
+                    pathname.startsWith('/admin/support') ? "h-screen overflow-hidden" : ""
                 )}
             >
+                {/* Global Critical Alerts */}
+                <GlobalAdminAlert />
+
                 {/* We need to replicate the 'support' layout logic here or pass simpler className */}
                 <div className={cn(
-                    "p-8 max-w-[1600px] mx-auto",
+                    "p-8 max-w-[1600px] mx-auto w-full",
                     pathname.startsWith('/admin/support') && "flex-1 min-h-0 p-6 max-w-none mx-0 h-full"
                 )}>
                     {children}<Toaster richColors position='top-right' />
