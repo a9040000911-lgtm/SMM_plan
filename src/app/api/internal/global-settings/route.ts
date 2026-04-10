@@ -12,11 +12,7 @@ export async function GET(req: NextRequest) {
     const authHeader = req.headers.get('authorization');
     const internalKey = process.env.INTERNAL_API_KEY;
     if (internalKey && authHeader !== `Bearer ${internalKey}`) {
-      // Also allow local invocations checking if IP is localhost
-      const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
-      if (!ip.includes('127.0.0.1') && !ip.includes('::1')) {
-         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const key = req.nextUrl.searchParams.get('key');

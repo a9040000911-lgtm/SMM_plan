@@ -65,27 +65,7 @@ export class PaymentOrchestrator {
                         });
 
                         if (existingOrder && existingOrder.status === 'AWAITING_PAYMENT') {
-                            const costPrice = existingOrder.internalService.lastProviderPrice
-                                ? new Decimal(existingOrder.internalService.lastProviderPrice as any).mul(existingOrder.quantity).div(1000)
-                                : new Decimal(0);
-
-                            // 1.1 FIX: Charge the balance (the deposit is already committed)
-                            await OrderFinancialService.chargeOrder(
-                                tx,
-                                existingOrder.userId,
-                                new Decimal(existingOrder.totalPrice),
-                                existingOrder.id,
-                                existingOrder.internalService.name
-                            );
-
-                            await tx.order.update({
-                                where: { id: orderId },
-                                data: {
-                                    status: 'PENDING',
-                                    costPrice: costPrice
-                                }
-                            });
-
+                            await OrderActivationService.activatePendingOrder(existingOrder.id, tx);
                             this.logger.info(`Order ${orderId} activated from AWAITING_PAYMENT status.`);
                         }
                     }

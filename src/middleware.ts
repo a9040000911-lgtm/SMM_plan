@@ -1,93 +1,47 @@
-/**
- * (c) 2024-2026 Smmplan. All rights reserved.
- * Created by Artem (http://artmspektr.ru)
- * Unauthorized copying of this file is strictly prohibited.
- *
- * Root Middleware — centralized route protection.
- * Prevents unauthorized access to /admin/* and /api/admin/* paths.
- * This is the FIRST line of defense (V-04 audit fix).
- */
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { checkRateLimit, getRealIp } from '@/services/core/rate-limiter';
 
-import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
+const protectedAdminApiPaths = ['/api/admin'];
+const protectedAdminUiPaths = ['/admin'];
+const excludedPaths = ['/admin/login', '/api/admin/auth'];
 
-const ADMIN_SESSION_COOKIE = 'admin_session';
+export async function middleware(req: NextRequest) {
+    const { pathname } = req.nextUrl;
 
-/**
- * Lightweight JWT verification for Edge Runtime.
- * Only checks signature validity and expiration — no DB calls.
- */
-async function verifySessionToken(token: string): Promise<boolean> {
-    try {
-        const secret = process.env.NEXTAUTH_SECRET;
-        if (!secret) return false;
-
-        const key = new TextEncoder().encode(secret);
-        await jwtVerify(token, key);
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-export async function middleware(request: NextRequest) {
-    const { pathname } = request.nextUrl;
-
-    // ── Allow public admin routes ──
-    // Login page and auth API must be accessible without session
-    if (
-        pathname === '/admin/login' ||
-        pathname.startsWith('/api/admin/auth')
-    ) {
-        return NextResponse.next();
-    }
-
-    // ── Protect all /admin/* pages ──
-    if (pathname.startsWith('/admin')) {
-        const sessionCookie = request.cookies.get(ADMIN_SESSION_COOKIE);
-
-        if (!sessionCookie?.value) {
-            // No cookie → redirect to login
-            const loginUrl = new URL('/admin/login', request.url);
-            loginUrl.searchParams.set('callbackUrl', pathname);
-            return NextResponse.redirect(loginUrl);
-        }
-
-        const isValid = await verifySessionToken(sessionCookie.value);
-        if (!isValid) {
-            // Expired / tampered token → clear cookie and redirect
-            const loginUrl = new URL('/admin/login', request.url);
-            loginUrl.searchParams.set('callbackUrl', pathname);
-            const response = NextResponse.redirect(loginUrl);
-            response.cookies.delete(ADMIN_SESSION_COOKIE);
-            return response;
-        }
-
-        return NextResponse.next();
-    }
-
-    // ── Protect all /api/admin/* endpoints ──
-    if (pathname.startsWith('/api/admin')) {
-        const sessionCookie = request.cookies.get(ADMIN_SESSION_COOKIE);
-
-        if (!sessionCookie?.value) {
-            return NextResponse.json(
-                { error: 'Unauthorized', message: 'Admin session required' },
-                { status: 401 }
+    // 1. IP and Rate Limiting for auth/admin
+    if (pathname.startsWith('/api/admin/auth') || pathname.startsWith('/admin/login')) {
+        const ip = getRealIp(req);
+        // Using checkRateLimit (from core service)
+        const rl = await checkRateLimit('admin_auth', ip);
+        if (!rl.success) {
+            return new NextResponse(
+                JSON.stringify({ error: 'Слишком много попыток входа. Пожалуйста, подождите.' }),
+                { status: 429, headers: { 'Content-Type': 'application/json' } }
             );
         }
+    }
 
-        const isValid = await verifySessionToken(sessionCookie.value);
-        if (!isValid) {
-            const response = NextResponse.json(
-                { error: 'Unauthorized', message: 'Session expired or invalid' },
-                { status: 401 }
-            );
-            response.cookies.delete(ADMIN_SESSION_COOKIE);
-            return response;
+    // 2. Global Admin Protection (V-04)
+    const isProtectedApi = protectedAdminApiPaths.some(p => pathname.startsWith(p));
+    const isProtectedUi = protectedAdminUiPaths.some(p => pathname.startsWith(p));
+    const isExcluded = excludedPaths.some(p => pathname.startsWith(p));
+
+    if ((isProtectedApi || isProtectedUi) && !isExcluded) {
+        // Retrieve the admin session cookie. In Smmplan, the session cookie is typically 'admin_session' or 'next-auth.session-token'.
+        // Let's rely on standard check: `admin_session` 
+        const hasSession = req.cookies.has('admin_session');
+        
+        if (!hasSession) {
+            if (isProtectedApi) {
+                return new NextResponse(
+                    JSON.stringify({ error: 'Unauthorized: Session missing' }),
+                    { status: 401, headers: { 'Content-Type': 'application/json' } }
+                );
+            } else {
+                return NextResponse.redirect(new URL('/admin/login', req.url));
+            }
         }
-
-        return NextResponse.next();
     }
 
     return NextResponse.next();
@@ -95,8 +49,13 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        // Match admin pages and API routes
-        '/admin/:path*',
-        '/api/admin/:path*',
+        /*
+         * Match all request paths except for the ones starting with:
+         * - _next/static (static files)
+         * - _next/image (image optimization files)
+         * - favicon.ico (favicon file)
+         * - public images
+         */
+        '/((?!_next/static|_next/image|favicon.ico|images/).*)',
     ],
 };

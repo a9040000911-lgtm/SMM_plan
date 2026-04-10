@@ -6,6 +6,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/utils/admin-session";
+import { prisma } from '@/lib/prisma';
 
 export async function POST(
     req: NextRequest,
@@ -20,6 +21,12 @@ export async function POST(
         // Resolving params
         const resolvedParams = await params;
         const id = resolvedParams.id;
+
+        const order = await prisma.order.findUnique({ where: { id: parseInt(id) } });
+        if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+        if (!session.isGlobalAdmin && !session.allowedProjects.includes(order.projectId || '')) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
 
         const { OrderProcessor } = await import("@/services/orders/order-processor.service");
         // We trigger the service

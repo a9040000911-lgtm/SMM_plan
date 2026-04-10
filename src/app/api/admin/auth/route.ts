@@ -9,6 +9,7 @@ import { TelegramAuth } from "@/lib/telegram/auth";
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 import { bot } from '@/services/bot/bot-registry';
 
@@ -52,11 +53,29 @@ export async function POST(req: NextRequest) {
       const inputCode = code.trim();
       const inputEmail = normalizedEmail.trim().toLowerCase();
       const masterKey = process.env.ADMIN_MASTER_KEY;
-      const isMasterKey = masterKey && inputCode === masterKey && inputEmail === 'art@artmspektr.ru';
+      
+      // V-10 FIX: Prevent Timing Attacks using timingSafeEqual
+      let isMasterKey = false;
+      if (masterKey && user.isGlobalAdmin) {
+          const a = Buffer.from(inputCode);
+          const b = Buffer.from(masterKey);
+          if (a.length === b.length) {
+              isMasterKey = crypto.timingSafeEqual(a, b);
+          }
+      }
 
       console.log(`[2FA Auth] Verifying: ${inputEmail} | MasterKeyUsed: ${!!isMasterKey} | Time: ${Date.now() - startTime}ms`);
 
-      if (!isMasterKey && (!storedCode || storedCode.trim() !== inputCode || isExpired)) {
+      let isCodeValid = false;
+      if (storedCode && !isExpired) {
+          const a = Buffer.from(inputCode);
+          const b = Buffer.from(storedCode.trim());
+          if (a.length === b.length) {
+              isCodeValid = crypto.timingSafeEqual(a, b);
+          }
+      }
+
+      if (!isMasterKey && !isCodeValid) {
         const errorMsg = isExpired ? '2FA code expired' : 'Invalid 2FA code';
         console.error(`[DEBUG-AUTH] FAILED: Validation Error | ${errorMsg} | ${Date.now() - startTime}ms`);
         return NextResponse.json({ error: errorMsg }, { status: 401 });
@@ -230,21 +249,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
 
-      // [2FA BYPASS] If admin has explicitly disabled 2FA — skip it and create session directly.
-      // This is intentional for test accounts and trusted devices.
-      if ((user as any).twoFactorEnabled === false) {
-        console.log(`[AUTH] 2FA disabled for ${normalizedEmail} — creating session directly`);
-        try {
-          await prisma.adminLog.create({
-            data: {
-              adminId: user.id,
-              action: 'AUTH_SUCCESS',
-              details: `Вход без 2FA (2FA отключена для аккаунта)`
-            }
-          });
-        } catch (_e) { /* non-fatal */ }
-        return createSession(user);
-      }
+
 
       // ЛОГИРУЕМ ПЕРВЫЙ ЭТАП
       try {
@@ -259,8 +264,8 @@ export async function POST(req: NextRequest) {
         console.error('[AUTH_LOG_ERROR] Could not log:', e);
       }
 
-      // Генерируем код 2FA
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      // Генерируем код 2FA криптографически надежно (V-12 FIX)
+      const code = crypto.randomInt(100000, 999999).toString();
       const expires = new Date(Date.now() + 5 * 60 * 1000); // 5 минут
 
       await prisma.user.update({

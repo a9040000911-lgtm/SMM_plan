@@ -7,22 +7,35 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+import { getAdminContext } from '@/utils/admin-context';
+
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const { id } = await params;
+    
+    let adminCtx;
+    try {
+        adminCtx = await getAdminContext();
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const ticket = await prisma.supportTicket.findUnique({
         where: { id },
         include: {
-            user: { select: { id: true, username: true, balance: true, spent: true, tgId: true } },
+            user: { select: { id: true, username: true, balance: true, spent: true, tgId: true, projectId: true } },
             messages: { orderBy: { createdAt: 'asc' } }
         }
     });
 
     if (!ticket) {
         return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
+    }
+
+    if (!adminCtx.isGlobalAdmin && !adminCtx.allowedProjects.includes(ticket.projectId || '')) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Получаем ВСЮ историю переписки с пользователем (все тикеты)

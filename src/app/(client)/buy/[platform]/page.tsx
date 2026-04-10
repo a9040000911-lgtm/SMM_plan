@@ -95,7 +95,7 @@ export default async function PlatformBuyPage({ params }: Props) {
         <div className="w-full pb-32 pt-6">
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
             />
             <div className="max-w-6xl mx-auto px-6">
                 <Breadcrumbs items={[

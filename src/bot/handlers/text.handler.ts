@@ -164,8 +164,17 @@ export async function handleText(ctx: any) {
     if (state?.isWaitingForBalanceChange && adminId && userId === Number(adminId) && state.targetUserId) {
         const amount = new Decimal(parseFloat(text.replace(',', '.')) || 0);
         const updated = await prisma.$transaction(async (tx) => {
-            await LedgerService.record(tx, state.targetUserId!, amount.abs(), 'MANUAL_ADJUSTMENT', adminId.toString(), `Админ: ${amount}₽`);
-            return await tx.user.update({ where: { id: state.targetUserId }, data: { balance: { increment: amount } } });
+            const userManualUpdate = await tx.$queryRaw<any[]>`
+                UPDATE "User"
+                SET "balance" = "balance" + ${amount}
+                WHERE "id" = ${state.targetUserId}
+                RETURNING "balance"
+            `;
+            const exactBalanceAfter = new Decimal(userManualUpdate[0].balance);
+            
+            await LedgerService.record(tx, state.targetUserId!, amount.abs(), 'MANUAL_ADJUSTMENT', adminId.toString(), `Админ: ${amount}₽`, undefined, exactBalanceAfter);
+            
+            return { balance: exactBalanceAfter };
         });
         await ctx.reply(`✅ Баланс изменен: ${formatAmount(updated.balance)}₽`, getProjectMenu(ctx.project));
         await SessionService.delete(userId, projectId); return;

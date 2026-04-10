@@ -36,13 +36,17 @@ export class LedgerService {
     type: LedgerEntryType,
     referenceId?: string,
     description?: string,
-    _currencyOverride?: Currency
+    _currencyOverride?: Currency,
+    balanceAfterOverride?: Decimal
   ) {
     const user = await UserRepository.findById(userId, tx);
 
     if (!user) throw new Error('User not found for ledger record');
 
-    const _balanceBefore = user.balance;
+    const balanceAfter = balanceAfterOverride || (this.isIncome(type) ? user.balance.plus(amount) : user.balance.minus(amount));
+    const balanceBefore = balanceAfterOverride 
+      ? (this.isIncome(type) ? balanceAfterOverride.minus(amount) : balanceAfterOverride.plus(amount))
+      : user.balance;
 
     return await tx.ledgerEntry.create({
       data: {
@@ -52,8 +56,8 @@ export class LedgerService {
         type: type,
         referenceId: referenceId || `LEDGER_${Date.now()}`,
         description,
-        balanceBefore: _balanceBefore,
-        balanceAfter: this.isIncome(type) ? _balanceBefore.plus(amount) : _balanceBefore.minus(amount)
+        balanceBefore,
+        balanceAfter
       }
     });
   }

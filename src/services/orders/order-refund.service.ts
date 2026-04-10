@@ -73,17 +73,19 @@ export class OrderRefundService {
             const order = await tx.order.findUnique({ where: { id: o.id } });
             if (!order) return;
 
-            // 3. ЗАПИСЬ В LEDGER
-            await LedgerService.record(tx, order.userId, clampedAmount, 'REFUND', order.id.toString(), `Возврат за невыполненную часть заказа (#${order.id})`);
-
             // 4. Обновляем баланс пользователя
-            await tx.user.update({
-                where: { id: order.userId },
-                data: {
-                    balance: { increment: clampedAmount },
-                    spent: { decrement: Decimal.min(clampedAmount, order.totalPrice) }
-                }
-            });
+            const updatedUserRef = await tx.$queryRaw<any[]>`
+                UPDATE "User"
+                SET "balance" = "balance" + ${clampedAmount},
+                    "spent" = "spent" - ${Decimal.min(clampedAmount, order.totalPrice)}
+                WHERE "id" = ${order.userId}
+                RETURNING "balance"
+            `;
+            
+            const exactBalanceAfter = new Decimal(updatedUserRef[0].balance);
+
+            // 3. ЗАПИСЬ В LEDGER (перемещено ПОСЛЕ update для точного баланса)
+            await LedgerService.record(tx, order.userId, clampedAmount, 'REFUND', order.id.toString(), `Возврат за невыполненную часть заказа (#${order.id})`, undefined, exactBalanceAfter);
 
             // 5. Создаем транзакцию для истории
             await tx.transaction.create({
@@ -206,15 +208,16 @@ export class OrderRefundService {
             }
 
             if (type === 'INTERNAL') {
-                await LedgerService.record(tx, orderData.userId, totalToReturn, 'REFUND', orderData.id.toString(), `Ручной возврат средств админом (Бонус: ${addBonus})`);
+                const userManualUpdate = await tx.$queryRaw<any[]>`
+                    UPDATE "User"
+                    SET "balance" = "balance" + ${totalToReturn},
+                        "spent" = "spent" - ${baseRefundAmount}
+                    WHERE "id" = ${orderData.userId}
+                    RETURNING "balance"
+                `;
+                const manualExactBalanceAfter = new Decimal(userManualUpdate[0].balance);
 
-                await tx.user.update({
-                    where: { id: orderData.userId },
-                    data: {
-                        balance: { increment: totalToReturn },
-                        spent: { decrement: baseRefundAmount }
-                    }
-                });
+                await LedgerService.record(tx, orderData.userId, totalToReturn, 'REFUND', orderData.id.toString(), `Ручной возврат средств админом (Бонус: ${addBonus})`, undefined, manualExactBalanceAfter);
 
                 await tx.transaction.create({
                     data: {

@@ -3,7 +3,7 @@
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
-import { createHash, createHmac } from 'crypto';
+import { createHash, createHmac, timingSafeEqual } from 'crypto';
 
 export interface TelegramUserData {
     id: number;
@@ -46,7 +46,16 @@ export class TelegramAuth {
         // Проверка на свежесть (2 часа)
         const isExpired = (Math.floor(Date.now() / 1000) - data.auth_date) > 7200;
 
-        return hmac === hash && !isExpired;
+        let isValidHash = false;
+        try {
+            const a = Buffer.from(hmac);
+            const b = Buffer.from(hash || '');
+            if (a.length === b.length) {
+                isValidHash = timingSafeEqual(a, b);
+            }
+        } catch (e) {}
+
+        return isValidHash && !isExpired;
     }
 
     /**
@@ -73,7 +82,16 @@ export class TelegramAuth {
             const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest();
             const calculatedHash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
-            if (calculatedHash !== hash) {
+            let isValidHash = false;
+            try {
+                const a = Buffer.from(calculatedHash);
+                const b = Buffer.from(hash);
+                if (a.length === b.length) {
+                    isValidHash = timingSafeEqual(a, b);
+                }
+            } catch (e) {}
+
+            if (!isValidHash) {
                 return { isValid: false, error: 'Hash mismatch' };
             }
 

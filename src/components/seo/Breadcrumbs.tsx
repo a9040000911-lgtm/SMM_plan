@@ -36,7 +36,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
         <nav aria-label="Breadcrumb" className="mb-6 w-full overflow-x-auto pb-2 scrollbar-none">
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, '\\u003c') }}
             />
             
             <ol className="flex items-center space-x-2 text-sm text-slate-500 font-medium whitespace-nowrap">

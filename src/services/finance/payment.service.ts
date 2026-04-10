@@ -43,7 +43,11 @@ export class PaymentService {
     userEmail?: string
   ): Promise<PaymentResult> {
     try {
-      const idempotenceKey = crypto.randomUUID();
+      // L-02 FIX: Deterministic Idempotency-Key based on transaction ID
+      const idempotenceKey = typeof orderId === 'string' && orderId.length > 5 
+        ? orderId // Pre-existing UUID
+        : crypto.createHash('md5').update(`tx_${orderId}_${amount}`).digest('hex');
+
       const telegramConfig = await ConfigService.getTelegramConfig();
       const defaultReturnUrl = `https://t.me/${telegramConfig.username}`;
 
@@ -124,8 +128,11 @@ export class PaymentService {
     returnUrl: string
   ): Promise<PaymentResult> {
     try {
-      const idempotenceKey = crypto.randomUUID();
-      // B2B Payments ALWAYS use the Global Smmplan Configuration
+      // L-02 FIX: Deterministic Idempotency-Key for B2B. We round timestamp to 5 minutes
+      // to prevent duplicate charges if user double clicks or request retries on UI side.
+      const timeWindow = Math.floor(Date.now() / (5 * 60 * 1000));
+      const idempotenceKey = crypto.createHash('md5').update(`b2b_${organizationId}_${amount}_${timeWindow}`).digest('hex');
+
       const sysConfig = await ConfigService.getPaymentConfig();
       const legalDescription = `Пополнение B2B баланса организации (ID: ${organizationId})`;
 
@@ -209,7 +216,8 @@ export class PaymentService {
     credentials?: { shopId: string, secretKey: string }
   ): Promise<RefundResult> {
     try {
-      const idempotenceKey = crypto.randomUUID();
+      // L-02 FIX: Deterministic Idempotency-Key for refunds
+      const idempotenceKey = crypto.createHash('md5').update(`refund_${paymentId}_${amount}`).digest('hex');
       const REFUND_URL = 'https://api.yookassa.ru/v3/refunds';
 
       const response = await axios.post(
@@ -255,7 +263,10 @@ export class PaymentService {
     returnUrl: string
   ): Promise<PaymentResult> {
     try {
-      const idempotenceKey = crypto.randomUUID();
+      // L-02 FIX: Deterministic Idempotency-Key for Subscriptions. 
+      // Subscriptions limit init to 1 per hour per user amount to prevent duplicates.
+      const timeWindow = Math.floor(Date.now() / (60 * 60 * 1000));
+      const idempotenceKey = crypto.createHash('md5').update(`sub_init_${userId}_${amount}_${timeWindow}`).digest('hex');
       const sysConfig = await ConfigService.getPaymentConfig();
       const legalDescription = 'Оплата подписки Priority Pass (привязка карты)';
 
@@ -315,7 +326,10 @@ export class PaymentService {
     paymentMethodId: string
   ): Promise<{ success: boolean; paymentId?: string; error?: string }> {
     try {
-      const idempotenceKey = crypto.randomUUID();
+      // L-02 FIX: Deterministic Idempotency-Key for Charging
+      // Scheduled jobs usually run once per day. Limit to 1 per hour per user/method.
+      const timeWindow = Math.floor(Date.now() / (60 * 60 * 1000));
+      const idempotenceKey = crypto.createHash('md5').update(`charge_${userId}_${paymentMethodId}_${timeWindow}`).digest('hex');
       const sysConfig = await ConfigService.getPaymentConfig();
       const legalDescription = 'Автоматическое продление Priority Pass';
 

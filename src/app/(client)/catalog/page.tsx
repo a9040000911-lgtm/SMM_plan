@@ -99,7 +99,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
         <div className="w-full pb-32 pt-12">
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
             />
             <div className="max-w-6xl mx-auto px-6">
                 <div className="relative mb-20 bg-blue-50/50 rounded-[3rem] py-16 px-8 border border-blue-100/50 overflow-hidden">

@@ -134,7 +134,7 @@ export default async function CategoryBuyPage({ params }: Props) {
 
     return (
         <div className="w-full pb-32 pt-6">
-             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
+             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema).replace(/</g, '\\u003c') }} />
              <div className="max-w-6xl mx-auto px-6">
                  <Breadcrumbs items={[
                     { label: 'Услуги', href: '/buy' },

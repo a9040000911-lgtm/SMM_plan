@@ -38,7 +38,7 @@ export const AiFaqBlock: React.FC<Props> = ({ faqs, title = "Часто зада
             
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
             />
 
             <div className="space-y-4">

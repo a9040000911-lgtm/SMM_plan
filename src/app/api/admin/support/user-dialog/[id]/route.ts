@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { SupportUser, SupportTicket, MessageSender, TicketStatus } from '@/types/support';
 
+import { getAdminContext } from '@/utils/admin-context';
+
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -16,6 +18,35 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
     const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50'), 1), 200); // SECURITY: Cap at 200
+
+    let adminCtx;
+    try {
+        adminCtx = await getAdminContext();
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get user info
+    const user = await prisma.user.findUnique({
+        where: { id: visitorId },
+        select: {
+            id: true,
+            username: true,
+            balance: true,
+            spent: true,
+            tgId: true,
+            createdAt: true,
+            projectId: true
+        }
+    });
+
+    if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    if (!adminCtx.isGlobalAdmin && !adminCtx.allowedProjects.includes(user.projectId || '')) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     // Get all tickets for this user, ordered: OPEN first, then PENDING, then CLOSED
     const tickets = await prisma.supportTicket.findMany({
@@ -33,23 +64,6 @@ export async function GET(
             _count: { select: { messages: true } }
         }
     });
-
-    // Get user info
-    const user = await prisma.user.findUnique({
-        where: { id: visitorId },
-        select: {
-            id: true,
-            username: true,
-            balance: true,
-            spent: true,
-            tgId: true,
-            createdAt: true
-        }
-    });
-
-    if (!user) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
 
     // Calculate stats
     const openCount = tickets.filter(t => t.status === 'OPEN').length;

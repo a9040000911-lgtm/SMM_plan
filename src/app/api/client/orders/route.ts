@@ -12,6 +12,7 @@ import { getClientProjectId } from '@/utils/project-resolver';
 import bcrypt from 'bcryptjs';
 import { PaymentService } from '@/services/finance';
 import { sendCredentialsEmail } from '@/services/mail.service';
+import crypto from 'crypto';
 import { Decimal } from 'decimal.js';
 import { UnifiedNotificationService } from '@/services/core/notification.service';
 
@@ -181,7 +182,7 @@ export async function POST(req: NextRequest) {
                         }, { status: 409 });
                     }
                 } else {
-                    const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+                    const generatedPassword = crypto.randomBytes(8).toString('hex');
                     const hashedPassword = await bcrypt.hash(generatedPassword, 10);
                     const newUser = await prisma.user.create({
                         data: { email: userEmail.toLowerCase(), password: hashedPassword, username: userEmail.split('@')[0], projectId, balance: 0 }
@@ -256,58 +257,33 @@ export async function POST(req: NextRequest) {
                             throw new Error('INSUFFICIENT_FUNDS');
                         }
 
-                        // Атомарное списание
-                        const updated = await tx.user.updateMany({
-                            where: { id: userId, balance: { gte: totalBatchPrice } },
-                            data: { balance: { decrement: totalBatchPrice }, spent: { increment: totalBatchPrice } }
-                        });
-
-                        if (updated.count === 0) {
-                            throw new Error('INSUFFICIENT_FUNDS');
-                        }
-
-                        const balanceAfter = freshUser.balance.minus(totalBatchPrice);
-                        const balanceBefore = freshUser.balance;
-
-                        const referenceId = `BATCH_PAY_${userId}_${Date.now()}`;
-                        await tx.ledgerEntry.create({
-                             data: {
-                                 projectId, userId,
-                                 amount: totalBatchPrice,
-                                 referenceId,
-                                 type: 'WITHDRAWAL',
-                                 balanceBefore,
-                                 balanceAfter,
-                                 description: `Оплата пакета заказов (${preparedOrders.length} шт.)`
-                             }
-                        });
+                        // L-01 FIX: Use OrderActivationService to strictly enforce B2B SaaS Engine
+                        const { OrderActivationService } = await import('@/services/orders/order-activation.service');
 
                         for (const p of preparedOrders) {
-                            const order = await tx.order.create({
-                                data: {
-                                    projectId, userId,
-                                    internalServiceId: p.service.id,
-                                    link: p.item.link,
-                                    quantity: p.item.quantity,
-                                    totalPrice: p.price,
-                                    costPrice: p.service.lastProviderPrice,
-                                    status: 'PENDING',
-                                    isDripFeed: !!p.item.isDripFeed,
-                                    runs: p.item.isDripFeed ? Number(p.item.runs) : 1,
-                                    interval: p.item.isDripFeed ? Number(p.item.interval) : 0,
-                                    currentRun: 0,
-                                    metadata: p.warning ? { warning: p.warning } : undefined
-                                }
-                            });
+                            const order = await OrderActivationService.initiateOrder({
+                                userId,
+                                serviceId: p.service.id,
+                                projectId,
+                                link: p.item.link,
+                                qty: p.item.quantity,
+                                totalPrice: new Decimal(p.price),
+                                discountAmount: new Decimal(0),
+                                promoId: undefined,
+                                isDripFeed: !!p.item.isDripFeed,
+                                dripFeed: p.item.isDripFeed ? { runs: Number(p.item.runs), interval: Number(p.item.interval) } : undefined
+                            }, tx);
 
-                            await tx.adminLog.create({
-                                data: {
-                                    adminId: userId,
-                                    action: "CREATE_BATCH",
-                                    targetId: order.id.toString(),
-                                    details: `Заказ создан в пакете. Сервис: ${p.service.name}`
-                                }
-                            });
+                            if (order) {
+                                await tx.adminLog.create({
+                                    data: {
+                                        adminId: userId,
+                                        action: "CREATE_BATCH",
+                                        targetId: order.id.toString(),
+                                        details: `Заказ создан в пакете. Сервис: ${p.service.name}`
+                                    }
+                                });
+                            }
                         }
                     });
                     paidFromBalance = true;
@@ -465,7 +441,7 @@ export async function POST(req: NextRequest) {
                 }
             } else {
                 // New user creation
-                const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+                const generatedPassword = crypto.randomBytes(8).toString('hex');
                 const hashedPassword = await bcrypt.hash(generatedPassword, 10);
                 const newUser = await prisma.user.create({
                     data: { 
@@ -549,51 +525,38 @@ export async function POST(req: NextRequest) {
             if (user && user.balance.gte(totalPrice)) {
                 const balanceBefore = user.balance;
                 const balanceAfter = user.balance.minus(totalPrice);
-                
-                await prisma.$transaction(async (tx) => {
-                    const updated = await tx.user.updateMany({
-                        where: { id: userId, balance: { gte: totalPrice } },
-                        data: { balance: { decrement: totalPrice }, spent: { increment: totalPrice } }
-                    });
+                try {
+                    await prisma.$transaction(async (tx) => {
+                        const { OrderActivationService } = await import('@/services/orders/order-activation.service');
+                        const order = await OrderActivationService.initiateOrder({
+                            userId,
+                            serviceId: service.id,
+                            projectId,
+                            link,
+                            qty: quantity,
+                            totalPrice: details.finalPrice,
+                            discountAmount: details.discountAmount,
+                            promoId: details.promoId,
+                            isDripFeed: !!isDripFeed,
+                            dripFeed: isDripFeed ? { runs: Number(runs), interval: Number(interval) } : undefined,
+                            tgId: null as any // prevent duplicate messages from Web API context since we notify below
+                        }, tx);
 
-                    if (updated.count === 0) {
-                        throw new Error('Недостаточно средств на балансе.');
-                    }
-
-                    const referenceId = `ORDER_PAY_${userId}_${Date.now()}`;
-                    await tx.ledgerEntry.create({
-                         data: {
-                             projectId, userId,
-                             amount: totalPrice,
-                             referenceId,
-                             type: 'WITHDRAWAL',
-                             balanceBefore,
-                             balanceAfter,
-                             description: `Оплата заказа: ${service.name}`
-                         }
-                    });
-
-                    const order = await tx.order.create({
-                        data: {
-                            projectId, userId, internalServiceId: service.id,
-                            link, quantity, totalPrice, costPrice: service.lastProviderPrice,
-                            status: 'PENDING', isDripFeed: !!isDripFeed,
-                            runs: isDripFeed ? Number(runs) : 1,
-                            interval: isDripFeed ? Number(interval) : 0,
-                            currentRun: 0,
-                            metadata: validation.warning ? { warning: validation.warning } : undefined
+                        if (order) {
+                            await tx.adminLog.create({
+                                data: {
+                                    adminId: userId,
+                                    action: "CREATE",
+                                    targetId: order.id.toString(),
+                                    details: `Заказ создан. Сервис: ${service.name}`
+                                }
+                            });
                         }
                     });
-
-                    await tx.adminLog.create({
-                        data: {
-                            adminId: userId,
-                            action: "CREATE",
-                            targetId: order.id.toString(),
-                            details: `Заказ создан. Сервис: ${service.name}`
-                        }
-                    });
-                });
+                } catch (e: any) {
+                    if (e.message !== 'INSUFFICIENT_FUNDS') throw e;
+                    else return NextResponse.json({ error: 'Недостаточно средств на балансе.' }, { status: 400 });
+                }
                 // Trigger asynchronous non-blocking background queue execution instantly
                 // 2026: Notify via Unified Service (MAX -> TG -> Email)
                 process.nextTick(() => {
@@ -613,6 +576,8 @@ export async function POST(req: NextRequest) {
                 runs: isDripFeed ? Number(runs) : 1,
                 interval: isDripFeed ? Number(interval) : 0,
                 currentRun: 0,
+                discountAmount: details.discountAmount,
+                promoCodeId: details.promoId,
                 metadata: validation.warning ? { warning: validation.warning } : undefined
             }
         });

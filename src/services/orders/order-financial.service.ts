@@ -16,15 +16,22 @@ export class OrderFinancialService {
      * Списывает средства с баланса пользователя за заказ.
      */
     static async chargeOrder(tx: Prisma.TransactionClient, userId: string, amount: Decimal, orderId: number, serviceName: string) {
-        // 1. Запись в Ledger
-        await LedgerService.record(tx, userId, amount, 'WITHDRAWAL', orderId.toString(), `Оплата заказа ${serviceName}`);
+        // 1. Атомарное списание с баланса (amount - положительный Decimal, передаем как отрицательный для списания)
+        const updatedUser = await tx.$queryRaw<any[]>`
+            UPDATE "User" 
+            SET "balance" = "balance" - ${amount}, "spent" = "spent" + ${amount}
+            WHERE "id" = ${userId} AND "balance" >= ${amount}
+            RETURNING "balance"
+        `;
 
-        // 2. Атомарное списание с баланса (amount - положительный Decimal, передаем как отрицательный для списания)
-        const withdrawalSuccess = await UserRepository.updateBalance(userId, amount.negated(), amount, tx);
-
-        if (!withdrawalSuccess) {
+        if (!updatedUser || updatedUser.length === 0) {
             throw new Error(`Заказ <code>#${orderId}</code> не может быть запущен из-за временного технического сбоя на стороне сервиса.\n\n`);
         }
+        
+        const balanceAfter = new Decimal(updatedUser[0].balance);
+
+        // 2. Запись в Ledger с точным balanceAfter
+        await LedgerService.record(tx, userId, amount, 'WITHDRAWAL', orderId.toString(), `Оплата заказа ${serviceName}`, undefined, balanceAfter);
 
         // 3. Создание транзакции оплаты
         await TransactionRepository.create({

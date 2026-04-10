@@ -17,7 +17,7 @@ export function OrganizationJsonLd() {
     "@type": "Organization",
     "name": "Smmplan",
     "url": "https://smmplan.pro",
-    "logo": "https://smmplan.pro/Mastercard-logo.svg", // Using whatever static asset is publicly available or wait for actual logo
+    "logo": "https://smmplan.pro/icon.png",
     "sameAs": [
       "https://t.me/smmplan",
       "https://vk.com/smmplan"

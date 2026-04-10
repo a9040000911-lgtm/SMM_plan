@@ -4,6 +4,7 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 import { prisma } from '@/lib/prisma';
+import { Decimal } from 'decimal.js';
 import { LedgerService } from '@/services/finance/ledger.service';
 import { BotRegistry, bot } from '@/services/bot/bot-registry';
 import { formatAmount } from '@/utils/formatter';
@@ -44,8 +45,14 @@ export class PaymentConfirmationService {
                 }
 
                 // 1. ЗАПИСЬ В LEDGER (ПОПОЛНЕНИЕ)
-                await LedgerService.record(txPrisma, tx.userId, tx.amount, 'DEPOSIT', tx.id, 'Пополнение через YooKassa');
-                await txPrisma.user.update({ where: { id: tx.userId }, data: { balance: { increment: tx.amount } } });
+                const depUser = await txPrisma.$queryRaw<any[]>`
+                    UPDATE "User"
+                    SET "balance" = "balance" + ${tx.amount}
+                    WHERE "id" = ${tx.userId}
+                    RETURNING "balance"
+                `;
+                const depBalanceAfter = new Decimal(depUser[0].balance);
+                await LedgerService.record(txPrisma, tx.userId, tx.amount, 'DEPOSIT', tx.id, 'Пополнение через YooKassa', undefined, depBalanceAfter);
                 
                 try {
                     await BotRegistry.get(tx.projectId).telegram.sendMessage(

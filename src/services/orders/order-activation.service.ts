@@ -177,6 +177,90 @@ export class OrderActivationService {
 
         return tx ? execute(tx) : await prisma.$transaction(execute);
     }
+
+    /**
+     * L-01 FIX: Dedicated method to activate an order that was AWAITING_PAYMENT,
+     * ensuring it goes through B2B Billing and Promo logic.
+     */
+    static async activatePendingOrder(orderId: number, tx?: any) {
+        const execute = async (txPrisma: any) => {
+            const order = await txPrisma.order.findUnique({
+                where: { id: orderId },
+                include: { internalService: true, project: { include: { organization: true } } }
+            });
+
+            if (!order || order.status !== 'AWAITING_PAYMENT') return null;
+
+            // --- B2B Billing (Prepaid SaaS Engine) ---
+            let b2bCost = new Decimal(0);
+            if (order.project?.organizationId && order.project.organization) {
+                const { B2BPricingService } = await import('@/services/finance/b2b-pricing.service');
+                const { OrganizationLedgerService } = await import('@/services/finance/organization-ledger.service');
+
+                const isExempt = await B2BPricingService.isBillingExempt(order.project.organizationId);
+                const unitCost = order.internalService.lastProviderPrice ? new Decimal(order.internalService.lastProviderPrice).div(1000) : new Decimal(0);
+                const rawCost = unitCost.mul(order.quantity);
+                
+                let b2bMargin: number;
+                if (order.project.organization.customB2BMarkup !== null && order.project.organization.customB2BMarkup !== undefined) {
+                    b2bMargin = Number(order.project.organization.customB2BMarkup);
+                } else {
+                    const globalSetting = await txPrisma.globalSetting.findUnique({ where: { key: 'B2B_MARGIN_PERCENT' } });
+                    b2bMargin = globalSetting ? Number(globalSetting.value) : B2BPricingService.B2B_DEFAULT_MARKUP;
+                }
+                
+                b2bCost = B2BPricingService.calculateB2BCost(rawCost, b2bMargin);
+
+                if (!isExempt) {
+                    if (order.project.organization.masterBalance.lt(b2bCost)) {
+                        console.error(`[B2B BILLING ALERT] Organization ${order.project.organization.name} (ID: ${order.project.organizationId}) has insufficient master balance. Required: ${b2bCost}, Available: ${order.project.organization.masterBalance}`);
+                        throw new Error('B2B_INSUFFICIENT_FUNDS');
+                    }
+
+                    await OrganizationLedgerService.recordTransaction(txPrisma, {
+                        organizationId: order.project.organizationId,
+                        amount: b2bCost,
+                        type: 'SERVICE_COST',
+                        description: `[B2B Cost] Qty: ${order.quantity} | Service: ${order.internalService.name} | Raw: ${rawCost.toFixed(2)} | Markup: ${(b2bMargin * 100).toFixed(0)}%`
+                    });
+                }
+            } else {
+                b2bCost = order.internalService.lastProviderPrice ? new Decimal(order.internalService.lastProviderPrice).mul(order.quantity).div(1000) : new Decimal(0);
+            }
+
+            // Charge user balance 
+            const { OrderFinancialService } = await import('@/services/orders/order-financial.service');
+            await OrderFinancialService.chargeOrder(txPrisma, order.userId, new Decimal(order.totalPrice), order.id, order.internalService.name);
+
+            // Apply promo logic if order has a promo
+            if (order.promoCodeId) {
+                await txPrisma.userPromo.upsert({
+                    where: { userId_promoCodeId: { userId: order.userId, promoCodeId: order.promoCodeId } },
+                    update: { usedAt: new Date() },
+                    create: { userId: order.userId, promoCodeId: order.promoCodeId, usedAt: new Date() }
+                });
+
+                // L-08 FIX: Increment global usage counter
+                await txPrisma.promoCode.update({
+                    where: { id: order.promoCodeId },
+                    data: { currentUses: { increment: 1 } }
+                });
+            }
+
+            // Finally, transition state
+            const updatedOrder = await txPrisma.order.update({
+                where: { id: order.id },
+                data: {
+                    status: 'PENDING',
+                    costPrice: b2bCost,
+                }
+            });
+
+            return updatedOrder;
+        };
+
+        return tx ? execute(tx) : await prisma.$transaction(execute);
+    }
 }
 
 

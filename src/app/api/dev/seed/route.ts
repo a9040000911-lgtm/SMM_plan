@@ -5,6 +5,10 @@ import { Platform, Category, ServiceType } from '@prisma/client';
 import { CryptoService } from '@/services/core/crypto.service';
 
 export async function GET() {
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+  }
+
   // --- ENV/DB GUARD ---
   let isMockEnabled = process.env.MOCK_PROVIDER_ENABLED === 'true';
   const dbMockSetting = await prisma.globalSetting.findUnique({ where: { key: 'MOCK_PROVIDER_ENABLED' } });

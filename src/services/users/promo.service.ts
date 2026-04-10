@@ -5,6 +5,7 @@
  */
 import { prisma } from '@/lib/prisma';
 import { Decimal } from 'decimal.js';
+import crypto from 'crypto';
 
 export class PromoService {
   /**
@@ -15,7 +16,8 @@ export class PromoService {
    */
   static async issuePromo(userId: string, tgId: number | bigint, percent: number, reason: string, projectId?: string | null, tx?: any) {
     const db = tx || prisma;
-    const code = `PROMO${percent}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+    const randomHex = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const code = `PROMO${percent}-${randomHex}`;
 
     try {
       const promo = await db.promoCode.create({
