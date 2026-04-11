@@ -14,6 +14,7 @@ import { CryptoService } from '@/services/core/crypto.service';
 import { createLogger } from '@/lib/logger';
 import { IntelligenceEngine } from '@/services/intelligence/intelligence.engine';
 import { Decimal } from 'decimal.js';
+import { SandboxService } from '@/services/core/sandbox.service';
 
 const providerMap: { [key: string]: new (config: Provider) => IProvider } = {
   vexboost: VexboostProvider,
@@ -66,6 +67,26 @@ export class ProviderService {
         actionField: 'action',
         ...meta
       };
+    }
+
+    // --- SANDBOX INTERCEPTOR ---
+    // Если Песочница включена и провайдер не [MOCK], подменяем apiUrl на мок-сервер.
+    // Это единственная точка перехвата — ни один другой сервис не знает о Песочнице.
+    if (!providerConfig.name.startsWith('[MOCK]')) {
+      try {
+        const isSandbox = await SandboxService.isEnabled();
+        if (isSandbox) {
+          const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+          this.logger.info(`[Sandbox] 🧪 Intercepting provider "${providerConfig.name}" → Mock endpoint`);
+          providerConfig = {
+            ...providerConfig,
+            apiUrl: `${baseUrl}/api/mock-provider`,
+            apiKey: 'SANDBOX_TEST_KEY',
+          };
+        }
+      } catch (e) {
+        this.logger.error('[Sandbox] Failed to check sandbox status, falling through to real provider:', e);
+      }
     }
 
     const ProviderClass = providerMap[type];

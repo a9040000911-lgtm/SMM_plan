@@ -108,7 +108,7 @@ describe('ScheduledOrderService', () => {
             await ScheduledOrderService.executeScheduledOrder('s1');
 
             expect(prisma.scheduledOrder.update).toHaveBeenCalledWith(expect.objectContaining({
-                data: { status: 'FAILED' }
+                data: { status: 'CANCELED' }
             }));
             expect(BotRegistry.get).toHaveBeenCalled();
             expect(OrderActivationService.initiateOrder).not.toHaveBeenCalled();
@@ -162,7 +162,7 @@ describe('ScheduledOrderService', () => {
             await expect(ScheduledOrderService.executeScheduledOrder('s1')).rejects.toThrow('Provider down');
 
             expect(prisma.scheduledOrder.update).toHaveBeenCalledWith(expect.objectContaining({
-                data: { status: 'FAILED' }
+                data: { status: 'CANCELED' }
             }));
             expect(BotRegistry.get).toHaveBeenCalled();
         });

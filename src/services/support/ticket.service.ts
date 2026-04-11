@@ -29,8 +29,17 @@ export class TicketService {
     }
 
     // Создаем новый только если нет открытого
+    // SANDBOX DATA QUARANTINE: тегируем тикет, если Песочница активна
+    let ticketMetadata: any = undefined;
+    try {
+      const { SandboxService } = await import('@/services/core/sandbox.service');
+      if (await SandboxService.isEnabled()) {
+        ticketMetadata = SandboxService.tagRecord({});
+      }
+    } catch { /* ignore */ }
+
     return await prisma.supportTicket.create({
-      data: { userId, subject, status: 'OPEN' }
+      data: { userId, subject, status: 'OPEN', ...(ticketMetadata ? { metadata: ticketMetadata } : {}) }
     });
   }
 

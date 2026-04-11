@@ -117,6 +117,15 @@ export function SupportUnified({ initialProjectId }: { initialProjectId: string 
         fetchProjects();
     }, [fetchTemplatesAndMacros, fetchProjects]);
 
+    // Document title badge for browser tab
+    useEffect(() => {
+        const unreadCount = stats.usersWithOpen;
+        document.title = unreadCount > 0
+            ? `(${unreadCount}) Поддержка — Smmplan`
+            : 'Поддержка — Smmplan';
+        return () => { document.title = 'Smmplan'; };
+    }, [stats.usersWithOpen]);
+
     // Load conversation when user is selected
     useEffect(() => {
         if (selectedUserId) {
@@ -196,8 +205,7 @@ export function SupportUnified({ initialProjectId }: { initialProjectId: string 
     return (
         <div className="flex gap-4 h-full pb-0 overflow-hidden">
             {/* LEFT PANEL: USER LIST */}
-            <div className={`flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden transition-all h-full ${selectedConversation ? 'w-[340px] shrink-0' : 'w-full max-w-md'
-                }`}>
+            <div className="flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden transition-all h-full w-[300px] shrink-0">
                 {/* Header */}
                 <div
                     className="p-4 border-b border-slate-100 space-y-3 transition-colors duration-300 relative overflow-hidden"

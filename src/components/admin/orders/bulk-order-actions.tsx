@@ -5,49 +5,17 @@
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CheckCircle2, RotateCcw, X, Loader2 } from 'lucide-react';
 import { bulkCancelOrdersAction, bulkUpdateStatusAction } from '@/app/admin/orders/actions';
-import { AdminOrder } from '@/types/admin';
+import { useOrderSelection } from '@/components/admin/orders/order-selection-context';
+import { toast } from 'sonner';
 
-export function BulkOrderActions({ orders }: { orders: AdminOrder[] }) {
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+export function BulkOrderActions() {
+  const { selectedIds, clear } = useOrderSelection();
   const [isBusy, setIsBusy] = useState(false);
 
-  // Синхронизация чекбоксов в DOM (находим их по атрибутам)
-  useEffect(() => {
-    const checkboxes = document.querySelectorAll('.order-checkbox') as NodeListOf<HTMLInputElement>;
-    checkboxes.forEach(cb => {
-      cb.checked = selectedIds.includes(parseInt(cb.value));
-    });
 
-    const masterCb = document.querySelector('.master-checkbox') as HTMLInputElement;
-    if (masterCb) {
-      masterCb.checked = selectedIds.length === orders.length && orders.length > 0;
-      masterCb.indeterminate = selectedIds.length > 0 && selectedIds.length < orders.length;
-    }
-  }, [selectedIds, orders]);
-
-  // Глобальный слушатель кликов по чекбоксам в таблице (через делегирование)
-  useEffect(() => {
-    const handleTableClick = (e: MouseEvent) => {
-      const target = e.target as HTMLInputElement;
-      if (target.classList.contains('order-checkbox')) {
-        const id = parseInt(target.value);
-        setSelectedIds(prev => {
-          const current = prev || [];
-          return current.includes(id) ? current.filter(i => i !== id) : [...current, id];
-        });
-      }
-      if (target.classList.contains('master-checkbox')) {
-        if (target.checked) setSelectedIds(orders?.filter(o => !!o).map(o => o.id) || []);
-        else setSelectedIds([]);
-      }
-    };
-
-    document.addEventListener('click', handleTableClick);
-    return () => document.removeEventListener('click', handleTableClick);
-  }, [orders]);
 
   const handleBulkCancel = async () => {
     if (!confirm(`Вы уверены, что хотите ОТМЕНИТЬ и ВЕРНУТЬ ДЕНЬГИ за ${selectedIds.length} заказов?`)) return;
@@ -55,13 +23,13 @@ export function BulkOrderActions({ orders }: { orders: AdminOrder[] }) {
     try {
       const res = await bulkCancelOrdersAction(selectedIds);
       if (res.success) {
-        alert(`Готово! Успешно обработано: ${res.count}`);
-        setSelectedIds([]);
+        toast.success(`Готово! Успешно обработано: ${res.count}`);
+        clear();
       } else {
-        alert('Ошибка: ' + res.error);
+        toast.error('Ошибка: ' + res.error);
       }
     } catch (_e) {
-      alert('Ошибка при выполнении операции');
+      toast.error('Ошибка при выполнении операции');
     } finally {
       setIsBusy(false);
     }
@@ -73,11 +41,11 @@ export function BulkOrderActions({ orders }: { orders: AdminOrder[] }) {
     try {
       const res = await bulkUpdateStatusAction(selectedIds);
       if (res.success) {
-        alert(`Статусы обновлены. Успешно: ${res.count}`);
-        setSelectedIds([]);
+        toast.success(`Статусы обновлены. Успешно: ${res.count}`);
+        clear();
       }
     } catch (_e) {
-      alert('Ошибка');
+      toast.error('Ошибка');
     } finally {
       setIsBusy(false);
     }
@@ -116,7 +84,7 @@ export function BulkOrderActions({ orders }: { orders: AdminOrder[] }) {
             Завершить
           </button>
           <button
-            onClick={() => setSelectedIds([])}
+            onClick={clear}
             className="p-2.5 text-slate-400 hover:text-white transition-colors"
           >
             <X size={20} />

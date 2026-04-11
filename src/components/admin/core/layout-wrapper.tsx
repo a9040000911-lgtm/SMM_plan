@@ -12,10 +12,10 @@ import { cn } from '@/utils/ui';
 import { LogoutButton } from '@/components/admin/core/logout-button';
 import {
     LayoutDashboard, ShoppingCart, Users, Briefcase,
-    Package, Database, Layers, Newspaper, Tag, Award,
-    TrendingUp, MessageSquare, BookOpen, Settings, History,
+    Package, Database, Layers, Tag, Award, MessageSquare, Settings, History,
     ShieldAlert, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, 
-    Star, Crown, Rss, Clock, PieChart, BarChart, ReceiptText, Bug, Landmark
+    Star, Crown, Rss, Clock, BarChart, Bug, Landmark,
+    Scale, Layout
 } from 'lucide-react';
 
 import { ProjectSelector } from '@/components/admin/core/project-selector';
@@ -111,7 +111,7 @@ export function LayoutWrapper({
             items: [
                 { id: 'dashboard', name: t?.dashboard || 'Панель управления', href: '/admin', icon: LayoutDashboard },
                 { id: 'statistics', name: 'Статистика', href: '/admin/analytics/statistics', icon: BarChart },
-                { id: 'analytics', name: t?.analytics || 'Отток (Churn)', href: '/admin/analytics/churn', icon: PieChart },
+                { id: 'reports', name: t?.reports || 'Отчеты', href: '/admin/analytics/reports', icon: BarChart },
                 { id: 'orders', name: t?.orders || 'Заказы', href: '/admin/orders', icon: ShoppingCart },
                 { id: 'users', name: t?.users || 'Пользователи', href: '/admin/users', icon: Users },
                 { id: 'employees', name: t?.employees || 'Сотрудники', href: '/admin/employees', icon: Briefcase },
@@ -128,28 +128,25 @@ export function LayoutWrapper({
         {
             title: nav_sections.marketing,
             items: [
-                { id: 'marketing', name: t?.marketing || 'Маркетинг', href: '/admin/cms/content', icon: Newspaper },
+                { id: 'marketing', name: 'Контент (Сайт)', href: '/admin/cms', icon: Layout },
+                { id: 'legal', name: 'Документы', href: '/admin/legal', icon: Scale },
                 { id: 'news', name: t?.news || 'Новости', href: '/admin/news', icon: Rss },
                 { id: 'reviews', name: t?.reviews || 'Отзывы', href: '/admin/reviews', icon: Star },
                 { id: 'promocodes', name: t?.promocodes || 'Промокоды', href: '/admin/promo-codes', icon: Tag },
                 { id: 'loyalty', name: t?.loyalty || 'Лояльность', href: '/admin/loyalty', icon: Crown },
-                { id: 'advocacy', name: t?.advocacy || 'NPS и Опросы', href: '/admin/advocacy/nps', icon: Award },
+                { id: 'advocacy', name: 'NPS и Опросы', href: '/admin/advocacy/nps', icon: Award },
             ]
         },
         {
             title: nav_sections.finance,
             items: [
-                { id: 'finance', name: t?.finance || 'Сводка Финансов', href: '/admin/finance', icon: TrendingUp },
-                { id: 'transactions', name: t?.transactions || 'Транзакции', href: '/admin/transactions', icon: ReceiptText },
-                { id: 'reports', name: t?.reports || 'Отчеты', href: '/admin/analytics/reports', icon: BarChart },
-                ...(isGlobalAdmin ? [{ id: 'treasury', name: 'Казначейство', href: '/admin/finance/treasury', icon: Landmark }] : [])
+                { id: 'finance', name: t?.finance || 'Управление Финансами', href: '/admin/finance', icon: Landmark }
             ]
         },
         {
             title: nav_sections.support,
             items: [
                 { id: 'support', name: t?.support || 'Поддержка', href: '/admin/support', icon: MessageSquare },
-                { id: 'kb', name: t?.knowledge_base || 'База Знаний', href: '/admin/knowledge-base', icon: BookOpen },
                 { id: 'bug_reports', name: t?.bug_reports || 'Баг-репорты', href: '/admin/support/bug-reports', icon: Bug },
             ]
         },

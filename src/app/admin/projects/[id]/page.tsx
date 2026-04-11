@@ -5,7 +5,6 @@
  */
 
 import React from 'react';
-import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { ProjectService } from '@/services/core';
 import Link from 'next/link';
@@ -31,7 +30,9 @@ import { ProjectEditorModal } from '@/components/admin/projects/project-editor-m
 import { cookies } from 'next/headers';
 import { ProjectLoyaltyEditor } from '@/components/admin/projects/project-loyalty-editor';
 import { ProjectMarketerEditor } from '@/components/admin/projects/project-marketer-editor';
-import { ProjectFinancesTab } from '@/components/admin/projects/project-finances-tab';
+import { Suspense } from 'react';
+import { ProjectFinancesTabWrapper } from '@/components/admin/projects/project-finances-tab-wrapper';
+import { ProjectServicesTabWrapper } from '@/components/admin/projects/project-services-tab-wrapper';
 import { ProjectProvidersTab } from '@/components/admin/projects/project-providers-tab';
 import { ProjectTelegramTab } from '@/components/admin/projects/project-telegram-tab';
 import { CryptoService } from '@/services/core';
@@ -42,10 +43,6 @@ interface PageProps {
     params: Promise<{ id: string }>;
     searchParams: Promise<{ tab?: string }>;
 }
-
-import { ProjectServiceCatalog } from '@/components/admin/projects/project-service-catalog';
-import { PriceDisplayProvider } from '@/components/admin/services/price-display-context';
-import { CurrencyService } from '@/services/finance/currency.service';
 
 export default async function ProjectIdentityPage({ params, searchParams }: PageProps) {
     const { id } = await params;
@@ -80,49 +77,6 @@ export default async function ProjectIdentityPage({ params, searchParams }: Page
         markup: projectRaw.markup ? projectRaw.markup.toNumber() : null
     };
 
-    const rates = await CurrencyService.getRates();
-
-    // Fetch Financial Data for this project
-    const [transactionsRaw, expensesRaw] = await Promise.all([
-        prisma.transaction.findMany({
-            where: { projectId: id },
-            orderBy: { createdAt: 'desc' },
-            take: 20
-        }),
-        prisma.businessExpense.findMany({
-            where: { projectId: id },
-            orderBy: { date: 'desc' },
-            take: 20
-        })
-    ]);
-
-    const transactions = transactionsRaw.map(tx => ({
-        ...tx,
-        amount: tx.amount.toNumber(),
-        createdAt: tx.createdAt.toISOString(),
-        updatedAt: tx.updatedAt.toISOString()
-    }));
-
-    const expenses = expensesRaw.map(ex => ({
-        ...ex,
-        amount: ex.amount.toNumber(),
-        date: ex.date.toISOString(),
-        createdAt: ex.createdAt.toISOString(),
-        updatedAt: ex.updatedAt.toISOString()
-    }));
-
-    const totalIncome = transactions
-        .filter(tx => tx.type === 'DEPOSIT' || tx.type === 'REFUND')
-        .reduce((acc, tx) => acc + (tx.type === 'REFUND' ? -tx.amount : tx.amount), 0);
-
-    const totalExpenses = expenses.reduce((acc, ex) => acc + ex.amount, 0);
-
-    const financeStats = {
-        totalIncome,
-        totalExpenses,
-        profit: totalIncome - totalExpenses
-    };
-
     const tabs = [
         { id: 'overview', name: 'Обзор', icon: LayoutDashboard, color: 'text-slate-900' },
         { id: 'services', name: 'Услуги', icon: Layers, color: 'text-blue-600' },
@@ -134,63 +88,9 @@ export default async function ProjectIdentityPage({ params, searchParams }: Page
         { id: 'finance', name: 'Финансы', icon: DollarSign, color: 'text-rose-600' },
     ];
 
-    // Optional data fetching based on tab
-    let services: any[] = [];
-    let serviceOverrides: any[] = [];
-    let categories: any[] = [];
+    // Content sections are loaded via independent Server Components / Suspense
+    // inside the return statement below.
 
-    if (activeTab === 'services') {
-        const [allInternalServices, overrides, categoriesRaw] = await Promise.all([
-            prisma.internalService.findMany({
-                orderBy: { name: 'asc' },
-                include: {
-                    providerMappings: {
-                        include: { provider: true },
-                        take: 1
-                    }
-                }
-            }),
-            prisma.projectServiceOverride.findMany({
-                where: { projectId: id }
-            }),
-            prisma.serviceCategory.findMany({
-                where: {
-                    OR: [
-                        { projectId: null },
-                        { projectId: id }
-                    ],
-                    isActive: true
-                },
-                orderBy: { name: 'asc' }
-            })
-        ]);
-
-        categories = categoriesRaw.map(c => ({
-            id: c.id,
-            name: c.name,
-            platform: c.platform,
-            categoryType: c.categoryType
-        }));
-
-        services = allInternalServices.map(s => ({
-            ...s,
-            pricePer1000: s.pricePer1000.toNumber(),
-            lastProviderPrice: s.lastProviderPrice ? s.lastProviderPrice.toNumber() : 0,
-            marketPrice: s.marketPrice ? s.marketPrice.toNumber() : null,
-            markup: s.markup ? s.markup.toNumber() : null,
-            providerPriceOriginal: s.providerPriceOriginal ? s.providerPriceOriginal.toNumber() : null,
-            providerMappings: s.providerMappings.map(pm => ({
-                ...pm,
-                provider: { name: pm.provider.name }
-            }))
-        }));
-
-        serviceOverrides = overrides.map(o => ({
-            ...o,
-            customPrice: o.customPrice ? o.customPrice.toNumber() : null,
-            markup: o.markup ? o.markup.toNumber() : null
-        }));
-    }
 
     return (
         <div className="space-y-8 pb-20">
@@ -286,7 +186,7 @@ export default async function ProjectIdentityPage({ params, searchParams }: Page
 
                 {/* 1.5 SERVICES */}
                 {activeTab === 'services' && (
-                    <div className="space-y-6">
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
                             <div>
                                 <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Каталог услуг проекта</h3>
@@ -299,14 +199,9 @@ export default async function ProjectIdentityPage({ params, searchParams }: Page
                                 <ExternalLink size={14} /> Расширенное управление
                             </Link>
                         </div>
-                        <PriceDisplayProvider usdRate={rates.USD || 90}>
-                            <ProjectServiceCatalog
-                                projectId={id}
-                                services={services}
-                                overrides={serviceOverrides}
-                                categories={categories}
-                            />
-                        </PriceDisplayProvider>
+                        <Suspense fallback={<div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]">Загрузка каталога...</div>}>
+                            <ProjectServicesTabWrapper projectId={id} />
+                        </Suspense>
                     </div>
                 )}
 
@@ -415,11 +310,11 @@ export default async function ProjectIdentityPage({ params, searchParams }: Page
 
                 {/* 5. FINANCE */}
                 {activeTab === 'finance' && (
-                    <ProjectFinancesTab
-                        stats={financeStats}
-                        recentTransactions={transactions as any}
-                        recentExpenses={expenses as any}
-                    />
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <Suspense fallback={<div className="p-12 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]">Загрузка транзакций...</div>}>
+                            <ProjectFinancesTabWrapper projectId={id} />
+                        </Suspense>
+                    </div>
                 )}
             </div>
         </div>

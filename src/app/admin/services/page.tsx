@@ -8,12 +8,10 @@ import React from 'react';
 import { getServiceCategoriesAction } from './actions';
 import { UnifiedServiceManager } from '@/components/admin/services/unified-manager';
 import { SerializedService, AdminProvider, SerializedOverride } from '@/types/admin';
-import {
-  ActionCardsWidget,
-  ProviderMonitoringWidget,
-  ServicesTableWidget,
-  MaintenanceWidget
-} from '@/components/admin/services/command-center/widgets';
+import { ActionCardsWidget } from '@/components/admin/services/command-center/widgets/action-cards';
+import { ProviderMonitoringWidget } from '@/components/admin/services/command-center/widgets/provider-monitoring';
+import { ServicesTableWidget } from '@/components/admin/services/command-center/widgets/services-table';
+import { MaintenanceWidget } from '@/components/admin/services/command-center/widgets/maintenance';
 import { StuckOrdersWidget } from '@/components/admin/services/command-center/stuck-orders-widget';
 import { getAdminSession, getActiveProjectId } from '@/utils/admin-session';
 import { AdminHeader } from '@/components/admin/core/admin-header';

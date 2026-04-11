@@ -9,11 +9,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { RefreshCw, Play, Pause, Timer } from 'lucide-react';
 
-export function LiveRefresh() {
+interface LiveRefreshProps {
+  autoStart?: boolean;
+  defaultInterval?: number;
+}
+
+export function LiveRefresh({ autoStart = false, defaultInterval = 60 }: LiveRefreshProps) {
   const router = useRouter();
-  const [isActive, setIsActive] = useState(false);
-  const [intervalSec, setIntervalSec] = useState(60); // 1 минута по умолчанию
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [isActive, setIsActive] = useState(autoStart);
+  const [intervalSec, setIntervalSec] = useState(defaultInterval);
+  const [timeLeft, setTimeLeft] = useState(defaultInterval);
 
   const refreshData = useCallback(() => {
     router.refresh();

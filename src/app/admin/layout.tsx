@@ -16,6 +16,7 @@ import { getActiveProjectId } from '@/utils/admin-session';
 import { AdminDataService } from '@/services/admin/admin-data.service';
 import { AdminContext } from '@/services/types';
 import { AdminProvider } from '@/components/admin/core/admin-context';
+import { SandboxBanner } from '@/components/admin/core/sandbox-banner';
 
 export default async function AdminLayout({
   children,
@@ -100,6 +101,7 @@ export default async function AdminLayout({
         activeProjectId={activeProjectId}
         initialIsCollapsed={cookieStore.get('sidebar-collapsed')?.value === 'true'}
       >
+        <SandboxBanner />
         <CommandPalette />
         <NavigationHotkeys />
         {children}

@@ -194,18 +194,7 @@ export class AdminUserService extends BaseAdminService {
         }
     }
 
-    /**
-     * Gets churn analytics statistics.
-     */
-    async getChurnStats(ctx: AdminContext): Promise<AdminServiceResult<any>> {
-        try {
-            const { ChurnService } = await import('@/services/churn/churn.service');
-            const stats = await ChurnService.getGlobalStats(!ctx.isGlobalAdmin ? ctx.allowedProjects : undefined);
-            return { success: true, data: stats };
-        } catch (error: any) {
-            return this.handleError(error, 'ADMIN_CHURN_STATS_FETCH_FAILED');
-        }
-    }
+
 
     /**
      * Gets data required for the admin layout.

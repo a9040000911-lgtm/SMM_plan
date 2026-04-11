@@ -1,41 +1,34 @@
-'use client';
 /**
  * (c) 2024-2026 Smmplan. All rights reserved.
  * Created by Artem (http://artmspektr.ru)
  * Unauthorized copying of this file is strictly prohibited.
  */
 
-import { useEffect, useState } from 'react';
-import { getSecurityRisksAction } from './actions';
+import React from 'react';
 import { ShieldAlert, ArrowRight, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { AdminTableCard } from '@/components/admin/core/admin-table-card';
+import { getAdminSession } from '@/utils/admin-session';
+import { redirect } from 'next/navigation';
+import { FinancialSecurityService } from '@/services/security/financial-security.service';
+import { LiveRefresh } from '@/components/admin/core/live-refresh';
 
-export default function SecurityPage() {
-    const [risks, setRisks] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+export const dynamic = 'force-dynamic';
 
-    useEffect(() => {
-        loadRisks();
-    }, []);
+export default async function SecurityPage() {
+    const session = await getAdminSession();
+    if (!session || session.role !== 'ADMIN') redirect('/admin/login');
 
-    const loadRisks = async () => {
-        setLoading(true);
-        try {
-            const res = await getSecurityRisksAction();
-            if (res.success) {
-                setRisks(res.risks || []);
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
-    };
+    let risks: any[] = [];
+    try {
+        risks = await FinancialSecurityService.getSecurityRisks();
+    } catch (e) {
+        console.error('[Security Page] Failed to load risks:', e);
+    }
 
     return (
-        <div className="p-8 max-w-[1600px] mx-auto">
-            <div className="flex items-center justify-between mb-8">
+        <div className="p-4 sm:p-5 max-w-[1600px] mx-auto space-y-6">
+            <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                         <ShieldAlert className="text-rose-600" size={32} />
@@ -43,12 +36,10 @@ export default function SecurityPage() {
                     </h1>
                     <p className="text-slate-500 mt-2 text-lg">Мониторинг финансовых аномалий (LTV Monitor)</p>
                 </div>
-                <button onClick={loadRisks} className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors">
-                    Обновить отчет
-                </button>
+                <LiveRefresh autoStart={false} defaultInterval={60} />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
                     <h3 className="text-slate-400 font-bold uppercase text-xs tracking-wider mb-2">Всего аномалий</h3>
                     <div className="text-4xl font-black text-rose-600">
@@ -71,9 +62,7 @@ export default function SecurityPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {loading ? (
-                                <tr><td colSpan={7} className="p-12 text-center text-slate-400">Загрузка данных...</td></tr>
-                            ) : risks.length === 0 ? (
+                            {risks.length === 0 ? (
                                 <tr><td colSpan={7} className="p-12 text-center text-emerald-600 font-medium">Аномалий не обнаружено. Все чисто! 🛡️</td></tr>
                             ) : (
                                 risks.map((risk) => (
@@ -121,5 +110,3 @@ export default function SecurityPage() {
         </div>
     );
 }
-
-

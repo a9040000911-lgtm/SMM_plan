@@ -82,9 +82,9 @@ export function GlobalConfiguration({ project, settingsMap }: { project: any, se
                         <div className="p-2 bg-slate-100 rounded-xl">
                             <SettingsIcon size={24} className="text-slate-600" />
                         </div>
-                        Глобальные настройки
+                        Настройки Проекта
                     </h2>
-                    <p className="text-sm text-slate-500 mt-1">Управление конфигурацией проекта <b>{project.name}</b>.</p>
+                    <p className="text-sm text-slate-500 mt-1">Управление конфигурацией текущего проекта <b>{project.name}</b>.</p>
                 </div>
             </div>
 

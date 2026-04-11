@@ -21,7 +21,11 @@ export class SmartSyncService {
 
     // 2. Получаем все активные маппинги
     const mappings = await prisma.internalServiceMapping.findMany({
-      where: { isActive: true },
+      where: { 
+        isActive: true,
+        // SANDBOX SAFETY: исключаем маппинги на [MOCK] провайдеров — их фейковые цены уничтожат Margin Guard
+        provider: { NOT: { name: { startsWith: '[MOCK]' } } }
+      },
       include: {
         providerService: true,
         internalService: true,

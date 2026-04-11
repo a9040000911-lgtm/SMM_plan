@@ -1,4 +1,3 @@
-'use client';
 /**
  * (c) 2024-2026 Smmplan. All rights reserved.
  * Created by Artem (http://artmspektr.ru)
@@ -6,14 +5,12 @@
  */
 
 import React from 'react';
-import useSWR from 'swr';
 import {
   TrendingUp,
   ShoppingCart,
   Users,
   MessageSquare,
   ShieldAlert,
-  Loader2,
   Clock,
   CreditCard,
   ChevronRight,
@@ -25,32 +22,48 @@ import Link from 'next/link';
 import { cn } from '@/utils/ui';
 import { AdminHeader } from '@/components/admin/core/admin-header';
 import { CopyButton } from '@/components/admin/core/copy-button';
+import { LiveRefresh } from '@/components/admin/core/live-refresh';
+import { getAdminSession } from '@/utils/admin-session';
+import { redirect } from 'next/navigation';
+import { AdminDataService } from '@/services/admin/admin-data.service';
+import { AdminContext } from '@/services/types';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+export const dynamic = 'force-dynamic';
 
-export default function AdminDashboard() {
-  const { data: stats, error, isLoading } = useSWR('/api/admin/stats', fetcher, {
-    refreshInterval: 30000,
-  });
+export default async function AdminDashboard() {
+  const session = await getAdminSession();
+  if (!session) {
+    redirect('/admin/login');
+  }
 
-  if (error) return <div className="p-8 text-rose-500 text-center uppercase font-bold">Ошибка загрузки данных</div>;
-  if (isLoading || !stats) {
+  const ctx: AdminContext = {
+    userId: session.id,
+    role: session.role as any,
+    allowedProjects: session.allowedProjects,
+    isGlobalAdmin: session.isGlobalAdmin
+  };
+
+  const result = await AdminDataService.getGlobalStats(ctx);
+
+  if (!result.success) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="animate-spin text-blue-600" size={48} />
-        <p className="text-slate-400 text-sm font-medium">Загрузка статистики...</p>
+      <div className="p-8 text-rose-500 text-center uppercase font-bold">
+        Ошибка загрузки данных: {result.error.message}
       </div>
     );
   }
 
+  const stats = result.data;
+
   return (
-    <div className="p-4 sm:p-8 space-y-8">
+    <div className="p-4 sm:p-8 space-y-8 selection:bg-blue-100">
       <AdminHeader
         title="Дашборд"
         subtitle="Сводная активность и ключевые метрики платформы"
       />
-      <div className="flex items-center justify-end">
-        <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100">
+      <div className="flex items-center justify-end gap-3">
+        <LiveRefresh autoStart={true} defaultInterval={30} />
+        <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100 shadow-sm h-9">
           <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
           <span className="text-[10px] font-black uppercase tracking-wider">Система онлайн</span>
         </div>
@@ -58,7 +71,7 @@ export default function AdminDashboard() {
 
       {/* KPI Cards - Simple Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Link href="/admin/finance" className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group active:scale-[0.98]">
+        <Link href="/admin/finance" className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group active:scale-[0.98]">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
               <TrendingUp size={24} />
@@ -69,7 +82,7 @@ export default function AdminDashboard() {
           <div className="text-2xl font-bold text-slate-900">{formatAmount(stats.revenue)}₽</div>
         </Link>
 
-                <Link href="/admin/orders" className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group active:scale-[0.98]">
+        <Link href="/admin/orders" className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group active:scale-[0.98]">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
               <ShoppingCart size={24} />
@@ -80,7 +93,7 @@ export default function AdminDashboard() {
           <div className="text-2xl font-bold text-slate-900">{stats.orderCount}</div>
         </Link>
 
-                <Link href="/admin/users" className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group active:scale-[0.98]">
+        <Link href="/admin/users" className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group active:scale-[0.98]">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition-colors">
               <Users size={24} />
@@ -91,7 +104,7 @@ export default function AdminDashboard() {
           <div className="text-2xl font-bold text-slate-900">{stats.userCount ?? 0}</div>
         </Link>
 
-                <Link href="/admin/support" className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group active:scale-[0.98]">
+        <Link href="/admin/support" className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group active:scale-[0.98]">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-amber-50 text-amber-600 rounded-xl group-hover:bg-amber-600 group-hover:text-white transition-colors">
               <MessageSquare size={24} />
@@ -301,5 +314,3 @@ function Info({ size, className }: { size: number, className?: string }) {
     </svg>
   );
 }
-
-

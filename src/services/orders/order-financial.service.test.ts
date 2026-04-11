@@ -35,7 +35,9 @@ jest.mock('@/services/repositories/order.repository', () => ({
 }));
 
 describe('OrderFinancialService', () => {
-    const mockTx = {} as Prisma.TransactionClient;
+    const mockTx = {
+        $queryRaw: jest.fn().mockResolvedValue([{ balance: new Decimal(90) }]),
+    } as unknown as Prisma.TransactionClient;
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -43,18 +45,17 @@ describe('OrderFinancialService', () => {
 
     describe('chargeOrder', () => {
         test('should successfully charge order and record ledger', async () => {
-            (UserRepository.updateBalance as jest.Mock).mockResolvedValue(true);
             const amount = new Decimal(10);
             
             await OrderFinancialService.chargeOrder(mockTx, 'u1', amount, 1001, 'Test Service');
             
+            expect((mockTx as any).$queryRaw).toHaveBeenCalled();
             expect(LedgerService.record).toHaveBeenCalled();
-            expect(UserRepository.updateBalance).toHaveBeenCalledWith('u1', amount.negated(), amount, mockTx);
             expect(TransactionRepository.create).toHaveBeenCalled();
         });
 
-        test('should throw error if updateBalance fails', async () => {
-            (UserRepository.updateBalance as jest.Mock).mockResolvedValue(false);
+        test('should throw error if $queryRaw returns empty (balance insufficient)', async () => {
+            (mockTx as any).$queryRaw = jest.fn().mockResolvedValue([]);
             const amount = new Decimal(10);
             
             await expect(OrderFinancialService.chargeOrder(mockTx, 'u1', amount, 1001, 'Test Service'))

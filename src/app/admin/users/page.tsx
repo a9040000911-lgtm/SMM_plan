@@ -85,7 +85,7 @@ export default async function UsersPage({ searchParams }: PageProps) {
 
       <AdminTableCard title="Список пользователей" icon={UsersIcon}>
         <div className="overflow-x-auto min-h-[500px]">
-          <table className="w-full text-left border-collapse table-fixed">
+          <table className="w-full min-w-[1100px] text-left border-collapse table-fixed">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
                 <th className="w-12 px-3 py-4 text-[10px] font-black text-slate-400 uppercase tracking-wider">ID ▲</th>

@@ -5,50 +5,60 @@
  */
 
 import React from 'react';
-import { ArrowLeftRight, TrendingUp, TrendingDown, FileDown } from 'lucide-react';
+import { TrendingUp, ReceiptText, TrendingDown, Landmark } from 'lucide-react';
+import { FinanceSummary } from '@/components/admin/finance/finance-summary';
 import { AdminTabs } from '@/components/admin/core/admin-tabs';
+import { getAdminSession } from '@/utils/admin-session';
 
 import TransactionsPage from '../transactions/page';
 import ExpensesPage from '../expenses/page';
-import ReportsPage from '../analytics/reports/page';
-
-import { FinanceSummary } from '@/components/admin/finance/finance-summary';
+import TreasuryPage from './treasury/page';
 
 export const dynamic = 'force-dynamic';
 
 export default async function FinancePage(props: { searchParams: Promise<any> }) {
+    const session = await getAdminSession();
+    if (!session) return null;
+
+    const isGlobalAdmin = session.isGlobalAdmin;
+
     const tabs = [
-        { label: 'Транзакции', icon: <ArrowLeftRight size={16} />, id: 'transactions' },
-        { label: 'Расходы (Бизнес)', icon: <TrendingDown size={16} />, id: 'expenses' },
-        { label: 'Отчеты и Экспорт', icon: <FileDown size={16} />, id: 'reports' },
+        { label: 'Сводка', icon: <TrendingUp size={16} />, id: 'overview', description: 'Обобщенные финансовые показатели' },
+        { label: 'Транзакции', icon: <ReceiptText size={16} />, id: 'transactions', description: 'История пополнений, списаний и движение средств клиентов' },
+        { label: 'Расходы', icon: <TrendingDown size={16} />, id: 'expenses', description: 'Учет операционных расходов' },
+        ...(isGlobalAdmin ? [{ label: 'Казначейство', icon: <Landmark size={16} />, id: 'treasury', description: 'Анализ заблокированных средств и маржинальности' }] : [])
     ];
 
-    const searchParams = await props.searchParams;
-    const activeTab = searchParams.tab || 'transactions';
-
     return (
-        <div className="max-w-7xl mx-auto space-y-8 pb-12 w-full overflow-hidden">
+        <div className="max-w-[1400px] mx-auto space-y-6 pb-12 w-full overflow-hidden">
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-3xl font-black text-slate-800 flex items-center gap-3 tracking-tight">
-                        <div className="p-2 bg-slate-100 rounded-md">
-                            <TrendingUp size={24} className="text-emerald-600" />
+                        <div className="p-2 bg-slate-100 rounded-xl text-slate-600">
+                            <Landmark size={24} />
                         </div>
-                        Финансы и Отчетность
+                        Управление Финансами
                     </h2>
-                    <p className="text-sm text-slate-500 mt-1">Управление денежными потоками, расходами и аналитика.</p>
+                    <p className="text-sm text-slate-500 mt-1">Единый центр учета транзакций, расходов и статистики платформы.</p>
                 </div>
             </div>
 
-            <FinanceSummary />
-
             <AdminTabs tabs={tabs}>
-                {activeTab === 'transactions' ? <div><TransactionsPage searchParams={searchParams} /></div> : <div />}
-                {activeTab === 'expenses' ? <div><ExpensesPage /></div> : <div />}
-                {activeTab === 'reports' ? <div><ReportsPage /></div> : <div />}
+                <div className="animate-in fade-in duration-300">
+                    <FinanceSummary />
+                </div>
+                <div className="animate-in fade-in duration-300">
+                    <TransactionsPage searchParams={props.searchParams} />
+                </div>
+                <div className="animate-in fade-in duration-300 relative -top-6">
+                    <ExpensesPage />
+                </div>
+                {isGlobalAdmin && (
+                    <div className="animate-in fade-in duration-300 relative -top-6">
+                        <TreasuryPage />
+                    </div>
+                )}
             </AdminTabs>
         </div>
     );
 }
-
-

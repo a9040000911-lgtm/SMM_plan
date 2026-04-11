@@ -11,6 +11,8 @@ import { OrderStatus } from '@/services/types';
  */
 export function getOrderStatusLabel(status: OrderStatus): string {
     switch (status) {
+        case 'AWAITING_PAYMENT':
+            return 'Ожидает оплаты';
         case 'PENDING':
             return 'Ожидает обработки';
         case 'PROCESSING':
@@ -33,6 +35,8 @@ export function getOrderStatusLabel(status: OrderStatus): string {
  */
 export function getOrderStatusColor(status: OrderStatus): string {
     switch (status) {
+        case 'AWAITING_PAYMENT':
+            return '#f59e0b'; // Amber
         case 'PENDING':
             return '#6b7280'; // Gray
         case 'PROCESSING':
@@ -79,6 +83,7 @@ export function getActivityLabel(category: string): string {
         'OTHER': 'Другое'
     };
 
+    if (!category) return 'ДРУГОЕ';
     return map[category.toUpperCase()] || category;
 }
 

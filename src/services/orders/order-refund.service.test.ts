@@ -11,10 +11,12 @@ jest.mock('@/lib/prisma', () => ({
         settings: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), update: jest.fn(), create: jest.fn() },
         globalSetting: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
         $transaction: jest.fn((cb: any) => cb({
-            order: { update: jest.fn(), findUnique: jest.fn().mockResolvedValue({ id: 1, refundedAmount: new Decimal(0), totalPrice: new Decimal(100), userId: 'u1' }), updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+            order: { update: jest.fn(), findUnique: jest.fn().mockResolvedValue({ id: 1, refundedAmount: new Decimal(0), totalPrice: new Decimal(100), userId: 'u1', projectId: 'proj1', costPrice: new Decimal(0) }), updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
             user: { update: jest.fn(), findUnique: jest.fn().mockResolvedValue({ id: 'u1', username: 'Test', balance: new Decimal(100) }) },
             ledgerEntry: { create: jest.fn() },
             transaction: { create: jest.fn() },
+            project: { findUnique: jest.fn().mockResolvedValue(null) },
+            $queryRaw: jest.fn().mockResolvedValue([{ balance: new Decimal(150) }]),
         })),
     },
 }));

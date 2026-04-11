@@ -159,7 +159,17 @@ export class AdminDataService {
             const [services, providers, projects, overrides, providerLogs, usdRateRecord] = await Promise.all([
                 prisma.internalService.findMany({
                     orderBy: { createdAt: 'desc' },
-                    include: {
+                    select: {
+                        id: true,
+                        name: true,
+                        numericId: true,
+                        isActive: true,
+                        pricePer1000: true,
+                        lastProviderPrice: true,
+                        categoryId: true,
+                        platform: true,
+                        category: true,
+                        description: true,
                         providerMappings: {
                             where: isGlobalMode ? {} : {
                                 OR: [
@@ -168,12 +178,18 @@ export class AdminDataService {
                                 ]
                             },
                             orderBy: { priority: 'asc' },
-                            include: {
-                                provider: true,
-                                providerService: true
+                            select: {
+                                id: true,
+                                priority: true,
+                                providerId: true,
+                                providerServiceId: true,
+                                provider: { select: { id: true, name: true } },
+                                providerService: { select: { id: true, name: true } }
                             }
                         },
-                        serviceCategory: true,
+                        serviceCategory: {
+                            select: { id: true, name: true, platform: true, categoryType: true }
+                        }
                     }
                 }),
                 prisma.provider.findMany({
@@ -894,31 +910,7 @@ export class AdminDataService {
         }
     }
 
-    /**
-     * Gets churn analytics statistics.
-     */
-    static async getChurnStats(ctx: AdminContext): Promise<AdminServiceResult<any>> {
-        try {
-            const where: any = {};
-            if (!ctx.isGlobalAdmin) {
-                where.projectId = { in: ctx.allowedProjects };
-            }
 
-            // Mock or actual implementation? Assuming actual logic exists in ChurnService
-            const { ChurnService } = await import('@/services/churn/churn.service');
-            const stats = await ChurnService.getGlobalStats(!ctx.isGlobalAdmin ? ctx.allowedProjects : undefined);
-
-            return {
-                success: true,
-                data: stats
-            };
-        } catch (error: any) {
-            return {
-                success: false,
-                error: { code: 'ADMIN_CHURN_STATS_FETCH_FAILED', message: error.message }
-            };
-        }
-    }
 
     /**
      * Gets data required for the admin layout (sidebar, project switcher).
@@ -3734,6 +3726,7 @@ export class AdminDataService {
                 });
                 return {
                     ...p,
+                    apiKey: '******', // Security: never expose actual encrypted key to the admin UI
                     currentBalance: lastLog?.balance.toNumber() || 0,
                     lastSync: lastLog?.createdAt.toISOString() || null,
                     serviceCount: p._count.services
@@ -3751,6 +3744,7 @@ export class AdminDataService {
      */
     static async createProvider(ctx: AdminContext, data: any): Promise<AdminServiceResult<any>> {
         try {
+            const { CryptoService } = await import('@/services/core/crypto.service');
             if (!ctx.isGlobalAdmin) throw new Error('Action restricted to global admins');
             const exists = await prisma.provider.findFirst({
                 where: { name: data.name, projectId: data.projectId || null }
@@ -3761,7 +3755,7 @@ export class AdminDataService {
                 data: {
                     name: data.name,
                     type: data.type || 'universal',
-                    apiKey: data.apiKey,
+                    apiKey: CryptoService.encrypt(data.apiKey),
                     apiUrl: data.apiUrl,
                     isEnabled: data.isEnabled,
                     balanceThreshold: data.balanceThreshold ?? 1000,
@@ -3784,13 +3778,21 @@ export class AdminDataService {
      */
     static async updateProvider(ctx: AdminContext, id: string, data: any, isCritical: boolean): Promise<AdminServiceResult<any>> {
         try {
+            const { CryptoService } = await import('@/services/core/crypto.service');
             if (!ctx.isGlobalAdmin) throw new Error('Action restricted to global admins');
+            
+            const existing = await prisma.provider.findUnique({ where: { id } });
+            if (!existing) throw new Error('Provider not found');
+            
+            // If the user hasn't changed the masked value, keep the existing encrypted key
+            const newApiKey = data.apiKey === '******' ? existing.apiKey : CryptoService.encrypt(data.apiKey);
+
             const provider = await prisma.provider.update({
                 where: { id },
                 data: {
                     name: data.name,
                     type: data.type,
-                    apiKey: data.apiKey,
+                    apiKey: newApiKey,
                     apiUrl: data.apiUrl,
                     isEnabled: data.isEnabled,
                     balanceThreshold: data.balanceThreshold,

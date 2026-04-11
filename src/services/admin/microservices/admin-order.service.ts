@@ -17,7 +17,7 @@ export class AdminOrderService {
     static async getStuckStats(ctx: AdminContext, projectId?: string): Promise<AdminServiceResult<{ pendingCount: number; processingCount: number; totalStuck: number }>> {
         try {
             const whereBase: Prisma.OrderWhereInput = {};
-            if (projectId && projectId !== 'ALL') {
+            if (projectId && projectId !== 'ALL' && projectId !== 'all') {
                 if (!ctx.isGlobalAdmin && !ctx.allowedProjects.includes(projectId)) {
                     throw new Error("Access denied to project");
                 }
@@ -67,7 +67,7 @@ export class AdminOrderService {
             const skip = (filters.page - 1) * filters.limit;
             const where: Prisma.OrderWhereInput = {};
 
-            if (filters.projectId && filters.projectId !== 'ALL') {
+            if (filters.projectId && filters.projectId !== 'ALL' && filters.projectId !== 'all') {
                 if (!ctx.isGlobalAdmin && !ctx.allowedProjects.includes(filters.projectId)) {
                     throw new Error("Access denied to project");
                 }

@@ -22,100 +22,111 @@ export class AdminStatisticsService {
      */
     static async getDailyChartData(ctx: AdminContext, period: '7' | '30' | 'all' = '30'): Promise<AdminServiceResult<DailyChartData[]>> {
         try {
-            let dateFilter: any = {};
+            const tz = 'Europe/Moscow';
+            
+            const params: any[] = [];
+            let conditionsStr = '';
+            let userProjStr = '';
+            
             if (period !== 'all') {
                 const cutoffDate = new Date();
                 cutoffDate.setDate(cutoffDate.getDate() - parseInt(period, 10));
-                dateFilter = { gte: cutoffDate };
+                params.push(cutoffDate);
+                conditionsStr += ` AND "createdAt" >= $${params.length}`;
             }
 
-            const projectFilter = !ctx.isGlobalAdmin && ctx.allowedProjects.length > 0 
-                ? { in: ctx.allowedProjects } 
-                : undefined;
+            if (!ctx.isGlobalAdmin && ctx.allowedProjects.length > 0) {
+                const placeholders = ctx.allowedProjects.map(id => {
+                    params.push(id);
+                    return `$${params.length}`;
+                }).join(', ');
+                
+                conditionsStr += ` AND "projectId" IN (${placeholders})`;
+                userProjStr = ` AND "userId" IN (SELECT id FROM "User" WHERE "projectId" IN (${placeholders}))`;
+            }
 
             const [ordersRaw, usersRaw, ticketsRaw, revenueRaw] = await Promise.all([
-                prisma.order.findMany({
-                    where: {
-                        ...(projectFilter && { projectId: projectFilter }),
-                        ...(period !== 'all' && { createdAt: dateFilter })
-                    },
-                    select: { createdAt: true }
-                }),
-                prisma.user.findMany({
-                    where: {
-                        ...(projectFilter && { projectId: projectFilter }),
-                        ...(period !== 'all' && { createdAt: dateFilter })
-                    },
-                    select: { createdAt: true }
-                }),
-                prisma.supportTicket.findMany({
-                    where: {
-                        ...(projectFilter && { projectId: projectFilter }),
-                        ...(period !== 'all' && { createdAt: dateFilter })
-                    },
-                    select: { createdAt: true }
-                }),
-                prisma.transaction.findMany({
-                    where: {
-                        status: 'COMPLETED',
-                        type: 'DEPOSIT',
-                        ...(projectFilter && { user: { projectId: projectFilter } }),
-                        ...(period !== 'all' && { createdAt: dateFilter })
-                    },
-                    select: { createdAt: true, amount: true }
-                })
+                prisma.$queryRawUnsafe<{dateStr: string, count: number}[]>(`
+                    SELECT TO_CHAR("createdAt" AT TIME ZONE 'UTC' AT TIME ZONE '${tz}', 'YYYY-MM-DD') as "dateStr",
+                           COUNT(*)::int as count
+                    FROM "Order"
+                    WHERE 1=1 ${conditionsStr}
+                    GROUP BY 1
+                `, ...params),
+                prisma.$queryRawUnsafe<{dateStr: string, count: number}[]>(`
+                    SELECT TO_CHAR("createdAt" AT TIME ZONE 'UTC' AT TIME ZONE '${tz}', 'YYYY-MM-DD') as "dateStr",
+                           COUNT(*)::int as count
+                    FROM "User"
+                    WHERE 1=1 ${conditionsStr}  -- Users also have projectId in the schema
+                    GROUP BY 1
+                `, ...params),
+                prisma.$queryRawUnsafe<{dateStr: string, count: number}[]>(`
+                    SELECT TO_CHAR("createdAt" AT TIME ZONE 'UTC' AT TIME ZONE '${tz}', 'YYYY-MM-DD') as "dateStr",
+                           COUNT(*)::int as count
+                    FROM "SupportTicket"
+                    WHERE 1=1 ${conditionsStr}
+                    GROUP BY 1
+                `, ...params),
+                prisma.$queryRawUnsafe<{dateStr: string, total: number}[]>(`
+                    SELECT TO_CHAR("createdAt" AT TIME ZONE 'UTC' AT TIME ZONE '${tz}', 'YYYY-MM-DD') as "dateStr",
+                           COALESCE(SUM(amount), 0)::float as total
+                    FROM "Transaction"
+                    WHERE "status" = 'COMPLETED' AND "type" = 'DEPOSIT'
+                    ${conditionsStr.replace(/AND "projectId" IN \([^)]+\)/, '')} ${userProjStr}
+                    GROUP BY 1
+                `, ...params)
             ]);
 
             // Merge data by date
             const dateMap = new Map<string, DailyChartData>();
 
-            const ensureDate = (dateOb: Date) => {
-                const dateStr = dateOb.toISOString().split('T')[0];
-                if (!dateMap.has(dateStr)) {
-                    dateMap.set(dateStr, { date: dateStr, orders: 0, users: 0, tickets: 0, revenue: 0 });
-                }
-                return dateStr;
-            };
-
-            for (const o of ordersRaw) {
-                const d = ensureDate(o.createdAt);
-                dateMap.get(d)!.orders += 1;
-            }
-            for (const u of usersRaw) {
-                const d = ensureDate(u.createdAt);
-                dateMap.get(d)!.users += 1;
-            }
-            for (const t of ticketsRaw) {
-                const d = ensureDate(t.createdAt);
-                dateMap.get(d)!.tickets += 1;
-            }
-            for (const r of revenueRaw) {
-                const d = ensureDate(r.createdAt);
-                dateMap.get(d)!.revenue += Number(r.amount) || 0;
-            }
-
-            // Convert to array and sort ascending
-            const result = Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-
-            // If period is not 'all', we might want to fill in the missing days with zeros for a smooth chart
-            if (period !== 'all' && result.length > 0) {
-                const filledResult: DailyChartData[] = [];
+            // Fill in missing days
+            if (period !== 'all') {
                 const numDays = parseInt(period, 10);
                 const endDate = new Date();
                 const startDate = new Date();
                 startDate.setDate(endDate.getDate() - numDays + 1);
+                
+                const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
 
                 for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-                    const dStr = d.toISOString().split('T')[0];
-                    const existing = result.find(r => r.date === dStr);
-                    if (existing) {
-                        filledResult.push(existing);
-                    } else {
-                        filledResult.push({ date: dStr, orders: 0, users: 0, tickets: 0, revenue: 0 });
-                    }
+                    const dStr = formatter.format(d);
+                    dateMap.set(dStr, { date: dStr, orders: 0, users: 0, tickets: 0, revenue: 0 });
                 }
-                return { success: true, data: toPlainObject(filledResult) };
             }
+
+            const ensureSafeDateMap = (dateStr: string) => {
+                if (!dateMap.has(dateStr)) {
+                    dateMap.set(dateStr, { date: dateStr, orders: 0, users: 0, tickets: 0, revenue: 0 });
+                }
+            };
+
+            for (const { dateStr, count } of ordersRaw) {
+                if (!dateStr) continue;
+                ensureSafeDateMap(dateStr);
+                dateMap.get(dateStr)!.orders += count;
+            }
+            
+            for (const { dateStr, count } of usersRaw) {
+                if (!dateStr) continue;
+                ensureSafeDateMap(dateStr);
+                dateMap.get(dateStr)!.users += count;
+            }
+            
+            for (const { dateStr, count } of ticketsRaw) {
+                if (!dateStr) continue;
+                ensureSafeDateMap(dateStr);
+                dateMap.get(dateStr)!.tickets += count;
+            }
+            
+            for (const { dateStr, total } of revenueRaw) {
+                if (!dateStr) continue;
+                ensureSafeDateMap(dateStr);
+                dateMap.get(dateStr)!.revenue += total;
+            }
+
+            // Convert to array and sort ascending
+            const result = Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 
             return {
                 success: true,

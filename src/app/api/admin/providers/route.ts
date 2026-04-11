@@ -98,6 +98,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
+    const { CryptoService } = await import('@/services/core/crypto.service');
+
     if (action === 'create') {
       // [SECURITY] Validate provider API URL against SSRF
       if (apiUrl) validateSafeUrl(apiUrl, 'Provider API URL');
@@ -109,7 +111,7 @@ export async function POST(req: NextRequest) {
         data: {
           name: name!,
           type: type || 'universal',
-          apiKey: apiKey!,
+          apiKey: CryptoService.encrypt(apiKey!),
           apiUrl: apiUrl!,
           isEnabled: isEnabled ?? true,
           pricesCurrency: (body as any).pricesCurrency || 'USD',
@@ -123,12 +125,17 @@ export async function POST(req: NextRequest) {
       // [SECURITY] Validate provider API URL against SSRF
       if (apiUrl) validateSafeUrl(apiUrl, 'Provider API URL');
 
+      const existing = await prisma.provider.findUnique({ where: { id: providerId } });
+      if (!existing) return NextResponse.json({ error: 'Provider not found' }, { status: 404 });
+
+      const newApiKey = apiKey === '******' ? existing.apiKey : CryptoService.encrypt(apiKey!);
+
       const provider = await prisma.provider.update({
         where: { id: providerId },
         data: {
           name,
           type,
-          apiKey,
+          apiKey: newApiKey,
           apiUrl,
           isEnabled,
           pricesCurrency: body.pricesCurrency,

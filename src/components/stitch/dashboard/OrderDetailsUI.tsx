@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/utils/ui';
 import { BrandIcon } from '@/components/stitch/ui/BrandIcon';
-import { ChurnIndicator } from '@/components/client/ChurnIndicator';
 import { SmartUpsell } from '@/components/marketing/SmartUpsell';
 
 interface Order {
@@ -270,9 +269,8 @@ export function OrderDetailsUI({ order }: OrderDetailsUIProps) {
                 </div>
             </div>
 
-            {/* Churn Prediction & Marketing Upsell */}
+            {/* Marketing Upsell */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="space-y-6">
-                <ChurnIndicator orderId={String(order.id)} />
                 {(order.status === 'PROCESSING' || order.status === 'COMPLETED' || order.status === 'IN_PROGRESS') && order.serviceId && (
                     <SmartUpsell originalServiceId={String(order.serviceId)} />
                 )}

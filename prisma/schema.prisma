@@ -215,6 +215,7 @@ model SupportTicket {
   verifiedEmail  String?
   verifiedUserId String?
   orderId        Int?
+  metadata       Json?
   messages       SupportMessage[]
   order          Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
   project        Project?         @relation(fields: [projectId], references: [id])
@@ -380,8 +381,6 @@ model Order {
   parentId            Int?
   isManual            Boolean           @default(false)
   metadata            Json?
-  churnPredictions    ChurnPrediction[]
-  churnSnapshots      ChurnSnapshot[]
   npsSurveys          NPSSurvey[]
   batchOrder          BatchOrder?       @relation(fields: [batchOrderId], references: [id])
   internalService     InternalService   @relation(fields: [internalServiceId], references: [id])
@@ -804,35 +803,6 @@ model Challenge {
   @@index([expiresAt])
 }
 
-model ChurnSnapshot {
-  id              String   @id @default(uuid())
-  snapshotDate    DateTime @default(now())
-  subscriberCount Int
-  daysElapsed     Int
-  dropoffRate     Decimal  @db.Decimal(5, 2)
-  orderId         Int
-  metadata        Json?
-  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@index([orderId, snapshotDate])
-  @@index([snapshotDate])
-  @@map("ChurnSnapshot")
-}
-
-model ChurnPrediction {
-  id                String   @id @default(uuid())
-  createdAt         DateTime @default(now())
-  predictedChurn    Decimal  @db.Decimal(5, 2)
-  confidenceScore   Decimal  @db.Decimal(3, 2)
-  recommendedAction String?
-  notificationSent  Boolean  @default(false)
-  orderId           Int
-  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@index([orderId, createdAt])
-  @@index([recommendedAction])
-  @@map("ChurnPrediction")
-}
 
 model NPSSurvey {
   id        String   @id @default(uuid())

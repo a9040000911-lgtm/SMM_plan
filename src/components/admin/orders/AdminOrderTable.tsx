@@ -19,15 +19,17 @@ import { UserQuickView } from '@/components/admin/users/user-quick-view';
 import { CopyButton } from '@/components/admin/core/copy-button';
 import { InlineSyncButton } from '@/components/admin/providers/inline-sync-button';
 import { InlineOrderActions } from '@/components/admin/orders/inline-order-actions';
+import { MasterCheckbox, OrderRowCheckbox } from '@/components/admin/orders/order-checkboxes';
 
 export function AdminOrderTable({ orders }: { orders: any[] }) {
+  const allOrderIds = orders.map(o => o.id);
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left border-collapse table-fixed">
+      <table className="w-full min-w-[1100px] text-left border-collapse table-fixed">
         <thead>
           <tr className="border-b border-slate-100 bg-slate-50/30">
             <th className="px-4 py-4 w-[40px]">
-              <input type="checkbox" className="master-checkbox w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+              <MasterCheckbox allIds={allOrderIds} />
             </th>
             <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[80px]">ID</th>
             <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[150px]">Пользователь</th>
@@ -42,11 +44,7 @@ export function AdminOrderTable({ orders }: { orders: any[] }) {
           {orders.map((order) => (
             <tr key={order.id} className="hover:bg-slate-50/80 transition-all group duration-200">
               <td className="px-4 py-6 align-top">
-                <input
-                  type="checkbox"
-                  value={order.id}
-                  className="order-checkbox w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer mt-1"
-                />
+                <OrderRowCheckbox orderId={order.id} />
               </td>
               <td className="px-4 py-6 align-top">
                 <div className="flex items-center gap-1.5">
@@ -76,17 +74,9 @@ export function AdminOrderTable({ orders }: { orders: any[] }) {
               </td>
 
               <td className="px-4 py-6 align-top text-right">
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-end pr-2">
                   <div className="text-[10px] font-bold text-slate-400 uppercase">Продажа:</div>
-                  <div className="text-sm font-black text-slate-900">{formatAmount(order.totalPrice)}₽</div>
-                  {order.costPrice && (
-                    <div className="mt-1 flex flex-col items-end">
-                      <div className="text-[9px] font-bold text-slate-400 uppercase">Закупка:</div>
-                      <div className="text-[10px] font-bold text-slate-500 font-mono italic">
-                        {formatAmount(order.costPrice)}₽
-                      </div>
-                    </div>
-                  )}
+                  <div className="text-sm font-black text-slate-900 whitespace-nowrap">{formatAmount(order.totalPrice)}₽</div>
                 </div>
               </td>
 

@@ -108,7 +108,9 @@ export class SelfHealingService {
       where: {
         status: OrderStatus.PENDING,
         createdAt: { lt: fifteenMinsAgo },
-        isDripFeed: false
+        isDripFeed: false,
+        // SANDBOX FILTER: пропускаем тестовые заказы — их рефанд создаст деньги из воздуха
+        NOT: { metadata: { path: ['isSandbox'], equals: true } }
       },
       include: { user: true, internalService: true }
     });
@@ -160,7 +162,9 @@ export class SelfHealingService {
       where: {
         status: 'CANCELED',
         refundedAmount: 0,
-        totalPrice: { gt: 0 }
+        totalPrice: { gt: 0 },
+        // SANDBOX FILTER: не возвращаем деньги за тестовые заказы
+        NOT: { metadata: { path: ['isSandbox'], equals: true } }
       },
       include: { user: true, internalService: true }
     });

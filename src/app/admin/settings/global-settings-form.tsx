@@ -49,8 +49,8 @@ export function GlobalSettingsForm({ initialSettings }: GlobalSettingsFormProps)
                                 <Shield size={20} />
                             </div>
                             <div>
-                                <h2 className="text-lg font-black text-slate-800 tracking-tight">Глобальные настройки</h2>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Платформа Smmplan</p>
+                                <h2 className="text-lg font-black text-slate-800 tracking-tight">Глобальная Платформа</h2>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Управление ядром Smmplan</p>
                             </div>
                         </div>
 

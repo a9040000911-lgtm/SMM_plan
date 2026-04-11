@@ -21,6 +21,7 @@ import { AdminTableCard } from '@/components/admin/core/admin-table-card';
 import { AdminOrderTable } from '@/components/admin/orders/AdminOrderTable';
 import { AdminDataService } from '@/services/admin/admin-data.service';
 import { AdminContext } from '@/services/types';
+import { OrderSelectionProvider } from '@/components/admin/orders/order-selection-context';
 
 export const dynamic = 'force-dynamic';
 
@@ -128,7 +129,8 @@ export default async function OrdersPage({ searchParams }: PageProps) {
         </div>
       )}
 
-      <OrderFilter
+      <OrderSelectionProvider>
+        <OrderFilter
         projects={projects.map(p => ({ id: p.id, name: p.name, color: p.brandColor }))}
         providers={providers}
         initialSearch={search}
@@ -168,7 +170,8 @@ export default async function OrdersPage({ searchParams }: PageProps) {
         </div>
       </AdminTableCard>
 
-      <BulkOrderActions orders={orders} />
+      <BulkOrderActions />
+      </OrderSelectionProvider>
     </div>
   );
 }

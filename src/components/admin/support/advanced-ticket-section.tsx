@@ -20,9 +20,10 @@ interface AdvancedTicketSectionProps {
     macros: any[];
     onReply: (tid: string, text: string) => Promise<void>;
     onClose: (tid: string) => Promise<void>;
+    onUpdated?: () => void;
 }
 
-export function AdvancedTicketSection({ ticket, templates, macros, onReply, onClose }: AdvancedTicketSectionProps) {
+export function AdvancedTicketSection({ ticket, templates, macros, onReply, onClose, onUpdated }: AdvancedTicketSectionProps) {
     const [isExpanded, setIsExpanded] = useState(ticket.status !== 'CLOSED');
     const [replyText, setReplyText] = useState('');
     const [isSending, setIsSending] = useState(false);
@@ -78,6 +79,7 @@ export function AdvancedTicketSection({ ticket, templates, macros, onReply, onCl
             const res = await executeMacroAction(ticket.id, macroId);
             if (res.success) {
                 setShowMacros(false);
+                if (onUpdated) onUpdated();
             } else {
                 alert(res.error || 'Ошибка при выполнении макроса');
             }

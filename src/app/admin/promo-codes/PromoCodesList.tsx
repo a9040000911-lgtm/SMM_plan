@@ -7,8 +7,9 @@
 
 import React, { useState } from 'react';
 import { AdminCard, Button, StatusBadge, ActionButton } from '@/components/admin/ui';
-import { togglePromoCodeAction, deletePromoCodeAction, createPromoCodeAction } from './actions';
-import { Copy, Trash2, Power, Plus, Tag, Percent, FileText, Loader2, X, Globe, Briefcase, Ticket } from 'lucide-react';
+import { togglePromoCodeAction, deletePromoCodeAction } from './actions';
+import { Copy, Trash2, Power, Plus, Ticket, X, Globe, Briefcase, Percent } from 'lucide-react';
+import { PromoCodeForm } from '@/components/admin/promo-codes/promo-code-form';
 import { toast } from 'sonner';
 import { cn } from '@/utils/ui';
 import { AdminTableCard } from '@/components/admin/core/admin-table-card';
@@ -22,20 +23,6 @@ interface PromoCodesListProps {
 export function PromoCodesList({ initialCodes, projects, activeProjectId = null }: PromoCodesListProps) {
     const [codes, setCodes] = useState(initialCodes);
     const [showCreateForm, setShowCreateForm] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-
-    // FORM STATE
-    const [newCode, setNewCode] = useState('');
-    const [newPercent, setNewPercent] = useState(10);
-    const [newDesc, setNewDesc] = useState('');
-    const [newProjectId, setNewProjectId] = useState(activeProjectId || projects[0]?.id || '');
-
-    // Reset newProjectId when activeProjectId changes
-    React.useEffect(() => {
-        if (!showCreateForm) {
-            setNewProjectId(activeProjectId || projects[0]?.id || '');
-        }
-    }, [activeProjectId, projects, showCreateForm]);
 
     const handleCopy = (code: string) => {
         navigator.clipboard.writeText(code);
@@ -67,30 +54,7 @@ export function PromoCodesList({ initialCodes, projects, activeProjectId = null 
         }
     };
 
-    const handleCreate = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setSubmitting(true);
-        try {
-            const res = await createPromoCodeAction({
-                code: newCode,
-                discountPercent: newPercent,
-                description: newDesc,
-                projectId: newProjectId
-            });
 
-            if (res.success) {
-                toast.success('Промокод создан');
-                setCodes([{ ...res.promo, project: projects.find(p => p.id === newProjectId) }, ...codes]);
-                setShowCreateForm(false);
-                setNewCode('');
-                setNewDesc('');
-            }
-        } catch (err: any) {
-            toast.error(err.message);
-        } finally {
-            setSubmitting(false);
-        }
-    };
 
     return (
         <div className="space-y-6">
@@ -146,71 +110,14 @@ export function PromoCodesList({ initialCodes, projects, activeProjectId = null 
             {/* CREATE FORM */}
             {showCreateForm && (
                 <AdminCard title="Новый промокод">
-                    <form onSubmit={handleCreate} className="p-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                        <div className="space-y-2 col-span-1">
-                            <label className="text-[10px] font-black uppercase text-slate-400 pl-1">КОД</label>
-                            <div className="relative">
-                                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                                <input
-                                    required
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-black uppercase"
-                                    placeholder="SAVE30"
-                                    value={newCode}
-                                    onChange={(e) => setNewCode(e.target.value)}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2 col-span-1">
-                            <label className="text-[10px] font-black uppercase text-slate-400 pl-1">СКИДКА %</label>
-                            <div className="relative">
-                                <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                                <input
-                                    type="number"
-                                    required
-                                    min="1"
-                                    max="99"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-black"
-                                    value={newPercent}
-                                    onChange={(e) => setNewPercent(parseInt(e.target.value))}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2 col-span-1 md:col-span-1">
-                            <label className="text-[10px] font-black uppercase text-slate-400 pl-1">ПРОЕКТ</label>
-                            <select
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-bold"
-                                value={newProjectId}
-                                onChange={(e) => setNewProjectId(e.target.value)}
-                            >
-                                {projects.map(p => (
-                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="col-span-1">
-                            <Button disabled={submitting} className="w-full">
-                                {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                                СОЗДАТЬ
-                            </Button>
-                        </div>
-
-                        <div className="space-y-2 col-span-1 md:col-span-4 mt-2">
-                            <label className="text-[10px] font-black uppercase text-slate-400 pl-1">ОПИСАНИЕ (ОПЦИОНАЛЬНО)</label>
-                            <div className="relative">
-                                <FileText className="absolute left-3 top-3 w-4 h-4 text-slate-300" />
-                                <textarea
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-medium"
-                                    rows={2}
-                                    placeholder="Например: Для компенсации задержки..."
-                                    value={newDesc}
-                                    onChange={(e) => setNewDesc(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                    </form>
+                    <PromoCodeForm 
+                        projects={projects} 
+                        activeProjectId={activeProjectId} 
+                        onSuccess={(newPromo) => {
+                            setCodes([newPromo, ...codes]);
+                            setShowCreateForm(false);
+                        }}
+                    />
                 </AdminCard>
             )}
 

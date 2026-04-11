@@ -54,6 +54,10 @@ export const syncWorker = new Worker('status-sync', async (job: Job) => {
 
   // Проверка новых постов (Авто-пилот)
   await AutoMonitoringService.checkNewPosts();
+
+  // Dead Man's Switch: автоматическое отключение Песочницы по TTL
+  const { SandboxService } = await import('@/services/core/sandbox.service');
+  await SandboxService.checkAutoDisable();
 }, { connection });
 
 /**

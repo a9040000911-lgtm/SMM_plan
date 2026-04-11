@@ -74,18 +74,69 @@ export class ConfigService {
 
     /**
      * Retrieves SMTP/Mail Configuration
-     * Priority: Project DB Settings > Env Vars
+     * Priority: Project DB Settings > Global DB Settings > Env Vars
      */
-    static async getSmtpConfig(_projectId?: string) {
-        // Future: support per-project SMTP
-        // Current: System env
+    static async getSmtpConfig(projectId?: string, tx?: Prisma.TransactionClient) {
+        const db = tx || prisma;
+        const settings = await db.globalSetting.findMany({
+            where: {
+                key: { in: ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD'] }
+            }
+        });
+
+        const map: Record<string, string> = {};
+        settings.forEach((s: any) => map[s.key] = s.value);
+
+        // Decrypt password if it exists
+        let dbPassword = map.SMTP_PASSWORD;
+        if (dbPassword) {
+            dbPassword = CryptoService.decrypt(dbPassword);
+        }
+
         return {
-            host: process.env.SMTP_HOST || 'smtp.yandex.ru',
-            port: parseInt(process.env.SMTP_PORT || '465'),
-            user: process.env.SMTP_USER,
-            password: process.env.SMTP_PASSWORD,
-            from: process.env.SMTP_USER // Default sender
+            host: map.SMTP_HOST || process.env.SMTP_HOST || 'smtp.yandex.ru',
+            port: parseInt(map.SMTP_PORT || process.env.SMTP_PORT || '465', 10),
+            user: map.SMTP_USER || process.env.SMTP_USER,
+            password: dbPassword || process.env.SMTP_PASSWORD,
+            from: map.SMTP_USER || process.env.SMTP_USER // Default sender
         };
+    }
+
+    /**
+     * Updates Global SMTP Configuration securely
+     */
+    static async setSmtpConfig(config: { host: string; port: number; user: string; password?: string }) {
+        const updates: Prisma.PrismaPromise<any>[] = [
+            prisma.globalSetting.upsert({
+                where: { key: 'SMTP_HOST' },
+                update: { value: config.host },
+                create: { key: 'SMTP_HOST', value: config.host }
+            }),
+            prisma.globalSetting.upsert({
+                where: { key: 'SMTP_PORT' },
+                update: { value: config.port.toString() },
+                create: { key: 'SMTP_PORT', value: config.port.toString() }
+            }),
+            prisma.globalSetting.upsert({
+                where: { key: 'SMTP_USER' },
+                update: { value: config.user },
+                create: { key: 'SMTP_USER', value: config.user }
+            })
+        ];
+
+        // Only update password if provided
+        if (config.password) {
+            const encryptedPassword = CryptoService.encrypt(config.password);
+            updates.push(
+                prisma.globalSetting.upsert({
+                    where: { key: 'SMTP_PASSWORD' },
+                    update: { value: encryptedPassword },
+                    create: { key: 'SMTP_PASSWORD', value: encryptedPassword }
+                })
+            );
+        }
+
+        await prisma.$transaction(updates);
     }
 
     /**

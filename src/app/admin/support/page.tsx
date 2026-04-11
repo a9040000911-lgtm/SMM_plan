@@ -12,10 +12,10 @@ export default async function SupportPage() {
   const activeProjectId = await getActiveProjectId();
 
   return (
-    <div className="flex flex-col h-full space-y-4 p-8 bg-[#f8fafc]">
+    <div className="flex flex-col h-full gap-1 p-2 sm:p-3 bg-[#f8fafc]">
       <AdminHeader
-        title="Служба поддержки"
-        subtitle="Обработка тикетов и коммуникация с клиентами"
+        title="Поддержка"
+        subtitle="Тикеты и коммуникация"
       />
 
       <div className="flex-1 min-h-0">

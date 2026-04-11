@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { X, Send, Loader2, Zap, Clock, Check, User, MessageSquare, Inbox, ExternalLink, FileText } from 'lucide-react';
+import { X, Send, Loader2, Zap, Clock, Check, User, MessageSquare, Inbox, ExternalLink, FileText, PanelRight } from 'lucide-react';
 import { UserConversation, UserOrder } from '@/app/admin/support/ticket-actions';
 import { replyToTicketAction, closeTicketAction } from '@/app/admin/support/actions';
 import { warnUserAction, banUserAction, unbanUserAction } from '@/app/admin/support/moderation-actions';
@@ -31,6 +31,7 @@ export function UserConversationPanel({ conversation, templates, macros: _macros
     const [isCopied, setIsCopied] = useState(false);
     const [orderIdCopied, setOrderIdCopied] = useState<string | null>(null);
     const [activeSidebarTab, setActiveSidebarTab] = useState<'orders' | 'profile'>('orders');
+    const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
     // Keyboard shortcuts for panel
     useEffect(() => {
@@ -232,168 +233,207 @@ export function UserConversationPanel({ conversation, templates, macros: _macros
                                     macros={_macros || []}
                                     onReply={handleReply}
                                     onClose={handleCloseTicket}
+                                    onUpdated={onUpdated}
                                 />
                             ))}
                         </div>
                     )}
                 </div>
 
-                {/* Right Context Panel: Tabbed Interface */}
-                <div className="w-80 border-l border-slate-100 bg-white shrink-0 flex flex-col h-full overflow-hidden">
-                    <div className="flex border-b border-slate-100 bg-slate-50/80">
-                        <button 
-                            onClick={() => setActiveSidebarTab('orders')}
-                            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-colors ${activeSidebarTab === 'orders' ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                        >
-                            <span className="flex items-center justify-center gap-2"><Clock size={12}/> Заказы</span>
-                        </button>
-                        <button 
-                            onClick={() => setActiveSidebarTab('profile')}
-                            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-colors ${activeSidebarTab === 'profile' ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                        >
-                            <span className="flex items-center justify-center gap-2"><User size={12}/> Профиль</span>
-                        </button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
-                        {activeSidebarTab === 'orders' && (
-                            <>
-                                {isLoadingOrders ? (
-                                    <div className="space-y-3">
-                                        {[1, 2, 3].map(i => (
-                                            <div key={i} className="h-16 bg-slate-50 rounded-md animate-pulse" />
-                                        ))}
-                                    </div>
-                                ) : orders.length === 0 ? (
-                                    <div className="text-center py-8">
-                                        <Inbox size={24} className="mx-auto mb-2 text-slate-200" />
-                                        <p className="text-xs text-slate-400 font-medium tracking-tight">Заказов пока нет</p>
-                                    </div>
-                                ) : (
-                                    orders.map(order => (
-                                        <div key={order.id} className="group p-3 rounded-lg border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all shadow-sm">
-                                            <div className="flex items-start justify-between mb-1.5">
-                                                <div className="text-[10px] font-black text-slate-700 truncate max-w-[140px]" title={order.serviceName}>
-                                                    {order.serviceName}
-                                                </div>
-                                                <div className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md border ${order.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                                                    order.status === 'PROCESSING' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                                                        order.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                                                            'bg-rose-50 text-rose-700 border-rose-100'
-                                                    }`}>
-                                                    {order.status}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center justify-between text-[11px] mb-2">
-                                                <div className="font-black text-slate-900">{order.amount}₽</div>
-                                                <div className="text-[9px] text-slate-400 font-bold tabular-nums">
-                                                    {new Date(order.createdAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-1">
-                                                <Link
-                                                    href={`/admin/orders/${order.id}`}
-                                                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-white text-slate-500 border border-slate-100 rounded-md text-[9px] font-black uppercase hover:border-slate-200 hover:bg-slate-50 transition-all"
-                                                >
-                                                    <FileText size={10} />
-                                                    ID: {order.id}
-                                                </Link>
-                                                <button
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(order.id.toString());
-                                                        setOrderIdCopied(order.id.toString());
-                                                        setTimeout(() => setOrderIdCopied(null), 2000);
-                                                    }}
-                                                    className={`px-2 py-1.5 rounded-md transition-all border ${orderIdCopied === order.id.toString()
-                                                        ? 'bg-emerald-500 text-white border-emerald-500'
-                                                        : 'bg-white text-slate-300 border-slate-100 hover:border-slate-200'
-                                                        }`}
-                                                    title="Копировать ID"
-                                                >
-                                                    <Check size={10} />
-                                                </button>
-                                                <a
-                                                    href={order.link}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="px-2 py-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors border border-blue-100/50"
-                                                    title="Открыть ссылку"
-                                                >
-                                                    <ExternalLink size={10} />
-                                                </a>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </>
-                        )}
-                        
-                        {activeSidebarTab === 'profile' && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
-                                <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
-                                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Финансовая сводка</div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div className="bg-white p-2 rounded border border-slate-100 shadow-sm">
-                                            <div className="text-[10px] text-slate-500 mb-0.5">Баланс</div>
-                                            <div className="text-sm font-black text-blue-600">{Number(conversation.user.balance).toFixed(2)}₽</div>
-                                        </div>
-                                        <div className="bg-white p-2 rounded border border-slate-100 shadow-sm">
-                                            <div className="text-[10px] text-slate-500 mb-0.5">LTV (Траты)</div>
-                                            <div className="text-sm font-black text-rose-600">{Number(conversation.user.spent).toFixed(2)}₽</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
-                                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Модерация аккаунта</div>
-                                    <div className="flex flex-col gap-2">
-                                        {((conversation.user as any).isPermanentlyBanned || ((conversation.user as any).banExpiresAt && new Date((conversation.user as any).banExpiresAt) > new Date())) ? (
-                                            <button
-                                                onClick={async () => {
-                                                    if (confirm('Разблокировать пользователя и сбросить предупреждения?')) {
-                                                        await unbanUserAction(conversation.user.id);
-                                                        onUpdated();
-                                                    }
-                                                }}
-                                                className="w-full py-2 bg-green-50 text-green-600 text-xs font-black uppercase tracking-widest border border-green-200 rounded-md hover:bg-green-100 transition-colors"
-                                            >
-                                                Снять бан
-                                            </button>
-                                        ) : (
-                                            <>
-                                                <button
-                                                    onClick={async () => {
-                                                        const reason = prompt('Причина предупреждения:');
-                                                        if (reason) {
-                                                            await warnUserAction(conversation.user.id, reason);
-                                                            onUpdated();
-                                                        }
-                                                    }}
-                                                    className="w-full py-2 bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest border border-amber-200 rounded-md hover:bg-amber-100 transition-colors"
-                                                >
-                                                    + Выдать Предупреждение
-                                                </button>
-                                                <button
-                                                    onClick={async () => {
-                                                        const reason = prompt('Причина бана (24ч):');
-                                                        if (reason) {
-                                                            await banUserAction(conversation.user.id, 24, reason);
-                                                            onUpdated();
-                                                        }
-                                                    }}
-                                                    className="w-full py-2 bg-rose-50 text-rose-500 text-[10px] font-black uppercase tracking-widest border border-rose-200 rounded-md hover:bg-rose-100 transition-colors"
-                                                >
-                                                    Бан чата (24ч)
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
+                {/* Right Context Panel: Collapsible (Variant A - collapsed by default) */}
+                <div className={`border-l border-slate-100 bg-white shrink-0 flex flex-col h-full overflow-hidden transition-all duration-300 ${isSidebarExpanded ? 'w-72' : 'w-12'}`}>
+                    {/* Collapsed: icon strip */}
+                    {!isSidebarExpanded ? (
+                        <div className="flex flex-col items-center py-3 gap-2">
+                            <button
+                                onClick={() => { setActiveSidebarTab('orders'); setIsSidebarExpanded(true); }}
+                                className="p-2.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                                title="Заказы пользователя"
+                            >
+                                <Clock size={16} />
+                            </button>
+                            <button
+                                onClick={() => { setActiveSidebarTab('profile'); setIsSidebarExpanded(true); }}
+                                className="p-2.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                                title="Профиль и модерация"
+                            >
+                                <User size={16} />
+                            </button>
+                            <div className="w-6 border-t border-slate-100 my-1" />
+                            <button
+                                onClick={() => setIsSidebarExpanded(true)}
+                                className="p-2.5 rounded-lg text-slate-300 hover:text-slate-500 hover:bg-slate-50 transition-all"
+                                title="Развернуть панель"
+                            >
+                                <PanelRight size={16} />
+                            </button>
+                        </div>
+                    ) : (
+                        /* Expanded: full sidebar */
+                        <>
+                            <div className="flex border-b border-slate-100 bg-slate-50/80">
+                                <button
+                                    onClick={() => setActiveSidebarTab('orders')}
+                                    className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-colors ${activeSidebarTab === 'orders' ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                                >
+                                    <span className="flex items-center justify-center gap-2"><Clock size={12}/> Заказы</span>
+                                </button>
+                                <button
+                                    onClick={() => setActiveSidebarTab('profile')}
+                                    className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-colors ${activeSidebarTab === 'profile' ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                                >
+                                    <span className="flex items-center justify-center gap-2"><User size={12}/> Профиль</span>
+                                </button>
+                                <button
+                                    onClick={() => setIsSidebarExpanded(false)}
+                                    className="px-2 py-3 text-slate-300 hover:text-slate-500 transition-colors"
+                                    title="Свернуть панель"
+                                >
+                                    <X size={14} />
+                                </button>
                             </div>
-                        )}
-                    </div>
+
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
+                                {activeSidebarTab === 'orders' && (
+                                    <>
+                                        {isLoadingOrders ? (
+                                            <div className="space-y-3">
+                                                {[1, 2, 3].map(i => (
+                                                    <div key={i} className="h-16 bg-slate-50 rounded-md animate-pulse" />
+                                                ))}
+                                            </div>
+                                        ) : orders.length === 0 ? (
+                                            <div className="text-center py-8">
+                                                <Inbox size={24} className="mx-auto mb-2 text-slate-200" />
+                                                <p className="text-xs text-slate-400 font-medium tracking-tight">Заказов пока нет</p>
+                                            </div>
+                                        ) : (
+                                            orders.map(order => (
+                                                <div key={order.id} className="group p-3 rounded-lg border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all shadow-sm">
+                                                    <div className="flex items-start justify-between mb-1.5">
+                                                        <div className="text-[10px] font-black text-slate-700 truncate max-w-[140px]" title={order.serviceName}>
+                                                            {order.serviceName}
+                                                        </div>
+                                                        <div className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md border ${order.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                                            order.status === 'PROCESSING' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                                                order.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                                                    'bg-rose-50 text-rose-700 border-rose-100'
+                                                            }`}>
+                                                            {order.status}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between text-[11px] mb-2">
+                                                        <div className="font-black text-slate-900">{order.amount}₽</div>
+                                                        <div className="text-[9px] text-slate-400 font-bold tabular-nums">
+                                                            {new Date(order.createdAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-1">
+                                                        <a
+                                                            href={`/admin/orders/${order.id}`}
+                                                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-white text-slate-500 border border-slate-100 rounded-md text-[9px] font-black uppercase hover:border-slate-200 hover:bg-slate-50 transition-all"
+                                                        >
+                                                            <FileText size={10} />
+                                                            ID: {order.id}
+                                                        </a>
+                                                        <button
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(order.id.toString());
+                                                                setOrderIdCopied(order.id.toString());
+                                                                setTimeout(() => setOrderIdCopied(null), 2000);
+                                                            }}
+                                                            className={`px-2 py-1.5 rounded-md transition-all border ${orderIdCopied === order.id.toString()
+                                                                ? 'bg-emerald-500 text-white border-emerald-500'
+                                                                : 'bg-white text-slate-300 border-slate-100 hover:border-slate-200'
+                                                                }`}
+                                                            title="Копировать ID"
+                                                        >
+                                                            <Check size={10} />
+                                                        </button>
+                                                        <a
+                                                            href={order.link}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="px-2 py-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors border border-blue-100/50"
+                                                            title="Открыть ссылку"
+                                                        >
+                                                            <ExternalLink size={10} />
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </>
+                                )}
+
+                                {activeSidebarTab === 'profile' && (
+                                    <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+                                        <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Финансовая сводка</div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="bg-white p-2 rounded border border-slate-100 shadow-sm">
+                                                    <div className="text-[10px] text-slate-500 mb-0.5">Баланс</div>
+                                                    <div className="text-sm font-black text-blue-600">{Number(conversation.user.balance).toFixed(2)}₽</div>
+                                                </div>
+                                                <div className="bg-white p-2 rounded border border-slate-100 shadow-sm">
+                                                    <div className="text-[10px] text-slate-500 mb-0.5">LTV (Траты)</div>
+                                                    <div className="text-sm font-black text-rose-600">{Number(conversation.user.spent).toFixed(2)}₽</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Модерация аккаунта</div>
+                                            <div className="flex flex-col gap-2">
+                                                {((conversation.user as any).isPermanentlyBanned || ((conversation.user as any).banExpiresAt && new Date((conversation.user as any).banExpiresAt) > new Date())) ? (
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (confirm('Разблокировать пользователя и сбросить предупреждения?')) {
+                                                                await unbanUserAction(conversation.user.id);
+                                                                onUpdated();
+                                                            }
+                                                        }}
+                                                        className="w-full py-2 bg-green-50 text-green-600 text-xs font-black uppercase tracking-widest border border-green-200 rounded-md hover:bg-green-100 transition-colors"
+                                                    >
+                                                        Снять бан
+                                                    </button>
+                                                ) : (
+                                                    <>
+                                                        <button
+                                                            onClick={async () => {
+                                                                const reason = prompt('Причина предупреждения:');
+                                                                if (reason) {
+                                                                    await warnUserAction(conversation.user.id, reason);
+                                                                    onUpdated();
+                                                                }
+                                                            }}
+                                                            className="w-full py-2 bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest border border-amber-200 rounded-md hover:bg-amber-100 transition-colors"
+                                                        >
+                                                            + Выдать Предупреждение
+                                                        </button>
+                                                        <button
+                                                            onClick={async () => {
+                                                                const reason = prompt('Причина бана (24ч):');
+                                                                if (reason) {
+                                                                    await banUserAction(conversation.user.id, 24, reason);
+                                                                    onUpdated();
+                                                                }
+                                                            }}
+                                                            className="w-full py-2 bg-rose-50 text-rose-500 text-[10px] font-black uppercase tracking-widest border border-rose-200 rounded-md hover:bg-rose-100 transition-colors"
+                                                        >
+                                                            Бан чата (24ч)
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

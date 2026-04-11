@@ -13,7 +13,7 @@ import {
 import { DailyChartData } from '@/services/admin/microservices/admin-statistics.service';
 import { formatAmount } from '@/utils/formatter';
 import { AdminTableCard } from '@/components/admin/core/admin-table-card';
-import { Activity, Users, ShoppingCart, MessageSquare, IndianRupee } from 'lucide-react';
+import { Activity, Users, ShoppingCart, MessageSquare, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/utils/ui';
 
@@ -32,7 +32,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
                         <span className="text-slate-400 capitalize">{entry.name}:</span>
                         <span className="font-mono font-bold text-white">
-                            {entry.name === 'Выручка' ? `${formatAmount(entry.value)} ₽` : entry.value}
+                            {entry.name === 'Поступления (Депозиты)' ? `${formatAmount(entry.value)} ₽` : entry.value}
                         </span>
                     </div>
                 ))}
@@ -83,8 +83,8 @@ export function StatisticsCharts({ data, period }: StatisticsChartsProps) {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                     <div className="flex items-center gap-2 text-blue-500 mb-2">
-                        <IndianRupee size={16} />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Суммарная Выручка</span>
+                        <Wallet size={16} />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Поступления (Депозиты)</span>
                     </div>
                     <div className="text-2xl font-black text-slate-800">{formatAmount(totals.revenue)} ₽</div>
                 </div>
@@ -115,7 +115,7 @@ export function StatisticsCharts({ data, period }: StatisticsChartsProps) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
                 {/* Revenue Chart */}
-                <AdminTableCard title="Динамика Выручки" icon={Activity} className="col-span-1 lg:col-span-2">
+                <AdminTableCard title="Динамика Поступлений" icon={Activity} className="col-span-1 lg:col-span-2">
                     <div className="h-[300px] w-full p-4 pl-0">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={data}>
@@ -142,7 +142,7 @@ export function StatisticsCharts({ data, period }: StatisticsChartsProps) {
                                     dx={-10}
                                 />
                                 <Tooltip content={<CustomTooltip />} />
-                                <Area type="monotone" dataKey="revenue" name="Выручка" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                                <Area type="monotone" dataKey="revenue" name="Поступления (Депозиты)" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>

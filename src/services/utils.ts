@@ -20,19 +20,29 @@ export async function safeAdminExecute<T>(
     try {
         const result = await fn();
 
+        const logData = {
+            adminId: ctx.userId,
+            action: actionName,
+            targetId: projectId || 'SYSTEM',
+            details: 'OK',
+            metadata: {
+                timestamp: new Date().toISOString(),
+                success: true
+            }
+        };
+
         // Fire-and-forget: логируем успешное действие в аудит-лог
         prisma.adminLog.create({
-            data: {
-                adminId: ctx.userId,
-                action: actionName,
-                targetId: projectId || 'SYSTEM',
-                details: 'OK',
-                metadata: {
-                    timestamp: new Date().toISOString(),
-                    success: true
-                }
+            data: logData
+        }).catch((logErr: any) => {
+            if (logErr && logErr.code === 'P2003') {
+                // FK violation (e.g. user was deleted but session exists, or dev mock token)
+                logData.adminId = null as any;
+                (logData.metadata as any).originalUserId = ctx.userId;
+                return prisma.adminLog.create({ data: logData }).catch(e => 
+                    console.error('[AuditLog] Failed on P2003 retry:', e)
+                );
             }
-        }).catch((logErr) => {
             console.error('[AuditLog] Failed to log success:', logErr);
         });
 
@@ -42,17 +52,24 @@ export async function safeAdminExecute<T>(
 
         // Логируем критический сбой в базу для аудита
         try {
-            await prisma.adminLog.create({
-                data: {
-                    adminId: ctx.userId,
-                    action: `ERROR_${actionName}`,
-                    targetId: projectId || 'SYSTEM',
-                    details: error.message || 'Unknown error',
-                    metadata: {
-                        stack: error.stack,
-                        timestamp: new Date().toISOString()
-                    }
+            const errLogData = {
+                adminId: ctx.userId,
+                action: `ERROR_${actionName}`,
+                targetId: projectId || 'SYSTEM',
+                details: error.message || 'Unknown error',
+                metadata: {
+                    stack: error.stack,
+                    timestamp: new Date().toISOString()
                 }
+            };
+            await prisma.adminLog.create({ data: errLogData }).catch(async (errLogErr: any) => {
+                 if (errLogErr && errLogErr.code === 'P2003') {
+                      errLogData.adminId = null as any;
+                      (errLogData.metadata as any).originalUserId = ctx.userId;
+                      await prisma.adminLog.create({ data: errLogData });
+                 } else {
+                     throw errLogErr;
+                 }
             });
         } catch (logError) {
             console.error('Failed to log admin error:', logError);

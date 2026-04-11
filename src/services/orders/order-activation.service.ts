@@ -150,7 +150,11 @@ export class OrderActivationService {
                 } catch (err) {
                     console.error('Failed to send order start notification:', err);
                 }
-                await PromoService.checkLoyaltySpend(data.userId, data.tgId, updatedUser.spent, txPrisma);
+                // SANDBOX GUARD: тестовые заказы не должны засчитываться в лояльность и ачивки
+                const orderMeta = order.metadata as any;
+                if (!orderMeta?.isSandbox) {
+                    await PromoService.checkLoyaltySpend(data.userId, data.tgId, updatedUser.spent, txPrisma);
+                }
             }
 
             const telegramConfig = await ConfigService.getTelegramConfig(data.projectId || undefined, txPrisma);

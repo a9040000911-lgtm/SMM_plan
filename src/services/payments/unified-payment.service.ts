@@ -42,6 +42,22 @@ export class UnifiedPaymentService {
         metadata?: Record<string, any>
     ): Promise<UnifiedPaymentResult> {
         try {
+            // --- SANDBOX PAYMENT GUARDIAN ---
+            // Если Песочница включена, блокируем генерацию платёжных ссылок для обычных пользователей.
+            // Только ADMIN может генерировать тестовые платежи. Это предотвращает атаку Double-Spend:
+            // юзер пополняется тестовой картой → получает реальные деньги на баланс.
+            const { SandboxService } = await import('@/services/core/sandbox.service');
+            if (await SandboxService.isEnabled()) {
+                const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+                if (user?.role !== 'ADMIN') {
+                    console.log(`[PaymentGuardian] 🛑 Blocked payment for non-admin user ${userId} (Sandbox active)`);
+                    return {
+                        success: false,
+                        error: 'Ведутся технические работы по обновлению платёжного шлюза. Попробуйте позже.'
+                    };
+                }
+                console.log(`[PaymentGuardian] 🧪 Allowing test payment for ADMIN ${userId}`);
+            }
             // [FIX 3.4] Idempotency Protection: Preventing double-clicks for identical deposit forms
             const thirtySecondsAgo = new Date(Date.now() - 30 * 1000);
             const recentPending = await prisma.transaction.findFirst({

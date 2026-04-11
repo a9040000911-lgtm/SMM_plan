@@ -30,6 +30,17 @@ export class OrderLifecycleService {
         isManual: boolean;
         inviteLink?: string | null;
     }) {
+        // --- SANDBOX DATA QUARANTINE ---
+        // Если Песочница включена, каждый новый заказ получает метку isSandbox: true.
+        // Это позволяет изолировать тестовые данные от боевых без модификации других сервисов.
+        let metadata: any = undefined;
+        try {
+            const { SandboxService } = await import('@/services/core/sandbox.service');
+            if (await SandboxService.isEnabled()) {
+                metadata = SandboxService.tagRecord({});
+            }
+        } catch { /* ignore — sandbox check failure should not block order creation */ }
+
         return await OrderRepository.create({
             projectId: data.projectId,
             userId: data.userId,
@@ -46,7 +57,8 @@ export class OrderLifecycleService {
             runs: data.runs,
             interval: data.interval,
             currentRun: 0,
-            isManual: data.isManual
+            isManual: data.isManual,
+            ...(metadata ? { metadata } : {})
         }, tx);
     }
 

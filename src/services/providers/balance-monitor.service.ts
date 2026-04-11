@@ -13,7 +13,7 @@ export class BalanceMonitorService {
      */
     static async checkAndLogAllBalances() {
         const { ProviderService } = await import('./provider.service');
-        const providers = await prisma.provider.findMany({ where: { isEnabled: true } });
+        const providers = await prisma.provider.findMany({ where: { isEnabled: true, NOT: { name: { startsWith: '[MOCK]' } } } });
 
         for (const provider of providers) {
             const instance = await ProviderService.getInstance(provider.id);

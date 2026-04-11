@@ -259,9 +259,9 @@ describe('GAP 2: scheduled-order.service — FAILED notifications', () => {
         const { ScheduledOrderService } = await import('@/services/orders/scheduled-order.service');
         await ScheduledOrderService.executeScheduledOrder('sched-1');
 
-        // ✅ Must mark as FAILED
+        // ✅ Must mark as CANCELED (business logic: insufficient balance = cancel)
         expect(mockScheduledOrderUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({ data: { status: 'FAILED' } })
+            expect.objectContaining({ data: { status: 'CANCELED' } })
         );
 
         // ✅ Must notify user via Telegram

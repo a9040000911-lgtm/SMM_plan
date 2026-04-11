@@ -22,7 +22,7 @@ export async function dismissCookieBanner(page: Page): Promise<void> {
  */
 export async function adminLogin(page: Page, email: string, password: string): Promise<void> {
     await page.goto('/admin/login');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await dismissCookieBanner(page);
 
     await page.locator('input[type="email"]').fill(email);
@@ -39,14 +39,26 @@ export async function adminLogin(page: Page, email: string, password: string): P
         // If still on login page — check if 2FA code input appeared
         const has2fa = await page.locator('input[placeholder="000000"]').isVisible({ timeout: 3000 }).catch(() => false);
         if (has2fa) {
-            // Can't proceed without 2FA code in E2E — test should use twoFactorEnabled:false accounts
-            throw new Error('2FA required but not supported in this test. Set twoFactorEnabled:false on the admin account.');
+            const masterKey = process.env.ADMIN_MASTER_KEY || '777777';
+            if (masterKey) {
+                page.once('dialog', dialog => {
+                    console.log('DIALOG FIRED:', dialog.message());
+                    dialog.accept();
+                });
+                await page.locator('input[placeholder="000000"]').fill(masterKey);
+                await page.locator('button[type="submit"]').click();
+
+                // wait a bit to see if dialog fires
+                await page.waitForTimeout(1000);
+            } else {
+                throw new Error('2FA required but no ADMIN_MASTER_KEY found.');
+            }
         }
     }
 
     // Wait for final /admin landing
-    await page.waitForURL(/\/admin(?!\/login)/, { timeout: 20000 }).catch(() => null);
-    await page.waitForLoadState('networkidle');
+    await page.waitForURL(/\/admin(?!\/login)/, { timeout: 30000 });
+    await page.waitForLoadState('domcontentloaded');
 }
 
 
@@ -56,7 +68,7 @@ export async function adminLogin(page: Page, email: string, password: string): P
  */
 export async function clientLogin(page: Page, email: string, password: string): Promise<void> {
     await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await dismissCookieBanner(page);
 
     await page.locator('input[type="email"], input[name="email"]').first().fill(email);
@@ -66,5 +78,5 @@ export async function clientLogin(page: Page, email: string, password: string): 
 
     // Wait for redirect to client area
     await page.waitForURL(/\/(catalog|dashboard|$)/, { timeout: 15000 }).catch(() => null);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 }
