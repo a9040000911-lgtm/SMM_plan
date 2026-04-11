@@ -1,14 +1,14 @@
 # (c) 2024-2026 Smmplan. All rights reserved.
 
 # STAGE 1: Deps
-FROM node:20-slim AS deps
+FROM node:22-slim AS deps
 RUN apt-get update && apt-get install -y openssl
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 
 # STAGE 2: Builder
-FROM node:20-slim AS builder
+FROM node:22-slim AS builder
 RUN apt-get update && apt-get install -y openssl
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -26,7 +26,7 @@ ENV NEXT_PRIVATE_LOCAL_WEBPACK_WORKERS=0
 RUN npx next build && npm run prisma:patch
 
 # STAGE 3: Bot Runner
-FROM node:20-slim AS bot-runner
+FROM node:22-slim AS bot-runner
 RUN apt-get update && apt-get install -y openssl
 WORKDIR /app
 ENV NODE_ENV production
@@ -40,7 +40,7 @@ COPY --from=builder /app/prisma ./prisma
 CMD ["npx", "tsx", "src/bot/index.ts"]
 
 # STAGE 4: Next.js Production Runner (MUST BE LAST STAGE!)
-FROM node:20-slim AS runner
+FROM node:22-slim AS runner
 RUN apt-get update && apt-get install -y openssl
 WORKDIR /app
 
